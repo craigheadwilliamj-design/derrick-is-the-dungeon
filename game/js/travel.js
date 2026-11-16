@@ -178,7 +178,8 @@ DD.travel = (function () {
 
   X.start = function (plan, opts) {
     const g = G(), st = g.stats(), seed = (Math.random() * 2147483647) >>> 0, r = DD.rng(seed);
-    const run = { v: 1, kind: 'trip', regionId: 'bloodstream', systems: null, seed, hp: st.maxHP, atp: st.maxATP, glucose: 0, killed: 0, miss: [], genLevel: prof().level,
+    const resources = g.resources();
+    const run = { v: 1, kind: 'trip', regionId: 'bloodstream', systems: null, seed, hp: resources.hp, atp: resources.atp, glucose: 0, killed: 0, miss: [], genLevel: prof().level,
       px: 0, py: 0, floor: null, accent: null,
       trip: { key: plan.key, from: plan.from, to: plan.to, ids: plan.ids, mode: plan.mode, idx: 0, steps: 0, amb: planAmbushes(plan.ids.slice(1).map(DD.world.get), r), done: 0 } };
     g.run = run; g.combat = null; g.msgs = [];
@@ -210,17 +211,19 @@ DD.travel = (function () {
   X.persist = function () {
     const run = G().run; if (!run || !run.trip) return;
     const t = run.trip;
-    DD.save.saveRun({ v: 1, kind: 'trip', seed: run.seed, hp: run.hp, atp: run.atp, glucose: run.glucose, killed: run.killed, miss: run.miss, genLevel: run.genLevel,
+    G().syncResources(run); DD.save.save();
+    DD.save.saveRun({ v: 1, kind: 'trip', seed: run.seed, hp: run.hp, atp: run.atp, earned: run.earned, battle: G().combat ? DD.combat.snapshot(G().combat) : null, glucose: run.glucose, killed: run.killed, miss: run.miss, genLevel: run.genLevel,
       trip: { key: t.key, from: t.from, to: t.to, ids: t.ids, mode: t.mode, idx: t.idx, amb: t.amb } });
   };
   X.resume = function (s) {
     const g = G(), st = g.stats();
     const run = { v: 1, kind: 'trip', regionId: 'bloodstream', systems: null, seed: s.seed, hp: Math.min(s.hp, st.maxHP), atp: Math.min(s.atp, st.maxATP), glucose: s.glucose || 0,
-      killed: s.killed || 0, miss: s.miss || [], genLevel: s.genLevel || prof().level, px: 0, py: 0, floor: null, accent: null,
+      earned: s.earned, killed: s.killed || 0, miss: s.miss || [], genLevel: s.genLevel || prof().level, px: 0, py: 0, floor: null, accent: null,
       trip: { key: s.trip.key, from: s.trip.from, to: s.trip.to, ids: s.trip.ids, mode: s.trip.mode, idx: 0, steps: 0, amb: s.trip.amb || [], done: 0 } };
     g.run = run; g.combat = null; g.msgs = [];
     if (!s.trip.ids.every(id => DD.world.get(id))) { g.run = null; DD.save.saveRun(null); return false; }
     enter(Math.min(s.trip.idx, X.segs(run).length - 1));
+    if (s.battle) { g.combat = DD.combat.create(run, null, { saved: s.battle }); X.persist(); }
     g.say('You rejoin the flow.');
     return true;
   };
@@ -262,8 +265,8 @@ DD.travel = (function () {
       p.taken = true;
       if (p.kind === 'item') {
         const d = DD.data.items[p.item], inv = prof().inventory, have = inv[p.item] || 0;
-        if (d.cap && have >= d.cap) { const v = DD.derrick.loot(DD.u.int(Math.random, S.economy.pickup.min, S.economy.pickup.max), 'bloodstream'); prof().glucose += v; run.glucose += v; g.say('You find a ' + d.name + ' but cannot carry more. It breaks down into ' + v + ' glucose.'); }
-        else { inv[p.item] = have + 1; g.say('You catch a ' + d.name + ' drifting in the current.'); }
+        if (d.cap && have >= d.cap) { const v = DD.derrick.loot(DD.u.int(Math.random, S.economy.pickup.min, S.economy.pickup.max), 'bloodstream'); g.reward('glucose', v); run.glucose += v; g.say('You find a ' + d.name + ' but cannot carry more. It breaks down into ' + v + ' glucose.'); }
+        else { g.reward('item', p.item); g.say('You catch a ' + d.name + ' drifting in the current.'); }
       } else {
         const E = S.economy.pickup, v = DD.derrick.loot(DD.u.int(Math.random, E.min, E.max), 'bloodstream');
         run.glucose += v; prof().glucose += v; g.say('You absorb ' + v + ' glucose.');
@@ -304,7 +307,7 @@ DD.travel = (function () {
     const info = { trip: t, place, from: DD.world.get(t.from), segs: X.segs(run).length - 1, glucose: run.glucose, killed: run.killed, fast: false };
     const done = () => {
       const st = DD.world.walked(t.key);
-      prof().loc = t.to;
+      g.settle(true); prof().loc = t.to;
       g.run = null; g.combat = null; DD.save.saveRun(null); DD.save.save();
       info.state = st;
       DD.ui.arrive(info);
@@ -322,7 +325,7 @@ DD.travel = (function () {
   // Give up a trip: you wash back up where you set out.
   X.abort = function () {
     const g = G(), t = g.run && g.run.trip; if (!t) return;
-    prof().loc = t.from; g.run = null; g.combat = null; DD.save.saveRun(null); DD.save.save();
+    g.settle(false); prof().loc = t.from; g.run = null; g.combat = null; DD.save.saveRun(null); DD.save.save();
     DD.ui.menu();
   };
   return X;

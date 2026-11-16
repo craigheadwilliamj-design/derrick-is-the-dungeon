@@ -12,7 +12,7 @@ DD.gear = (function () {
   const KIND_NAME = { weapon: 'Weapon', armor: 'Armor', acc: 'Accessory' };
   const TYPE_NAME = { axe: 'Axe', staff: 'Staff', dagger: 'Dagger', mace: 'Mace', bow: 'Bow', instrument: 'Instrument' };
   const TYPE_PL = { bacteria: 'bacteria', virus: 'viruses', fungus: 'fungi', protozoa: 'protozoa', worm: 'worms' };
-  const STATS = [['maxHP', 'HP', 0], ['power', 'Power', 1], ['defense', 'Defense', 1], ['maxATP', 'ATP', 0]];
+  const STATS = [['maxHP', 'HP', 0], ['power', 'Power', 1], ['defense', 'Armor', 1], ['maxATP', 'ATP', 0]];
 
   gear.slotsFor = it => it.slot === 'acc' ? ['acc1', 'acc2'] : [it.slot];
   gear.color = rarity => G.colors[rarity];
@@ -29,6 +29,7 @@ DD.gear = (function () {
   function takeFromBag(id) { const i = bag().indexOf(id); if (i >= 0) bag().splice(i, 1); return i >= 0; }
   // A saved run (or town visit) keeps its HP and ATP, so they can't sit above a lowered maximum.
   function clampRun() {
+    DD.game.resources();
     const r = DD.save.run; if (!r || typeof r.hp !== 'number') return;
     const st = DD.stats.compute(prof());
     r.hp = Math.max(1, Math.min(r.hp, st.maxHP)); r.atp = Math.min(r.atp || 0, st.maxATP);
@@ -53,10 +54,10 @@ DD.gear = (function () {
 
   // ---------- plain-language effects ----------
   const STAT_TEXT = {
-    maxHP: v => '+' + Math.round(v) + ' max HP', power: v => '+' + (+v.toFixed(1)) + ' Power', defense: v => '+' + (+v.toFixed(1)) + ' Defense',
+    maxHP: v => '+' + Math.round(v) + ' max HP', power: v => '+' + (+v.toFixed(1)) + ' Power', defense: v => '+' + (+v.toFixed(1)) + ' Armor',
     maxATP: v => '+' + Math.round(v) + ' max ATP', blockCut: v => '+' + pc(v) + ' damage cut when you block'
   };
-  const WHEN = { onKill: 'When you destroy an enemy', onBlock: 'When you block', onHeavyCorrect: 'On a correct heavy attack', onQuestionCorrect: 'On every correct answer',
+  const WHEN = { onKill: 'When you destroy an enemy', onBlock: 'When you block', onHeavyCorrect: 'On a correct damaging ATP ability', onQuestionCorrect: 'On every correct answer',
     fightStart: 'At the start of a fight', turnStart: 'At the start of each turn', onQuestionAsk: 'Whenever a question is asked', onBigHit: 'When an enemy’s big attack lands',
     onHit: 'When an enemy hits you', onLight: 'On a light attack' };
   const RULE_TEXT = {
@@ -124,8 +125,8 @@ DD.gear = (function () {
     return DD.data.gear.find(it => it.rarity === 'common').id;
   };
   gear.openChest = function (chest) {
-    const it = by(chest.item); chest.taken = true; gear.give(chest.item);
-    DD.game.say('You open a chest: ' + it.name + ' (' + it.rarity + ').');
+    const it = by(chest.item); chest.taken = true; DD.game.reward('gear', chest.item);
+    DD.game.say('You open a chest: ' + it.name + ' (' + it.rarity + '). Return safely to keep it.');
     DD.save.save(); DD.game.persist();
   };
   // Town shop: some commons and a few uncommons, favoring gear from the regions that drain to this node. Same seed, same stock.
@@ -163,6 +164,7 @@ DD.gear = (function () {
   gear.info = function (it, extra) {
     return el('div', { class: 'shopinfo ginfo', style: { '--rc': gear.color(it.rarity) } },
       el('b', { class: 'gname' }, it.name), chips(it), extra || null,
+      it.wtype === 'staff' ? el('div', { class: 'small' }, 'Wizard spell: ' + ((DD.data.staffSpells[it.id] || {}).name || 'Acid Bolt')) : null,
       el('ul', { class: 'fxl' }, gear.fxLines(it).map(t => el('li', null, t))),
       el('div', { class: 'small dim' }, it.desc));
   };
@@ -244,6 +246,7 @@ DD.gear = (function () {
       el('div', { class: 'card' },
         el('div', { class: 'stats small' }, 'HP ' + st.maxHP + ' · Power ' + st.power.toFixed(1) + ' · Defense ' + st.defense.toFixed(1) + ' · ATP ' + st.maxATP + ' · Block cut ' + pc(st.blockCut)),
         DD.save.run ? el('div', { class: 'dim small' }, 'A run is in progress: HP and ATP are capped to the new maximums when you swap.') : null),
+      el('p', { class: 'dim small' }, 'Equipment review pending: legacy rules tied to heavy attacks or enemy quizzes are suspended. Stats, ordinary triggers and travel effects remain active.'),
       el('div', { class: 'gslots' }, DD.data.gearSlots.map(slotCard)),
       el('div', { class: 'toolrow2' }, el('b', null, 'Bag (' + bag().length + ')'), [['all', 'All'], ['weapon', 'Weapons'], ['armor', 'Armor'], ['acc', 'Accessories']].map(chip)),
       ids.length ? el('div', { class: 'gslots' }, ids.map(bagCard)) : el('p', { class: 'dim small' }, bag().length ? 'Nothing in the bag for this filter.' : 'Your bag is empty. Gear comes from dungeon chests (&), plasma cell shops, the dendritic merchant and boss drops.'),

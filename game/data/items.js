@@ -3,17 +3,17 @@
 (function () {
   const I = DD.S.items, pc = x => Math.round(x * 100) + '%';
   DD.data.items = {
-    tonic: { id: 'tonic', name: 'Cytokine Tonic', price: I.tonic.price, cap: I.tonic.cap, tip: 'Heals ' + pc(I.tonic.healPct) + ' of max HP.',
+    tonic: { id: 'tonic', name: 'Recovery Tonic', price: I.tonic.price, cap: I.tonic.cap, tip: 'Heals ' + pc(I.tonic.healPct) + ' of max HP.',
       real: 'Cytokines are signaling proteins that immune cells use to coordinate and strengthen a response.',
-      use: { cast: { type: 'heal', pct: I.tonic.healPct }, msg: 'You drink a Cytokine Tonic.' } },
-    atpReserve: { id: 'atpReserve', name: 'ATP Reserve', price: I.atpReserve.price, tip: 'Restores ' + pc(I.atpReserve.atpPct) + ' of max ATP.',
+      use: { cast: { type: 'heal', pct: I.tonic.healPct }, msg: 'You drink a Recovery Tonic.' } },
+    atpReserve: { id: 'atpReserve', name: 'ATP Shot', price: I.atpReserve.price, tip: 'Restores ' + pc(I.atpReserve.atpPct) + ' of max ATP.',
       real: 'ATP is the cell\'s usable energy currency, made mostly in the mitochondria.',
-      use: { cast: { type: 'atp', pct: I.atpReserve.atpPct }, msg: 'You crack open an ATP Reserve.' } },
-    complement: { id: 'complement', name: 'Complement', price: I.complement.price, tip: 'Your next heavy does ×' + I.complement.mult + ' damage.',
+      use: { cast: { type: 'atp', pct: I.atpReserve.atpPct }, msg: 'You take an ATP Shot.' } },
+    complement: { id: 'complement', name: 'Complement', price: I.complement.price, tip: 'Your next damaging ATP ability does ×' + I.complement.mult + ' damage.',
       real: 'The complement system is a set of blood proteins that tag pathogens for destruction and can punch holes in them.',
-      use: { msg: 'Complement proteins coat the enemy.', effect: { id: 'complement', src: 'buff', label: 'Complement: next heavy ×' + I.complement.mult, trigger: 'onHeavyCorrect',
+      use: { msg: 'Complement proteins coat the enemy.', effect: { id: 'complement', src: 'buff', label: 'Complement: next damaging ability ×' + I.complement.mult, trigger: 'onHeavyCorrect',
         result: { type: 'damageMult', mult: I.complement.mult }, expires: 'heavy' } } },
-    mucusWard: { id: 'mucusWard', name: 'Mucus Ward', price: I.mucusWard.price, tip: 'The next hit you take does 0 damage.',
+    mucusWard: { id: 'mucusWard', name: 'Mucus Flask', price: I.mucusWard.price, tip: 'The next hit you take does 0 damage.',
       real: 'Mucus traps microbes and debris on the surface of airways and the gut lining.',
       use: { msg: 'A sticky ward of mucus surrounds you.', effect: { id: 'mucus-ward', src: 'buff', label: 'Mucus Ward: next hit does 0', trigger: 'static',
         result: { type: 'shield' }, expires: 'hit' } } },
@@ -30,7 +30,7 @@
       real: 'Antibiotics treat bacterial infections only; they do not work on viruses.',
       use: { msg: 'The antibiotic takes hold.', effect: { id: 'antibiotic', src: 'buff', label: 'Antibiotic: ×' + I.antibiotic.mult + ' vs bacteria', trigger: 'static',
         cond: { enemyType: 'bacteria' }, result: { type: 'damageMult', mult: I.antibiotic.mult } } } },
-    lymphDrain: { id: 'lymphDrain', name: 'Lymph Drain', price: I.lymphDrain.price, tip: 'Escape a non-boss fight and flow to the lymph node town. Also what Flee uses.',
+    lymphDrain: { id: 'lymphDrain', name: 'Lymph Drain', price: I.lymphDrain.price, tip: 'Return to the lymph node with all expedition XP and loot, including from boss fights.',
       real: 'Lymphatic vessels carry fluid from the tissues through lymph nodes before it returns to the blood.',
       use: { flee: true, msg: 'You slip into a lymphatic vessel.' } }
   };

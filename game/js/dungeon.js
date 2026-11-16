@@ -35,11 +35,12 @@ DD.dungeon = (function () {
     return DD.u.pick(r, ok.length ? ok : defs.filter(d => !d.boss));
   }
   function makeEnemy(def, uid, x, y, level, boss) {
-    const E = S.enemy;
-    const hp = Math.round((E.hp.base + E.hp.perLevel * level) * (boss ? E.bossHpMult : 1));
+    const E = S.rpg.enemy;
+    const hp = Math.round((E.hp + E.hpLevel * (level - 1)) * (boss ? E.bossHP : 1));
+    const types = { bacteria: 'acid', virus: 'electrical', fungus: 'toxin', protozoa: 'oxidative', worm: 'physical' };
     return { uid, defId: def.id, name: def.name, type: def.type, glyph: def.glyph, codex: def.codex, boss: !!boss, lvl: level,
-      hp, maxHP: hp, atk: (E.atk.base + E.atk.perLevel * level) * (boss ? E.bossAtkMult : 1), def: E.def.perLevel * level,
-      x, y, alive: true };
+      hp, maxHP: hp, atk: (E.attack + E.attackLevel * (level - 1)) * (boss ? E.bossAttack : 1),
+      def: E.armor + E.armorLevel * (level - 1), damageType: types[def.type] || 'physical', x, y, alive: true };
   }
 
   function generate(o) {

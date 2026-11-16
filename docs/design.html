@@ -68,36 +68,47 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <p>New content should almost always be new data combining existing effects.</p>
 
 <h2>Combat</h2>
+<p><b>Combat rework (2026-11-16) supersedes the old phase specifications below.</b> Classic Final Fantasy-style solo battles: your cell and Basophil on the left, enemy groups on the right, HP bars and visible intentions, commands across the bottom. Responsive layout supports phones. No active-time timer.</p>
 <ul>
-<li>Turn-based. Enemy <b>telegraphs</b> its next move: attack, big attack, defend, or question.</li>
-<li>Player: <b>light</b> (small, always lands), <b>heavy</b> (asks a question: right = big damage, wrong = whiff and open), <b>block</b>, <b>ability</b> (costs ATP), <b>item</b>.</li>
-<li>Enemy question move: right = player buff, wrong = enemy buff. Regular enemies ~once per fight; bosses every ~2 turns with bigger swings.</li>
-<li>Every answer shows a short explanation. Number keys 1–4 answer.</li>
-<li>Damage = Power × action multiplier × matchups − enemy defense. Strong class/pathogen matchup ≈ +50%.</li>
-<li>Abilities never skip a question. Questions must stay the best move (light-attack spam must be slow and costly).</li>
-<li>Target pacing: a question every 20–30 s of play.</li>
+<li><b>Free Attack:</b> choose one enemy. <b>Free Block:</b> uses the turn and reduces every direct incoming attack until your next turn, after armor. Initial reduction is 50%.</li>
+<li><b>Three ATP abilities per class:</b> all require a study question, including healing, buffs, shields and companion recruitment. Correct activates the skill and spends ATP; wrong spends the turn but preserves ATP. Both show the explanation. This wrong-answer rule is the initial implementation choice for testing.</li>
+<li>Choose targets before answering. Chain Strike permits three independently chosen targets, including repeated targets. Group skills affect all living enemies.</li>
+<li>The player acts, Basophil attacks, enemy Bleed/Poison tick, then surviving enemies act. Player Bleed/Poison tick after enemy actions. The entire enemy round is covered by Block.</li>
+<li>Regular map encounters generate seeded groups of 1–3 enemies; bosses have one supporting enemy. Defeating the encounter removes its map marker and awards each combatant's rewards. Initial enemy level-one baseline: 34 HP, 10 attack, 15 armor. Group composition and numbers remain subject to playtesting.</li>
+<li>Enemy intentions are Attack, Guard or a telegraphed heavy attack with a named effect. Old random enemy quizzes are removed: combat questions belong to ATP abilities.</li>
+<li>Battle state, target choices, question option order, companion HP, effects and results persist through reloads. Practice drills use isolated resources and keep their existing question workflow.</li>
 </ul>
+<h3>Armor, damage types and effects</h3>
+<p>Physical damage = raw damage × 100 / (100 + Armor), rounded, minimum 1. Corrode halves Armor. Armor 25 reduces a 40-point hit to 32; Armor 100 reduces it to 20. Nonphysical direct damage bypasses Armor. The engine supports named elemental resistances; equipment resistance assignments await the equipment review. Existing Defense bonuses now contribute to Armor.</p>
+<div class="t"><table><tr><th>Damage type</th><th>Signature effect</th><th>Behavior</th></tr>
+<tr><td>Physical</td><td>Bleed</td><td>Hard-hitting damage over 1–3 turns. Never stacks. Reapplication preserves the stronger tick and refreshes to the longer remaining duration.</td></tr>
+<tr><td>Acid</td><td>Corrode</td><td>Reduces Armor only; no damage-over-time component. Enzyme attacks share the Acid game category.</td></tr>
+<tr><td>Oxidative</td><td>Weaken</td><td>Reduces damage dealt; initial reduction 25%.</td></tr>
+<tr><td>Electrical</td><td>Stun</td><td>Lose one full turn. Rare, difficult to apply, cannot chain indefinitely. Bosses resist most applications.</td></tr>
+<tr><td>Toxin</td><td>Poison</td><td>Small damage per stack. Stacks add together and never expire by a turn timer.</td></tr>
+</table></div>
+<p>Effects require an explicit source; damage type alone does not guarantee application. Bleed/Poison bypass Armor, Block and one-hit shields. Initial ticks scale from the source's Power (30% for Bleed; 5% per Poison stack). Poison currently ends with combat; persistence on the player outside combat has not been approved and is deferred. Elemental pathogen assignments are fictional combat abstractions, not medical claims.</p>
+<p><b>One-hit Shield:</b> Wizard's Membrane Barrier and Paladin's Aegis negate one direct attack completely, including its attached effect. Lasts until used or combat ends. No stacking; recast is blocked while active. Existing DOT continues. Against groups the first attack consumes it, while free Block protects against the whole round.</p>
 
 <h2>Stats &amp; classes</h2>
-<p>Stats: HP, Power, Defense, ATP (mana). Leveling: +HP/+Power per level weighted by class. Milestone ability upgrades at 5/10/15, claimed at the thymus. Levels are shared across classes.</p>
-<div class="t"><table>
-<tr><th>Class</th><th>HP/Pow/Def/ATP</th><th>Weapon</th><th>Passive</th><th>Active</th><th>Strong vs</th></tr>
-<tr><td>Neutrophil · Berserker</td><td>2/5/1/2</td><td>Axes</td><td>First Responder: first heavy of fight ×2</td><td>NETosis: next heavy ×3, costs HP even if wrong</td><td>Bacteria, fungi</td></tr>
-<tr><td>B Cell · Wizard</td><td>2/3/2/5</td><td>Staffs</td><td>Memory: bonus vs species beaten before</td><td>Opsonize: enemy takes extra damage 3 turns</td><td>Bacteria</td></tr>
-<tr><td>Cytotoxic T · Rogue</td><td>2/4/2/3</td><td>Daggers</td><td>Precision: fast correct heavy crits</td><td>Apoptosis: correct heavy executes &lt;⅓ HP</td><td>Viruses</td></tr>
-<tr><td>Macrophage · Paladin</td><td>5/2/4/2</td><td>Maces+shields</td><td>Phagocytosis: heal on kill</td><td>Antigen Presentation: remove 2 wrong options</td><td>Bacteria, protozoa</td></tr>
-<tr><td>Eosinophil · Ranger</td><td>3/3/3/3</td><td>Bows</td><td>Big Game: bonus vs worms &amp; bosses</td><td>Degranulate: poison 3 turns</td><td>Worms</td></tr>
-<tr><td>Basophil · Bard</td><td>3/2/2/4</td><td>Instruments</td><td>Heparin: blocks absorb extra</td><td>Inflammation: neutrophil ally light-attacks 3 turns</td><td>(support)</td></tr>
+<p>Five solo classes. Basophil is Ranger's companion rather than a playable Bard. Older Bard saves migrate to Ranger, preserving level, equipment, study history and stored legacy upgrades. Legacy subclasses and thymus milestones are suspended and retained, pending redesign.</p>
+<div class="t"><table><tr><th>Class</th><th>HP</th><th>ATP</th><th>Power</th><th>Armor</th><th>ATP kit</th></tr>
+<tr><td>Neutrophil · Berserker</td><td>120</td><td>24</td><td>24</td><td>20</td><td>Cleave (6): ×1.8 Physical, Bleed 3 turns. Protein Rage (7): +50% damage, 30% less direct damage taken for 3 subsequent turns; no items or other ATP abilities. Second Wind (6): heal 30% max HP, next basic Attack +50%.</td></tr>
+<tr><td>B Cell · Wizard</td><td>80</td><td>40</td><td>18</td><td>10</td><td>Staff Spell (6): default Acid Bolt, ×2.4 and Corrode. Gas Cloud (10): ×0.8 Toxin to all, +2 Poison stacks each. Membrane Barrier (6): one-hit Shield.</td></tr>
+<tr><td>Cytotoxic T · Rogue</td><td>95</td><td>28</td><td>23</td><td>15</td><td>Perforate (5): ×1.5 Physical and Bleed 2 turns, +50% damage below half HP. Chain Strike (7): three ×0.7 Physical strikes. Toxic Coating (6): 3 turns of +1 Poison per basic/Chain Strike hit.</td></tr>
+<tr><td>Macrophage · Paladin</td><td>130</td><td>28</td><td>18</td><td>40</td><td>Engulf (6): ×1.8 Acid; heal 25% max HP on kill. Shield Sweep (8): ×1 Physical to all, enter Block. Aegis (6): one-hit Shield.</td></tr>
+<tr><td>Eosinophil · Ranger</td><td>100</td><td>30</td><td>21</td><td>20</td><td>Antibody Mark (5): ×1.2 Physical shot, mark one target for +25% damage and companion focus. Scatter Shot (8): ×1 Physical to all, Bleed 1 turn. Recruit Basophil (8): summon or heal companion.</td></tr>
 </table></div>
-<p>Soft weapon restriction: any class equips anything; own weapon type gets a bonus.</p>
-<h3>Subclasses (phase 5, picked at thymus ~lv 10)</h3>
-<p>Berserker: NET Weaver / Respiratory Burst. Wizard: Plasma Cell / Memory B Cell. Rogue: Cytotoxic Assassin / Regulatory T (debuffer). Paladin: M1 Crusader / M2 Warden. Ranger: Worm Hunter / Toxin Trapper. Bard: Histamine Herald / Heparin Keeper. Each = passive tweak + active upgrade.</p>
+<p>Values are level-one before equipment. Shared growth per level: +8 HP, +1 ATP, +2 Power, +2 Armor. Every kit is available initially for testing. Old class passives and blanket +50% pathogen matchups are replaced by the new kits; own-weapon-type ×1.15 remains until equipment review.</p>
+<p><b>Wizard staffs:</b> Dendrite Staff grants Nerve Pulse (Electrical, 20% Stun chance); Respiratory Burst Staff grants Oxidative Bolt (Weaken); Spirochete Corkscrew grants Toxic Bolt (+3 Poison). Other staffs currently use Acid Bolt. Equipment must show its granted spell. Spell effects are game abstractions.</p>
+<h3>Basophil companion</h3>
+<p>One permanent companion identity, recruited for a battle. HP = 50% Ranger max HP. Attacks immediately on recruitment and once per round for 40% Ranger Power; follows Antibody Mark, otherwise the selected living target. Receives 25% of direct damage that would otherwise hit Ranger, capped by its remaining HP; damage is redirected, not duplicated or reduced a second time. Recasting heals 50% companion max HP, or summons it again after defeat. No recast at full HP. The mark strengthens both Ranger and companion damage. Companion ends with the encounter.</p>
 
 <h2>Enemies</h2>
 <ul>
-<li>Pathogens: bacteria, viruses, fungi, protozoa, worms. Type only sets matchup bonuses; no special behaviors.</li>
+<li>Pathogens: bacteria, viruses, fungi, protozoa, worms. Type supplies an initial fictional combat damage theme. Groups, intentions and status effects create tactical differences.</li>
 <li>Mild and common early (cold, strep throat, acne bacteria, athlete's foot, pinworm, cold sores, pink eye, ear infection, norovirus, UTI); serious later and as bosses (TB, plague, meningitis…).</li>
-<li>Bosses: more HP, harder hits, more questions, one unique legendary drop themed on the pathogen (e.g. Polysaccharide Capsule). No gimmick phases.</li>
+<li>Bosses: more HP, harder hits, a supporting enemy and one unique legendary drop themed on the pathogen (e.g. Polysaccharide Capsule). No gimmick phases.</li>
 <li>Microbiology is flavor only: one-line codex blurb, never quizzed.</li>
 <li>Clots and plaques are vessel hazards (block or narrow paths), not enemies.</li>
 </ul>
@@ -148,20 +159,25 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 
 <h2>Economy</h2>
 <ul>
-<li><b>Glucose</b> = currency (enemies, chests, vessels, NPCs, outbreaks). <b>ATP</b> = mana: small trickle per correct answer, big refills only by converting glucose at towns (≈30 ATP per glucose flavor) or pricey ATP Reserve.</li>
+<li><b>Glucose</b> = currency (enemies, chests, vessels, NPCs, outbreaks). <b>ATP</b> = mana: no automatic base refill for ability answers; refills by converting glucose at towns (≈30 ATP per glucose flavor) or pricey ATP Shot.</li>
 <li>Classic RPG attrition: inns give a full restore for glucose. Healing carry cap: 3 Cytokine Tonics.</li>
-<li>Consumables: Cytokine Tonic (heal), ATP Reserve, Complement (next heavy +50%), Mucus Ward (block next hit), Fever (+damage, self-damage per turn), Interferon (bonus vs viruses), Antibiotic (bonus vs bacteria, useless vs viruses), Lymph Drain (escape to nearest node).</li>
+<li>Consumables: Recovery Tonic (heal), ATP Reserve, Complement (next heavy +50%), Mucus Flask (negate next hit), Fever (+damage, self-damage per turn), Interferon (bonus vs viruses), Antibiotic (bonus vs bacteria, useless vs viruses), Lymph Drain (return with earnings).</li>
 </ul>
 
+<h2>Persistent resources and safe return</h2>
+<p>HP and ATP persist across battles, dungeon entries, trips and towns. Inns work without an active dungeon and charge glucose for full HP/ATP. Respiration counters restore ATP for glucose; merchants offer paid rest. Death restores the player in marrow and retains the existing carried-currency penalty.</p>
+<p>Every dungeon can be abandoned, including boss fights. Free Flee or Leave forfeits expedition XP, glucose, found gear and unused found supplies. Original belongings remain; used supplies stay spent. Lymph Drain ends the expedition and warps directly to the draining lymph node, keeping earnings and current HP/ATP. Clearing also banks earnings.</p>
+<p>Earnings are escrowed separately, including XP; level-ups occur when banking rewards, avoiding rollback exploits. Earned supplies can be used during the run and are consumed before original supplies. Found gear enters the permanent bag only on safe return. Reloads retain escrow. New trips also preserve resources and bank their earnings on arrival.</p>
 <h2>Gear</h2>
 <ul>
-<li>Slots: weapon, armor, 2 accessories. Rarity: Common (white), Uncommon (green), Rare (blue), Legendary (gold, boss-only).</li>
+<li>Slots: weapon, armor, 2 accessories. Rarity: Common (white), Uncommon (green), Rare (blue), Legendary (gold). Equipment source/rarity redesign is deferred; intended progression is basic shops, specialty shops, deep dungeons and boss rewards.</li>
 <li>Hand-designed fixed items, no random stats, built from the effect list. ~60 in phase 4, ~150 by phase 5. Every item's description is a true A&amp;P/immunology fact.</li>
 <li>Examples: Antibody Sword, Lysozyme Axe, Perforin Dagger, Respiratory Burst Staff, Defensin Mace, Major Basic Protein Bow, Histamine Lute; Keratin Plate, Myelin Sheath, Tight Junction Mail, Mucous Membrane Robe; Selectin Boots (travel speed), Chemokine Compass (reveal NPCs), Toll-like Receptor Ring, Melanin Charm. Regional: Hydroxyapatite Shield, Osteon Helm, Actin-Myosin Gauntlets, Purkinje Whip, Pepsin Blade.</li>
 <li>Sources: towns (basic), dungeon chests (system-themed), merchant, boss legendaries.</li>
 <li>Phase 5: 3-piece set bonuses (e.g. Barrier set) and rule-changing legendaries (“heavy attacks hit twice”).</li>
 </ul>
 
+<p><b>Equipment review pending:</b> preserve the existing catalogue, stat effects, ordinary combat triggers and utility effects. Legacy rules tied specifically to removed heavy attacks or enemy quizzes are suspended and labeled on the equipment screen. The catalogue, naming pass, resistance assignments and progression will be reviewed after combat. Do not silently treat archived phase gear text as the new specification.</p>
 <h2>Study systems</h2>
 <ul>
 <li>Multiple choice only. Text questions: <code>{id, system, q, answer, wrong[3], explain, source}</code>.</li>
@@ -211,7 +227,7 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 </table></div>
 <p><b>Parked:</b> thymus skill tree, antibody class switching (IgM/IgG/IgA/IgE), timed practical mode.</p>
 
-<h2>Phase specs (detailed instructions for build sessions)</h2>
+<h2>Archived phase specs (detailed instructions for build sessions)</h2>
 <p>These are written so a session with no other context can build its part. Read <b>Shared conventions</b> and then <b>only your phase's spec</b> in full. Numbers given are starting defaults: put them in <code>js/settings.js</code>, never inline.</p>
 
 <h3>Shared conventions (every phase)</h3>
@@ -415,6 +431,7 @@ Each zone has a name and a one-line accurate blurb shown in a banner on entering
 
 <p><i>Built (4a):</i> profile <code>v</code> is 5 (adds <code>flagged</code>, a map of question id to time). Written questions live in <code>js/writer.js</code> (<code>DD.cq</code> store, <code>DD.writer</code> screens): each is a <code>cq_&lt;id&gt;</code> doc under the user's db path with a localStorage mirror (<code>dd_cq</code>), joins <code>DD.data.questions[system]</code> with <code>custom:true</code>, and uses ids <code>gen-&lt;stamp&gt;-&lt;n&gt;</code>. Text is split into ~5000-character chunks (max 12), one <code>sample.json</code> call per chunk, with Cancel keeping what is already written. Drafts are dropped if incomplete, repeated options, or the question text matches an existing one. Review is Keep / Edit / Discard plus Keep all, and nothing is stored until Save. Flags use one mechanism for every question (built-in, written, image): the flag button on combat, traps, ambush quizzes, NPC questions and the missed list, a Flagged screen from the body map (Edit only for written ones, Delete only for written ones). Flagged questions leave the picker at once and the missed list. Mastery now returns <code>recency</code> and <code>fading</code> (recency under 0.6); the map shows a fading chip in the place panel and a ↓ on the label and place button. The writer is reached from the body map and from towns (when no run is active). Writing into a system whose dungeon is not open yet saves the questions, and they appear when that dungeon opens.</p>
 
+<p><b>Historical implementation notes follow. Combat rework sections above take precedence over old kits, formulas, questions, recovery and escape behavior.</b></p>
 <h3>4b · Gear</h3>
 <ul>
 <li><code>data/gear.js</code>: <code>{id, name, slot:"weapon|armor|acc", wtype?, rarity:"common|uncommon|rare|legendary", region?, effects:[…], desc}</code>. <code>desc</code> is one true A&amp;P or immunology fact.</li>

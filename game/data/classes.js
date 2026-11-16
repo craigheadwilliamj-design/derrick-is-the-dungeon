@@ -97,3 +97,9 @@
   };
   DD.data.classOrder = ['neutrophil', 'bcell', 'tcell', 'macrophage', 'eosinophil', 'basophil'];
 })();
+
+DD.data.classOrder = ['neutrophil','bcell','tcell','macrophage','eosinophil'];
+for (const id of DD.data.classOrder) {
+ const c=DD.data.classes[id];
+ c.passive={id:'solo-'+id,name:'Solo adventurer',trigger:'static',src:'class',result:{type:'rule',rule:'solo',value:1},desc:'Free Attack and Block; three question-gated ATP skills.'}; c.effects=[];
+}

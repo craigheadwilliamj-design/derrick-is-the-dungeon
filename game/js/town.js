@@ -1,12 +1,12 @@
 // The six lymph node towns (data/circulation.js) share one walkable layout (data/townmap.js, phase 3c).
 // Buildings open panels: plasma cell shop, mast cell inn, respiration counter, helper T bounty board.
-// HP and ATP only exist inside a dungeon run, so the inn and the counter act on the saved run; with none in progress
-// they explain themselves instead. While you are in a town the saved run is the only copy (DD.game.run is cleared).
+// Persistent HP and ATP are available even when no dungeon is in progress.
 DD.town = (function () {
   const { el } = DD.u, E = DD.S.economy, TS = DD.S.town, TM = DD.data.townmap;
   const T = { msg: '', lines: {}, panel: null };
   const prof = () => DD.save.profile;
-  const run = () => { const r = DD.save.run; return r && !r.kind ? r : null; }; // dungeon runs only, never a trip
+  const run = () => { const r = DD.save.run; return r && !r.kind ? r : DD.game.resources(); };
+  const saveResources = r => { DD.game.syncResources(r); if (r !== prof()) DD.save.saveRun(r); DD.save.save(); }; // dungeon runs only, never a trip
   const inv = id => prof().inventory[id] || 0;
   const cap = id => DD.data.items[id].cap || Infinity;
   const sellPrice = id => Math.floor(DD.data.items[id].price * E.sellPct);
@@ -45,7 +45,7 @@ DD.town = (function () {
   const maxes = () => DD.stats.compute(prof());
   T.innWhy = function () {
     const r = run(), st = maxes();
-    if (!r) return 'You are not hurt. HP and ATP only matter inside a dungeon run.';
+
     if (r.hp >= st.maxHP && r.atp >= st.maxATP) return 'You are already fully rested.';
     if (prof().glucose < innCost()) return 'Not enough glucose.';
     return '';
@@ -53,12 +53,12 @@ DD.town = (function () {
   T.rest = function () {
     if (T.innWhy()) return;
     const r = run(), st = maxes();
-    prof().glucose -= innCost(); r.hp = st.maxHP; r.atp = st.maxATP; DD.save.saveRun(r);
+    prof().glucose -= innCost(); r.hp = st.maxHP; r.atp = st.maxATP; saveResources(r);
     done('You sleep it off. Full HP and ATP.');
   };
   T.convertWhy = function () {
     const r = run(), st = maxes();
-    if (!r) return 'ATP only matters inside a dungeon run.';
+
     if (r.atp >= st.maxATP) return 'Your ATP is already full.';
     if (prof().glucose < E.respiration.glucose) return 'Not enough glucose.';
     return '';
@@ -66,7 +66,7 @@ DD.town = (function () {
   T.convert = function () {
     if (T.convertWhy()) return;
     const r = run(), st = maxes(), before = r.atp;
-    prof().glucose -= E.respiration.glucose; r.atp = Math.min(st.maxATP, r.atp + E.respiration.atp); DD.save.saveRun(r);
+    prof().glucose -= E.respiration.glucose; r.atp = Math.min(st.maxATP, r.atp + E.respiration.atp); saveResources(r);
     done('Respiration: +' + Math.round(r.atp - before) + ' ATP.');
   };
 
@@ -253,14 +253,14 @@ DD.town = (function () {
     return [a.def.name, el('p', { class: 'small' }, '“' + a.line + '”')];
   }
   function hevPanel() {
-    const r = run();
+    const r = DD.save.run && !DD.save.run.kind ? DD.save.run : null;
     return ['High endothelial venule', note('HEVs are small venules lined with tall endothelial cells. Lymphocytes leave the blood through them to enter the node. For you, they are the town’s gate to the circulation.'),
       el('div', { class: 'stack' },
         r ? el('button', { class: 'btn primary', type: 'button', onclick: () => leave(() => DD.ui.enter(r.regionId, true)) }, 'Return to the ' + DD.data.region(r.regionId).name) : null,
         el('button', { class: 'btn' + (r ? '' : ' primary'), type: 'button', onclick: () => leave(id => DD.ui.menu(id)) }, 'Open the travel map'))];
   }
   function hilumPanel() {
-    const W = DD.world, t = town(), exit = DD.world.get(t.exit), r = run();
+    const W = DD.world, t = town(), exit = DD.world.get(t.exit), r = DD.save.run && !DD.save.run.kind ? DD.save.run : null;
     const chain = !r && W.isLymphocyte() ? DD.data.circ.towns.filter(o => o.id !== st.id).map(o => W.plan(st.id, o.id)).filter(p => p && p.mode === 'chain') : [];
     const go = plan => leave(() => W.fastStatus(plan).code === 'unlocked' ? DD.travel.fast(plan) : DD.travel.start(plan));
     return ['Hilum · efferent lymphatic vessel', note('Lymph leaves the node through the efferent lymphatic vessel, heading for the ' + exit.name.toLowerCase() + ' and the venous angle, where lymph rejoins the blood.'),
