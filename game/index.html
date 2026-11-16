@@ -100,6 +100,13 @@ kbd{font-family:var(--mono);color:var(--bile);margin-right:8px}
 .rate b{color:var(--bone);font-family:var(--mono);font-weight:500} .rate small{text-align:right;font-family:var(--mono)}
 .codex{margin:0;line-height:1.5}
 .timer{height:5px;background:#000;border-radius:2px;overflow:hidden;margin:2px 0 4px} .timer i{display:block;height:100%;background:var(--bile)} .timer.spent i{background:var(--line)}
+/* 4a: question writer, flags, fading */
+textarea{font:inherit;color:var(--bone);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:9px 10px;min-width:0;width:100%;resize:vertical}
+textarea:focus-visible{outline:2px solid var(--bile);outline-offset:1px}
+.qrow{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}.qrow .q{flex:1;min-width:0;margin:0}
+.flagbtn{flex:none;white-space:nowrap}.flagbtn.on{border-color:var(--bile);color:var(--bile)}
+.qcard.kept{border-color:var(--ok)}
+.chip.fading{color:var(--bile);border-color:var(--bile)}
 /* lab images */
 [hidden]{display:none!important}
 .toolrow{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}
@@ -182,6 +189,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/review.js"></script>
+<script src="js/writer.js"></script>
 <script src="js/town.js"></script>
 <script src="js/npc.js"></script>
 <script src="js/npcui.js"></script>

@@ -121,6 +121,18 @@ results: damage, damageMult, heal, stat+, atp+, poison(n turns), shield,
 <li><b>Fast travel</b>: after walking a route a couple of times, name the route in order (ordering quiz) to unlock it.</li>
 </ul>
 
+<h3>Walkable towns</h3>
+<p>Towns are places you walk around, not menus. Every town uses one hand-built layout that follows <b>real lymph node anatomy</b>, so wandering it teaches the structure:</p>
+<ul>
+<li><b>Afferent lymphatic vessels</b> (entrance, on the convex side) → <b>subcapsular sinus</b> (the ring road just inside the capsule).</li>
+<li><b>Cortex:</b> B-cell <b>follicles</b> with <b>germinal centers</b> (ambient B cells).</li>
+<li><b>Paracortex:</b> the T-cell zone. The <b>helper T's bounty board</b> is here, plus the <b>high endothelial venules (HEVs)</b>, where lymphocytes really enter nodes from the blood. In the game they're the town's gate to the circulation.</li>
+<li><b>Medulla:</b> <b>medullary cords</b>, where the <b>plasma cell shop</b> sits (plasma cells really cluster there), and <b>medullary sinuses</b> with resident macrophages.</li>
+<li><b>Mast cell inn</b> by the capsule, and the <b>respiration counter</b> (glucose → ATP).</li>
+<li><b>Hilum:</b> the exit by the <b>efferent lymphatic vessel</b>, continuing along the lymph chain, plus the node's artery and vein.</li>
+</ul>
+<p>Walking into an NPC talks to them, and walking into a building opens its panel (the existing shop, inn and bounty screens). The zone name shows on entering each area, like vessel names. No combat or traps. The six towns share the layout but differ in accent color, NPC chatter and shop stock.</p>
+
 <h2>NPCs</h2>
 <ul>
 <li>Town: plasma cell (shop), mast cell (inn), helper T (quests/bounties).</li>
@@ -186,6 +198,7 @@ results: damage, damageMult, heal, stat+, atp+, poison(n turns), shield,
 <tr><td>2b</td><td>Consumables, glucose, one town (shop + inn), death/respawn, missed-question review, post-mortem.</td></tr>
 <tr><td>3a</td><td>Body map, circulation graph, walkable vessel segments, hazards/ambushes, lymph paths, all six towns, fast travel + ordering quiz. <b>Traps</b> in vessels and dungeon floors.</td></tr>
 <tr><td>3b</td><td>NPCs (native cells, town cells, dendritic merchant), thymus + milestone upgrades, bosses with legendary drops. Baseline NPC dialogue with Derrick jokes (event-reactive lines come in 5b).</td></tr>
+<tr><td>3c</td><td>Walkable towns: one lymph-node-anatomy layout for all six towns, NPCs and buildings you walk into, ambient cells with Derrick chatter.</td></tr>
 <tr><td>4a</td><td>In-game question writer (sample capability) with review step; mastery fading on the map; flag button.</td></tr>
 <tr><td>4b</td><td>Gear: 4 slots, rarity, ~60 items, chests/shops/merchant stock.</td></tr>
 <tr><td>5a</td><td>Subclasses, set bonuses, rule-changing legendaries, gear to ~150.</td></tr>
@@ -360,6 +373,29 @@ Diapedesis (a short "squeeze through the endothelium" moment) happens on enterin
 <li>Region status "cleared" after its boss. The map shows cleared regions with a mark.</li>
 </ul>
 
+<h3>3c · Walkable towns</h3>
+<ul>
+<li><b>Goal:</b> replace the town menu screen (<code>DD.ui.town</code> in <code>js/town.js</code>) with a walkable town map. Keep all existing town logic (<code>T.buy</code>, <code>T.sell</code>, <code>T.rest</code>, <code>T.convert</code>, bounties, NPC talk); only the way you reach it changes. Split the current screen into separate panels (shop, inn, respiration, bounty board) opened as overlays, with Esc or a Leave button returning to the map.</li>
+<li><b>Map:</b> one hand-authored ASCII layout in <code>data/townmap.js</code>, about 44×28, rendered with the existing glyph renderer, FOV off (towns are fully visible), the same movement and input as dungeons. Zones, as a bean-shaped node:
+<pre>capsule (wall ring, # in the town accent)
+afferent entrance (convex side) → subcapsular sinus (ring corridor)
+cortex: 2–3 follicles (round rooms) with a germinal center tile cluster
+paracortex: helper T bounty board (a board tile, glyph "!"),
+            HEV gate (glyph "≈", opens the travel map)
+medulla: medullary cords (narrow rooms) holding the plasma cell shop,
+         medullary sinuses with a resident macrophage NPC
+mast cell inn + respiration counter near the capsule
+hilum (concave side): exit "&lt;" by the efferent lymphatic, artery and vein tiles (flavor)</pre>
+Each zone has a name and a one-line accurate blurb shown in a banner on entering it (like vessel names).</li>
+<li><b>Buildings and NPCs:</b> shops and the inn are small rooms with a door; stepping onto the door tile, or into the keeper NPC, opens that panel. Named town NPCs (plasma cell, mast cell, helper T) stand in their building or zone and talk on bump, using their existing lines. The dendritic merchant can also appear in the paracortex (where dendritic cells really present antigen) at the same 20% chance, with its existing stock rules.</li>
+<li><b>Ambient cells:</b> 4–6 wandering NPCs per town (naive B and T cells, a macrophage, a follicular dendritic cell, a reticular cell). They wander slowly (one step every 2–3 turns, staying inside their zone) and give a one-liner on bump: an accurate fact about their job, or a Derrick joke. Add these lines to <code>data/npcs.js</code> as <code>kind:"ambient"</code>. No questions from ambient cells, to keep towns a breather.</li>
+<li><b>Arrival and exits:</b> arriving by lymph places you at the afferent entrance. Arriving from the blood (HEV) places you at the HEV gate. The HEV gate opens the travel map. The hilum exit continues along the lymph chain where the current travel rules allow it (Wizard/Rogue town-to-town), and otherwise rejoins the blood through the existing venous-angle route. Lymph Drain and post-flee arrival land at the afferent entrance.</li>
+<li><b>Per-town variety:</b> accent color, town name banner, ambient line pool weighted toward the regions that drain there (the cervical nodes gossip about the brain and thyroid), and the existing per-town shop stock. The layout stays the same for all six.</li>
+<li><b>Phone:</b> same d-pad and tap-to-move as dungeons. Panels must fit 360px width.</li>
+<li><b>Save:</b> store the town position in run state, so a reload inside a town resumes where you stood.</li>
+<li><b>Done when:</b> you can arrive in each of the six towns, walk to every zone, see the zone banners, use the shop, inn, respiration counter and bounty board through their buildings, talk to the named and ambient NPCs, and leave by both the HEV gate and the hilum, on phone width and laptop.</li>
+</ul>
+
 <h3>4a · Question writer, fading, flags</h3>
 <ul>
 <li>Add <code>sample:{}</code> (restate db, user, assets). If it's null, hide the writer.</li>
@@ -368,6 +404,8 @@ Diapedesis (a short "squeeze through the endothelium" moment) happens on enterin
 <li><b>Fading on the map:</b> region brightness and a meter from mastery (formula above), plus a "fading" badge when recency is under 0.6.</li>
 <li><b>Flag:</b> a small flag button on every question (combat, traps, NPCs, review). Flagged questions leave rotation immediately. A "Flagged" screen lists them with Edit (for custom and generated ones), Unflag and Delete (custom only; built-in ones can only stay flagged).</li>
 </ul>
+
+<p><i>Built (4a):</i> profile <code>v</code> is 5 (adds <code>flagged</code>, a map of question id to time). Written questions live in <code>js/writer.js</code> (<code>DD.cq</code> store, <code>DD.writer</code> screens): each is a <code>cq_&lt;id&gt;</code> doc under the user's db path with a localStorage mirror (<code>dd_cq</code>), joins <code>DD.data.questions[system]</code> with <code>custom:true</code>, and uses ids <code>gen-&lt;stamp&gt;-&lt;n&gt;</code>. Text is split into ~5000-character chunks (max 12), one <code>sample.json</code> call per chunk, with Cancel keeping what is already written. Drafts are dropped if incomplete, repeated options, or the question text matches an existing one. Review is Keep / Edit / Discard plus Keep all, and nothing is stored until Save. Flags use one mechanism for every question (built-in, written, image): the flag button on combat, traps, ambush quizzes, NPC questions and the missed list, a Flagged screen from the body map (Edit only for written ones, Delete only for written ones). Flagged questions leave the picker at once and the missed list. Mastery now returns <code>recency</code> and <code>fading</code> (recency under 0.6); the map shows a fading chip in the place panel and a ↓ on the label and place button. The writer is reached from the body map and from towns (when no run is active). Writing into a system whose dungeon is not open yet saves the questions, and they appear when that dungeon opens.</p>
 
 <h3>4b · Gear</h3>
 <ul>

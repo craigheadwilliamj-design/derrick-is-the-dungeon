@@ -4,7 +4,15 @@ DD.review = (function () {
   const R = {};
 
   // One question with its answer and explanation. s = qstats entry (optional) for the missed/right chips.
-  function card(q, s) {
+  // Flag toggle for one question. Flagging pulls it from rotation at once; the button flips in place so a question in progress is not redrawn.
+  R.flagBtn = function (q) {
+    const b = el('button', { class: 'btn small flagbtn', type: 'button' });
+    const paint = () => { const on = DD.q.isFlagged(q); b.textContent = on ? '⚑ Flagged' : '⚐ Flag'; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on);
+      b.title = on ? 'Flagged: out of rotation. Unflag it from the Flagged list on the body map, or tap again.' : 'Flag this question as wrong or unclear. It leaves rotation until you fix or delete it.'; };
+    b.addEventListener('click', ev => { ev.stopPropagation(); DD.q.setFlag(q.id, !DD.q.isFlagged(q)); paint(); });
+    paint(); return b;
+  };
+  function card(q, s, noFlag) {
     return el('div', { class: 'card qcard' },
       el('div', { class: 'chips' },
         s ? el('span', { class: 'chip danger' }, 'missed ' + s.wrong) : null,
@@ -14,14 +22,15 @@ DD.review = (function () {
       el('p', { class: 'q' }, q.q),
       q.img ? DD.img.view(q.img, true) : null,
       el('div', { class: 'fb good' }, el('b', null, 'Answer: '), q.answer),
-      el('div', { class: 'small dim' }, q.explain));
+      el('div', { class: 'small dim' }, q.explain),
+      noFlag ? null : R.flagBtn(q));
   }
   R.card = card;
 
   // Every question with wrong >= 1, grouped by system, worst (wrong - right) first.
   R.missed = function () {
     const qs = DD.save.profile.qstats, byId = new Map(DD.q.all().map(q => [q.id, q]));
-    return Object.keys(qs).filter(id => qs[id].wrong >= 1 && byId.has(id))
+    return Object.keys(qs).filter(id => qs[id].wrong >= 1 && byId.has(id) && !DD.q.isFlagged(byId.get(id)))
       .map(id => ({ q: byId.get(id), s: qs[id], score: qs[id].wrong - qs[id].right }))
       .sort((a, b) => b.score - a.score || b.s.wrong - a.s.wrong);
   };

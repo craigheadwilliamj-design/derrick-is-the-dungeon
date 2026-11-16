@@ -123,7 +123,7 @@
     box.replaceChildren(el('div', { class: 'cbox', role: 'dialog', 'aria-label': 'Trap', style: { '--accent': '#ff7a59' } },
       el('div', { class: 'qtag' }, el('b', null, 'Trap: ' + Q.trap.name + '!'), 'Answer to ' + (ans ? 'see what happens' : 'disarm it'), q.placeholder ? el('span', { class: 'chip' }, 'placeholder') : null,
         q.img ? el('span', { class: 'chip ok' }, DD.img.TAGS[q.img.tag]) : null),
-      el('p', { class: 'q' }, q.q),
+      el('div', { class: 'qrow' }, el('p', { class: 'q' }, q.q), DD.review.flagBtn(q)),
       q.img ? DD.img.view(q.img, !!ans) : null,
       el('div', { class: 'opts' }, Q.opts.map((o, i) => {
         let cls = 'opt'; if (ans) cls += o.correct ? ' right' : (i === ans.i ? ' wrong' : '');

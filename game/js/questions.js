@@ -13,7 +13,8 @@ DD.q = (function () {
     return imgs(systems, f);
   }
   // How many questions match the current source filter.
-  const available = systems => pool(systems).length;
+  const isFlagged = q => !!(DD.save.profile.flagged || {})[q.id];
+  const available = systems => pool(systems).filter(q => !isFlagged(q)).length;
 
   function weight(q, opts) {
     const st = DD.save.profile.qstats[q.id] || { seen: 0, right: 0, wrong: 0, last: 0 };
@@ -24,8 +25,9 @@ DD.q = (function () {
     return w;
   }
   function pick(systems, opts) {
-    let all = pool(systems).filter(q => !q.flagged);
-    if (!all.length) all = pool(systems, true).filter(q => !q.flagged); // filter matches nothing here: use everything
+    let all = pool(systems).filter(q => !isFlagged(q));
+    if (!all.length) all = pool(systems, true).filter(q => !isFlagged(q)); // filter matches nothing here: use everything
+    if (!all.length) all = pool(systems, true); // everything here is flagged: better a flagged question than none
     let cand = all.filter(q => !recent.includes(q.id));
     if (!cand.length) cand = all;
     const q = DD.u.weightedPick(Math.random, cand, x => weight(x, opts));
@@ -52,11 +54,11 @@ DD.q = (function () {
   // 0-100 or null ("unexplored"): accuracy over the last 20 answers x recency (1.0 today, 0.25 after 14+ days).
   function mastery(regionId) {
     const r = DD.save.profile.regions[regionId];
-    if (!r || !r.recent || r.recent.length < M.minAnswers) return { value: null, n: r && r.recent ? r.recent.length : 0, lastReviewed: r ? r.lastReviewed : 0 };
+    if (!r || !r.recent || r.recent.length < M.minAnswers) return { value: null, n: r && r.recent ? r.recent.length : 0, lastReviewed: r ? r.lastReviewed : 0, recency: null, fading: false };
     const acc = r.recent.reduce((a, b) => a + b, 0) / r.recent.length;
     const days = (Date.now() - r.lastReviewed) / DAY;
     const rec = 1 - (1 - M.fadeFloor) * DD.u.clamp(days / M.fadeDays, 0, 1);
-    return { value: Math.round(100 * acc * rec), n: r.recent.length, lastReviewed: r.lastReviewed };
+    return { value: Math.round(100 * acc * rec), n: r.recent.length, lastReviewed: r.lastReviewed, recency: rec, fading: rec < M.fadingBelow };
   }
   // Lookup across every system (text + saved image questions). Image options are rebuilt each time.
   const SYS = () => DD.img.SYSTEMS.map(s => s[0]);
@@ -67,5 +69,10 @@ DD.q = (function () {
   }
   // The dungeon whose systems include this question's system (stats are tracked per region).
   const regionOf = q => (DD.data.regions.find(r => r.systems.includes(q.system)) || {}).id || 'marrow';
-  return { pick, options, record, mastery, pool, available, all, byId, regionOf };
+  function setFlag(id, on) {
+    const p = DD.save.profile; if (!p.flagged) p.flagged = {};
+    if (on) p.flagged[id] = Date.now(); else delete p.flagged[id];
+    DD.save.save();
+  }
+  return { isFlagged, setFlag, pick, options, record, mastery, pool, available, all, byId, regionOf };
 })();

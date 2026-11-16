@@ -27,7 +27,7 @@
     } else if (T.phase === 'ask' || T.phase === 'result') {
       const q = T.q, ans = T.answer;
       body.push(el('div', { class: 'qtag' }, d.name + ' asks:', q.placeholder ? el('span', { class: 'chip' }, 'placeholder') : null, q.img ? el('span', { class: 'chip ok' }, DD.img.TAGS[q.img.tag]) : null),
-        el('p', { class: 'q' }, q.q), q.img ? DD.img.view(q.img, !!ans) : null,
+        el('div', { class: 'qrow' }, el('p', { class: 'q' }, q.q), DD.review.flagBtn(q)), q.img ? DD.img.view(q.img, !!ans) : null,
         el('div', { class: 'opts' }, T.opts.map((o, i) => {
           let cls = 'opt'; if (ans) cls += o.correct ? ' right' : (i === ans.i ? ' wrong' : '');
           return el('button', { class: cls, disabled: !!ans, onclick: () => NP.answer(i) }, el('kbd', null, String(i + 1)), o.text);

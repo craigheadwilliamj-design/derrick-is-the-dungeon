@@ -6,16 +6,16 @@ DD.save = (function () {
   let timer = null;
 
   function defaultProfile() {
-    return { v: 4, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: 0, loc: 'marrow',
+    return { v: 5, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: 0, loc: 'marrow',
       inventory: {}, equipment: {}, gearBag: [], qstats: {}, regions: {}, routes: {},
-      milestones: [], bounties: { active: [], seq: 0, done: 0 }, beaten: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' } };
+      milestones: [], bounties: { active: [], seq: 0, done: 0 }, beaten: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' }, flagged: {} };
   }
   function migrate(p) {
     if (!p || typeof p !== 'object') return null;
     const o = Object.assign(defaultProfile(), p); // bump v and migrate here when the shape changes
     if (!Array.isArray(o.beaten)) o.beaten = []; // v2 (2a): enemy ids beaten, for B Cell Memory
     if (!DD.data.classes[o.classId]) o.classId = 'macrophage';
-    o.v = 4;
+    o.v = 5;
     const place = DD.data.circ && DD.data.circ.nodes[o.loc]; // v3 (3a): where Derrick's cell is standing
     if (!place || place.kind !== 'place') o.loc = 'marrow';
     if (!o.routes || typeof o.routes !== 'object' || Array.isArray(o.routes)) o.routes = {};
@@ -28,6 +28,7 @@ DD.save = (function () {
     if (!o.inventory || typeof o.inventory !== 'object' || Array.isArray(o.inventory)) o.inventory = {};
     Object.keys(o.inventory).forEach(k => { if (!(o.inventory[k] > 0)) delete o.inventory[k]; });
     o.settings = Object.assign({ sourceFilter: 'all' }, o.settings);
+    if (!o.flagged || typeof o.flagged !== 'object' || Array.isArray(o.flagged)) o.flagged = {}; // v5 (4a): flagged question ids, out of rotation
     return o;
   }
   function lsGet(k) { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } }

@@ -247,7 +247,7 @@ DD.ui = (function () {
         el('div', { class: 'qtag' }, C.qKind === 'enemy' ? e.name + ' asks:' : 'Heavy attack: answer to land it', q.placeholder ? el('span', { class: 'chip' }, 'placeholder') : null,
           q.img ? el('span', { class: 'chip ok' }, DD.img.TAGS[q.img.tag]) : null),
         !ans && C.qKind === 'heavy' && hasFast(C) ? fastTimer(C) : null,
-        el('p', { class: 'q' }, q.q),
+        el('div', { class: 'qrow' }, el('p', { class: 'q' }, q.q), DD.review.flagBtn(q)),
         q.img ? DD.img.view(q.img, !!ans) : null,
         C.removed > 0 ? el('div', { class: 'rmnote' }, C.removed + ' wrong option' + (C.removed > 1 ? 's' : '') + ' removed (' + C.cls.active.name + ')') : null,
         el('div', { class: 'opts' }, C.opts.map((o, i) => {
