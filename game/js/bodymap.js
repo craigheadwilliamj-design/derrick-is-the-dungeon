@@ -209,10 +209,11 @@
         el('div', { class: 'filter', role: 'group', 'aria-label': 'Question source' }, el('span', { class: 'tag' }, 'Source'),
           FILTERS.map(([v, l]) => el('button', { class: 'btn small' + (p.settings.sourceFilter === v ? ' primary' : ''), type: 'button', 'aria-pressed': String(p.settings.sourceFilter === v),
             onclick: () => { p.settings.sourceFilter = v; DD.save.save(); ui.menu(); } }, l))),
-        DD.img.state === 'unavailable' ? el('span', { class: 'dim small' }, 'Image questions need the claude.ai viewer.')
+        DD.img.state === 'unavailable' ? el('span', { class: 'dim small' }, 'Browser image storage unavailable; allow site data and reload.')
           : el('button', { class: 'btn small', type: 'button', disabled: DD.img.state !== 'ready', onclick: DD.editor.open }, 'Lab images' + (DD.img.state === 'ready' ? ' (' + DD.img.records.length + ')' : '…'))),
       el('div', { class: 'foot' },
         el('span', { class: 'dim small' }, DD.save.status()),
+        el('button', { class: 'btn', type: 'button', onclick: DD.backup.open }, 'Backups'),
         eraseArmed
           ? el('span', null, el('button', { class: 'btn danger', onclick: () => { eraseArmed = false; DD.save.reset(); DD.game.abandon(); ui.menu('marrow'); } }, 'Yes, erase everything'),
             el('button', { class: 'btn', onclick: () => { eraseArmed = false; ui.menu(); } }, 'Cancel'))

@@ -153,7 +153,7 @@ DD.writer = (function () {
   };
   function input() {
     W.phase = 'input'; DD.ui.mode = 'writer';
-    if (!W.sample) return mount(head('Add study material', leave), el('p', { class: 'lede' }, 'Writing questions needs the claude.ai viewer, with Claude access allowed for this page.'));
+    if (!W.sample) return importScreen();
     const ta = el('textarea', { id: 'wr-text', rows: 12, placeholder: 'Paste lecture notes or a study guide section here. Questions use only what you paste.', oninput: () => { W.text = ta.value; n.textContent = ta.value.length.toLocaleString() + ' characters'; } });
     ta.value = W.text;
     const n = el('span', { class: 'dim small' }, W.text.length.toLocaleString() + ' characters');
@@ -168,6 +168,25 @@ DD.writer = (function () {
         el('button', { class: 'btn primary', type: 'button', onclick: () => { W.text = ta.value; W.system = sel.value; run(); } }, 'Write questions'),
         W.drafts.length ? el('button', { class: 'btn', type: 'button', onclick: review }, 'Back to review (' + W.drafts.length + ')') : null),
       el('p', { class: 'dim small' }, 'Long notes are read in pieces of about ' + WS.chunkChars.toLocaleString() + ' characters, up to ' + WS.maxChunks + ' pieces. This uses your own Claude usage.'));
+  }
+
+  function importScreen() {
+    const sel = el('select', { id: 'import-system' }, DD.img.SYSTEMS.map(([id, name]) => el('option', { value: id }, name))); sel.value = W.system;
+    const ta = el('textarea', { id: 'import-questions', rows: 12, placeholder: '[{"q":"Question?","answer":"Correct","wrong":["Wrong 1","Wrong 2","Wrong 3"],"explain":"Why it is correct."}]' });
+    const msg = el('p', { class: 'warn', role: 'status' });
+    mount(head('Import study questions', leave),
+      el('p', { class: 'small dim' }, 'Paste questions as a JSON array. You can write them yourself or ask a chat assistant to use the format below. Review and edit every question before saving. No AI credits are used here.'),
+      el('pre', { class: 'small' }, '[{"q":"Question?","answer":"Correct","wrong":["Wrong 1","Wrong 2","Wrong 3"],"explain":"Why it is correct."}]'),
+      el('div', { class: 'field' }, el('label', { for: 'import-system' }, 'System'), sel),
+      el('div', { class: 'field' }, el('label', { for: 'import-questions' }, 'Questions'), ta), msg,
+      el('button', { class: 'btn primary', type: 'button', onclick: () => {
+        try {
+          const items = JSON.parse(ta.value); if (!Array.isArray(items)) throw new Error('Use a JSON array of questions.');
+          W.drafts = []; W.dupes = 0; W.skipped = 0; W.system = sel.value; W.msg = '';
+          accept(items, W.system); if (!W.drafts.length) throw new Error('No usable new questions. Include question, answer, three different wrong options, and explanation.');
+          review();
+        } catch (e) { msg.textContent = e.message; }
+      } }, 'Review questions'));
   }
 
   // One editable question (also used by the Flagged list). onSave gets the cleaned fields.
