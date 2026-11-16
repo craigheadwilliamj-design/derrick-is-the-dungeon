@@ -16,17 +16,17 @@ DD.backup = (function () {
     const p = b.profile;
     if (!Number.isInteger(p.level) || p.level < 1 || !Number.isFinite(p.xp) || p.xp < 0 || !Number.isFinite(p.glucose) || p.glucose < 0 || !DD.data.classes[p.classId] || !obj(p.qstats) || !obj(p.regions) || !obj(p.settings)) throw new Error('The backup has invalid player data.');
     if (b.questions.some(q => !DD.cq.valid(q) || [q.q,q.answer,q.explain,...q.wrong].some(t => !t.trim()) || new Set([q.answer,...q.wrong].map(t=>t.trim().toLowerCase())).size !== 4)) throw new Error('The backup has an invalid question.');
-    const ids = new Set(), blobs = new Set();
+    const ids = new Set();
     for (const { record: r, data } of b.images) {
       if (!DD.img.valid(r) || ids.has(r.id) || typeof data !== 'string' || !/^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(data)) throw new Error('The backup has an invalid image.');
-      ids.add(r.id); blobs.add(r.assetId);
+      ids.add(r.id);
       for (const a of r.boxes) {
         if (!a || typeof a.label !== 'string' || !a.label.trim() || !['x','y','w','h'].every(k=>Number.isFinite(a[k]) && a[k]>=0 && a[k]<=1) || !a.w || !a.h || a.x+a.w>1.001 || a.y+a.h>1.001 || (a.kind === 'arrow' && !['tipX','tipY'].every(k=>Number.isFinite(a[k]) && a[k]>=0 && a[k]<=1))) throw new Error('The backup has an invalid image marker.');
       }
     }
     if (b.run) {
       const r = b.run;
-      if (!obj(r) || (!r.kind && !r.trip && (!DD.data.region(r.regionId) || !Number.isInteger(r.floorIdx) || r.floorIdx<0 || r.floorIdx>=DD.S.floorsPerDungeon || !Array.isArray(r.en) || !Array.isArray(r.taken) || typeof r.explored !== 'string')) || (r.trip && !DD.travel.valid(r)) || (r.kind && !['town','travel'].includes(r.kind))) throw new Error('The backup has an invalid saved run.');
+      if (!obj(r) || (!r.kind && !r.trip && (!DD.data.region(r.regionId) || !Number.isInteger(r.floorIdx) || r.floorIdx<0 || r.floorIdx>=DD.S.floorsPerDungeon || !Array.isArray(r.en) || !Array.isArray(r.taken) || typeof r.explored !== 'string')) || (r.trip && !DD.travel.valid(r)) || (r.kind && !['town','trip'].includes(r.kind))) throw new Error('The backup has an invalid saved run.');
     }
     return b;
   }
