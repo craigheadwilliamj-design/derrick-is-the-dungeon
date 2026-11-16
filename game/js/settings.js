@@ -113,6 +113,37 @@ DD.S = {
     items: ['complement', 'mucusWard', 'fever', 'interferon', 'antibiotic', 'atpReserve']
   },
   thymus: { levels: [5, 10, 15], costCut: 0.25, extraTurns: 1, effectPct: 0.25, extraCharges: 1 },   // milestone upgrades for the class active
+  // Subclasses (phase 5a). Picked at the thymus from level `level`; the first pick is free, changing costs `switchCost` glucose.
+  subclass: {
+    level: 10, switchCost: 50,
+    netWeaver: { netosisSelfPct: 0.15, netosisMult: 3.5, trapMult: 1.2 },                     // NETosis cheaper in HP and stronger; NETs vs bacteria and fungi
+    respBurst: { perRound: 0.06, maxBonus: 0.4, netosisCost: 6, netosisSelfPct: 0.1 },        // +6% damage per turn of the fight (max +40%)
+    plasma: { costMult: 0.7, opsonizeTurns: 4 },                                              // actives cost 30% less ATP
+    memoryB: { mult: 1.6, opsonizeMult: 1.5 },                                                // Memory x1.6, applies to the pathogen type
+    assassin: { critMult: 2.2, executeBelow: 0.4 },
+    regT: { suppressCost: 9, suppressTurns: 1 },                                              // Suppress: the enemy skips its next move; its big attacks become normal attacks
+    m1: { dmgMult: 1.2, healPct: 0.06, primedMult: 1.25, primedTurns: 2 },                    // +20% damage, Phagocytosis heals half; Antigen Presentation also primes you
+    m2: { healPct: 0.2, blockHealPct: 0.05, antigenHealPct: 0.1 },
+    wormHunter: { mult: 1.8, degranulateCost: 5 },
+    toxinTrapper: { poisonedMult: 1.15, maxStacks: 3 },
+    herald: { allyTurns: 5, allyMult: 1.0, withAllyMult: 1.15 },
+    keeper: { blockCutBonus: 0.3, reflect: 0.2, inflammationCost: 7 }                         // 0.6 + 0.3 = 90% block cut
+  },
+  // Set bonuses (phase 5a): numbers for data/sets.js.
+  sets: {
+    complement: { mult: 1.25, turns: 2, pct: 0.05 },
+    antibody: { removeWrong: 1 },
+    inflammation: { turns: 2, mult: 0.6 },
+    cytotoxic: { mult: 1.25, execute: 0.25 },
+    remodeling: { defense: 1.6, blockHeal: 0.05 }
+  },
+  // Rule-changing legendaries (phase 5a). Values the rules read.
+  rules: {
+    lightCrit: { chance: 0.15, mult: 1.5 },     // light attacks can crit; kept small so light spam stays much slower than answering
+    wrongHeavy: 0.5,                            // a wrong heavy still lands this fraction of a correct heavy's damage
+    atpMult: 2, questionBuff: 2, forgive: 1,
+    repeatHit: 1                                // extra hits on a correct heavy
+  },
   // Gear (phase 4b). A "point" is one stat-rating-equivalent: perPoint says what one point buys. budget = points a rarity may carry
   // (rare: 3 stat points, or 2 plus one conditional; legendary: 3 plus a strong conditional worth 2).
   gear: {

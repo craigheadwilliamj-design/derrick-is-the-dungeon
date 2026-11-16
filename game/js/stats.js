@@ -8,7 +8,7 @@ DD.stats = {
       maxATP: S.atp.base + S.atp.perRating * r.atp,
       blockCut: DD.S.combat.blockCut
     };
-    for (const e of DD.fx.classEffects(profile).concat(DD.fx.gearEffects(profile))) {
+    for (const e of DD.fx.classEffects(profile).concat(DD.fx.gearEffects(profile), DD.fx.setEffects(profile))) {
       if (e.trigger === 'static' && e.result.type === 'stat') st[e.result.stat] += e.result.add;
     }
     st.blockCut = Math.min(DD.S.gear.blockCutMax, st.blockCut);

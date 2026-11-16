@@ -218,6 +218,7 @@ DD.thymus = (function () {
     if (b) {
       const f = Math.pow(1 + T.effectPct, b);
       switch (a.id) {
+        case 'suppress': o.cast.turns = a.cast.turns + b * T.extraTurns; o.armedText = 'enemy loses its next ' + o.cast.turns + ' moves'; notes.push('skips ' + o.cast.turns + ' moves'); break;
         case 'opsonize': o.effect.turns = a.effect.turns + b * T.extraTurns; o.armedText = 'enemy takes ×' + a.effect.result.mult + ' for ' + o.effect.turns + ' turns'; notes.push('lasts ' + o.effect.turns + ' turns'); break;
         case 'degranulate': o.cast.turns = a.cast.turns + b * T.extraTurns; o.armedText = 'poisoned for ' + o.cast.turns + ' turns'; notes.push('lasts ' + o.cast.turns + ' turns'); break;
         case 'inflammation': o.cast.turns = a.cast.turns + b * T.extraTurns; o.armedText = 'neutrophil ally joins for ' + o.cast.turns + ' turns'; notes.push('lasts ' + o.cast.turns + ' turns'); break;
@@ -231,25 +232,36 @@ DD.thymus = (function () {
     o.desc = a.desc + ' Thymus upgrades: ' + notes.join(', ') + '.';
     return o;
   }
+  const subOf = (profile, id) => { const s = DD.data.subclassById[profile.subclass && profile.subclass[id]]; return s && s.classId === id ? s : null; };
+  // The class active with the chosen subclass applied (5a), before milestone picks.
+  out.base = function (classId, profile) { return DD.sub.applyActive(DD.data.classes[classId].active, subOf(profile || prof(), classId)); };
+  // Plasma Cell (5a) trims every active's ATP cost, after the milestone cost cuts.
+  function finalize(a, profile, id) {
+    const m = DD.fx.ruleMin(Object.assign({}, profile, { classId: id }), 'atpCost', 1);
+    return m < 1 ? Object.assign({}, a, { cost: Math.max(1, Math.round(a.cost * m)) }) : a;
+  }
   out.active = function (profile, classId) {
-    const id = classId || profile.classId, cls = DD.data.classes[id];
-    return apply(cls.active, profile.milestones.filter(m => m.classId === id).map(m => m.pick));
+    const id = classId || profile.classId;
+    return finalize(apply(out.base(id, profile), profile.milestones.filter(m => m.classId === id).map(m => m.pick)), profile, id);
   };
-  // The class record combat reads, with the upgraded active swapped in.
-  out.cls = function (profile) { const cls = DD.data.classes[profile.classId]; return Object.assign({}, cls, { active: out.active(profile) }); };
+  // The class record combat reads, with the subclass and upgraded active swapped in.
+  out.cls = function (profile) {
+    const cls = DD.data.classes[profile.classId], sub = subOf(profile, profile.classId);
+    return Object.assign({}, cls, { active: out.active(profile), passive: sub && sub.passive ? sub.passive : cls.passive });
+  };
   // Short description of what a pick would do right now.
   out.describe = function (classId, pick) {
-    const cls = DD.data.classes[classId], cur = out.active(prof(), classId), picks = out.picks(classId).map(m => m.pick), nxt = apply(cls.active, picks.concat(pick)), id = cls.active.id;
+    const base = out.base(classId), cur = out.active(prof(), classId), picks = out.picks(classId).map(m => m.pick), nxt = finalize(apply(base, picks.concat(pick)), prof(), classId), id = base.id;
     if (pick === 'cost') return '−' + pct(T.costCut) + '% ATP cost (' + cur.cost + ' → ' + nxt.cost + ')';
     if (pick === 'charge') return '+' + T.extraCharges + ' charge (' + (cur.effect ? cur.effect.charges : 1) + ' → ' + (nxt.effect ? nxt.effect.charges : 2) + ' uses per cast)';
-    if (timed(cls.active)) { const c = cur.effect || cur.cast, x = nxt.effect || nxt.cast; return '+' + T.extraTurns + ' turn of duration (' + c.turns + ' → ' + x.turns + ' turns)'; }
+    if (timed(base)) { const c = cur.effect || cur.cast, x = nxt.effect || nxt.cast; return '+' + T.extraTurns + ' turn of duration (' + c.turns + ' → ' + x.turns + ' turns)'; }
     const eff = { netosis: [cur.effect && cur.effect.result.mult, nxt.effect && nxt.effect.result.mult, '×', '×'], antigen: [cur.effect && cur.effect.result.n, nxt.effect && nxt.effect.result.n, '', ' wrong options removed'] };
     if (id === 'apoptosis') return '+' + pct(T.effectPct) + '% effect (executes under ' + pct(cur.effect.result.threshold) + '% → ' + pct(nxt.effect.result.threshold) + '% HP)';
     const e = eff[id] || [];
     return '+' + pct(T.effectPct) + '% effect (' + (e[2] || '') + e[0] + (e[3] === '×' ? '' : e[3] || '') + ' → ' + (e[2] || '') + e[1] + (e[3] === '×' ? '' : e[3] || '') + ')';
   };
   out.claim = function (classId, level, pick) {
-    if (!out.available(classId, level) || !out.options(DD.data.classes[classId].active).some(o => o[0] === pick)) return false;
+    if (!out.available(classId, level) || !out.options(out.base(classId)).some(o => o[0] === pick)) return false;
     prof().milestones.push({ classId, level, pick }); DD.save.save(); return true;
   };
   return out;

@@ -56,13 +56,27 @@ DD.gear = (function () {
     maxATP: v => '+' + Math.round(v) + ' max ATP', blockCut: v => '+' + pc(v) + ' damage cut when you block'
   };
   const WHEN = { onKill: 'When you destroy an enemy', onBlock: 'When you block', onHeavyCorrect: 'On a correct heavy attack', onQuestionCorrect: 'On every correct answer',
-    fightStart: 'At the start of a fight', turnStart: 'At the start of each turn' };
+    fightStart: 'At the start of a fight', turnStart: 'At the start of each turn', onQuestionAsk: 'Whenever a question is asked', onBigHit: 'When an enemy’s big attack lands',
+    onHit: 'When an enemy hits you', onLight: 'On a light attack' };
+  const RULE_TEXT = {
+    poisonSpread: 'If an enemy dies while poisoned, the poison carries over to the next enemy you fight',
+    questionBuff: 'The buff for answering an enemy’s question correctly is doubled',
+    forgive: 'The first wrong answer in each fight has no penalty (it still counts as wrong in your stats)',
+    wrongHeavy: v => 'A wrong heavy attack still lands for ' + pc(v) + ' of a correct heavy’s damage',
+    atpMult: v => 'Correct answers restore ×' + v + ' ATP',
+    atpCost: v => 'Your active costs ' + pc(1 - v) + ' less ATP',
+    tameBig: 'Enemy big attacks become normal attacks',
+    poisonStacks: v => 'Your poison can stack up to ' + v + ' times',
+    reflect: v => 'A block reflects ' + pc(v) + ' of the hit back at the enemy'
+  };
   function condText(c) {
     if (!c) return '';
     if (c.enemyType) return ' against ' + [].concat(c.enemyType).map(t => TYPE_PL[t] || t).join(' and ');
     if (c.isBoss) return ' against bosses';
     if (c.hpBelow != null) return ' while the enemy is under ' + pc(c.hpBelow) + ' HP';
     if (c.beatenBefore) return ' against species you have beaten before';
+    if (c.poisoned) return ' against poisoned enemies';
+    if (c.allyActive) return ' while your ally is out';
     return '';
   }
   gear.fxText = function (e) {
@@ -70,10 +84,16 @@ DD.gear = (function () {
     if (e.trigger === 'static') {
       if (r.type === 'stat') return STAT_TEXT[r.stat](r.add);
       if (r.type === 'damageMult') return '×' + r.mult + ' damage' + condText(e.cond);
+      if (r.type === 'rule') { const t = RULE_TEXT[r.rule]; return typeof t === 'function' ? t(r.value) : t || r.rule; }
       if (r.type === 'travelSpeed') return 'The current carries you along vessels more often';
       if (r.type === 'revealNPCs') return 'Shows native cells and merchants on the dungeon map before you find them';
     }
     const when = WHEN[e.trigger] || e.trigger;
+    if (r.type === 'repeatHit') return when + ': the blow lands ' + (r.n === 1 ? 'a second time' : r.n + ' more times');
+    if (e.chance != null && r.type === 'damageMult') return when + ': ' + pc(e.chance) + ' chance to crit for ×' + r.mult + ' damage';
+    if (r.type === 'removeWrong') return when + ': ' + r.n + ' wrong option removed';
+    if (r.type === 'summonAlly') return when + ': a neutrophil ally attacks for ' + r.turns + ' turns';
+    if (r.type === 'heal' && e.cond && e.cond.blocked) return when + ' and you blocked it: heal ' + (r.pct >= 1 ? 'to full HP' : pc(r.pct) + ' of max HP');
     if (r.type === 'heal') return when + ': heal ' + pc(r.pct) + ' of max HP';
     if (r.type === 'atp') return when + ': +' + r.amount + ' ATP';
     if (r.type === 'shield') return when + ': the first hit you take does 0 damage';
@@ -134,6 +154,7 @@ DD.gear = (function () {
       el('span', { class: 'chip rc' }, cap(it.rarity)),
       el('span', { class: 'chip' }, it.slot === 'weapon' ? TYPE_NAME[it.wtype] : KIND_NAME[it.slot]),
       it.region ? el('span', { class: 'chip' }, DD.data.region(it.region).name) : null,
+      it.set ? el('span', { class: 'chip ok', title: DD.data.setById[it.set].concept }, DD.data.setById[it.set].name + ' set ' + (DD.fx.setCounts(prof())[it.set] || 0) + '/' + DD.data.setById[it.set].pieces.length) : null,
       ownType(it) ? el('span', { class: 'chip ok', title: 'Your class’s weapon type: this weapon does ×' + G.weaponTypeMult + ' damage' }, 'own type ×' + G.weaponTypeMult) : null);
   }
   // Name, rarity, effects and the real fact. Used in shops, the merchant and the equipment screen.
@@ -162,6 +183,22 @@ DD.gear = (function () {
     lose.forEach(t => rows.push(el('div', { class: 'down' }, 'Loses: ' + t)));
     if (!rows.length) rows.push(el('div', { class: 'dim' }, 'No change to your stats.'));
     return el('div', { class: 'diff' }, el('div', { class: 'dim' }, (old ? 'Replaces ' + old.name : 'Empty slot') + (it.slot === 'acc' ? ' (' + SLOT_NAME[slot] + ')' : '') + ':'), rows);
+  };
+
+  // ---------- sets (5a) ----------
+  gear.setsPanel = function () {
+    const n = DD.fx.setCounts(prof()), eq = gear.equippedIds();
+    return el('div', { class: 'stack', style: { alignItems: 'stretch' } }, DD.data.sets.map(s => {
+      const have = n[s.id] || 0, on = have >= s.pieces.length;
+      return el('div', { class: 'card' + (on ? ' sel' : '') },
+        el('div', { class: 'rhead' }, el('h3', null, s.name + ' set'), el('span', { class: 'chip' + (on ? ' ok' : '') }, on ? 'active' : have + '/' + s.pieces.length)),
+        el('div', { class: 'small' }, el('b', null, 'Bonus (all ' + s.pieces.length + '): '), s.bonusText),
+        el('div', { class: 'dim small' }, s.concept),
+        el('ul', { class: 'fxl' }, s.pieces.map(id => {
+          const it = by(id), mine = eq.includes(id), own = gear.owned(id) > 0;
+          return el('li', { class: mine ? '' : 'dim' }, it.name + ' (' + (it.slot === 'weapon' ? TYPE_NAME[it.wtype] : KIND_NAME[it.slot]).toLowerCase() + ')' + (mine ? ' · equipped' : own ? ' · in your bag' : ''));
+        })));
+    }));
   };
 
   // ---------- the equipment screen ----------
@@ -207,7 +244,8 @@ DD.gear = (function () {
         DD.save.run ? el('div', { class: 'dim small' }, 'A run is in progress: HP and ATP are capped to the new maximums when you swap.') : null),
       el('div', { class: 'gslots' }, DD.data.gearSlots.map(slotCard)),
       el('div', { class: 'toolrow2' }, el('b', null, 'Bag (' + bag().length + ')'), [['all', 'All'], ['weapon', 'Weapons'], ['armor', 'Armor'], ['acc', 'Accessories']].map(chip)),
-      ids.length ? el('div', { class: 'gslots' }, ids.map(bagCard)) : el('p', { class: 'dim small' }, bag().length ? 'Nothing in the bag for this filter.' : 'Your bag is empty. Gear comes from dungeon chests (&), plasma cell shops, the dendritic merchant and boss drops.')));
+      ids.length ? el('div', { class: 'gslots' }, ids.map(bagCard)) : el('p', { class: 'dim small' }, bag().length ? 'Nothing in the bag for this filter.' : 'Your bag is empty. Gear comes from dungeon chests (&), plasma cell shops, the dendritic merchant and boss drops.'),
+      el('details', { class: 'card', open: true }, el('summary', null, el('b', null, 'Gear sets'), ' (' + DD.data.sets.filter(x => (DD.fx.setCounts(p)[x.id] || 0) >= x.pieces.length).length + ' active)'), gear.setsPanel())));
     const sc2 = document.querySelector('.screen'); if (sc2) sc2.scrollTop = top;
   };
   gear.summary = function () {
