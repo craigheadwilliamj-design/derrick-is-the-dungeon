@@ -49,8 +49,10 @@ DD.ui = (function () {
       el('p', { class: 'dim small' }, DD.save.status())));
   };
   ui.continueGame = function () {
-    const run = DD.save.run;
-    if (run && DD.travel.valid(run)) { if (DD.travel.resume(run)) { ui.game(); DD.travel.banner(); return; } }
+    const run = DD.save.run, inTown = DD.town.saved(run);
+    if (inTown) { ui.town({ resume: inTown }); return; } // reloaded inside a town (3c)
+    if (run && run.kind === 'town') DD.save.saveRun(null);
+    else if (run && DD.travel.valid(run)) { if (DD.travel.resume(run)) { ui.game(); DD.travel.banner(); return; } }
     else if (run && !run.kind && run.regionId !== 'bloodstream' && DD.data.region(run.regionId)) { DD.game.resume(run); ui.game(); return; }
     else if (run) DD.game.abandon(); // a leftover from before the world map (the old Bloodstream dungeon) or an unreadable trip
     ui.menu();

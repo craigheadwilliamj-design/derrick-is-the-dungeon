@@ -7,15 +7,19 @@
     return el('div', { class: 'foe' },
       el('div', { class: 'glyph', style: { color: kind === 'merchant' ? '#e0c060' : '#7fd6c2' } }, kind === 'merchant' ? '¥' : '☺'),
       el('div', { class: 'foeinfo' }, el('h2', null, def.name), el('div', { class: 'chips' },
-        el('span', { class: 'chip' }, kind === 'merchant' ? 'Traveling merchant' : 'Native cell'), el('span', { class: 'chip' }, DD.data.region(DD.game.run.regionId).name))));
+        el('span', { class: 'chip' }, kind === 'merchant' ? 'Traveling merchant' : 'Native cell'), el('span', { class: 'chip' }, placeName()))));
   }
+  const inTown = () => DD.town.here();
+  const townId = () => DD.save.profile.loc;
+  const placeName = () => inTown() ? DD.data.town(townId()).name : DD.data.region(DD.game.run.regionId).name;
+  const placeAccent = () => inTown() ? DD.data.town(townId()).accent : DD.data.region(DD.game.run.regionId).accent;
   const say = t => el('p', { class: 'small' }, '“' + t + '”');
 
   ui.npc = function () {
     const G = DD.game, T = G.talk; if (!T) return;
     ui.mode = 'npc';
     const box = document.querySelector('.overlay'); if (!box) return;
-    const NP = DD.npc, rn = G.run, accent = DD.data.region(rn.regionId).accent, d = T.def, body = [];
+    const NP = DD.npc, accent = placeAccent(), d = T.def, body = [];
     if (T.phase === 'greet') {
       body.push(say(T.greet), say(T.joke), el('p', { class: 'small dim' }, d.codex),
         T.npc.done ? el('p', { class: 'warn small' }, 'You have already talked to this cell on this floor. It only has one question for you per floor.') : null,
@@ -57,6 +61,7 @@
     ui.syncHud();
   };
   ui.closeNpc = function () {
+    if (inTown()) return DD.town.back();
     ui.mode = 'map';
     const box = document.querySelector('.overlay'); if (box) { box.hidden = true; box.replaceChildren(); }
     ui.refreshMap();

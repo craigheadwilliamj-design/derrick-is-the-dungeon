@@ -122,17 +122,17 @@ DD.data.circ = (function () {
 
   // Lymph node towns. regions = the dungeons that really drain there.
   const towns = [
-    { id: 'cervical', name: 'Cervical Nodes', short: 'Cervical', regions: ['brain', 'eyesears', 'glands'], exit: 'thoracicDuct',
+    { id: 'cervical', accent: '#7fb8e0', name: 'Cervical Nodes', short: 'Cervical', regions: ['brain', 'eyesears', 'glands'], exit: 'thoracicDuct',
       blurb: 'Lymph nodes filter lymph before it returns to the blood, and they are packed with lymphocytes. The cervical nodes drain the head and neck.' },
-    { id: 'axillary', name: 'Axillary Nodes', short: 'Axillary', regions: ['skin'], exit: 'thoracicDuct',
+    { id: 'axillary', accent: '#9fd67f', name: 'Axillary Nodes', short: 'Axillary', regions: ['skin'], exit: 'thoracicDuct',
       blurb: 'The axillary nodes in the armpit drain the arm, the chest wall and the breast.' },
-    { id: 'mediastinal', name: 'Mediastinal Nodes', short: 'Mediastinal', regions: ['heart', 'lungs', 'thymus'], exit: 'rDuct',
+    { id: 'mediastinal', accent: '#e0a07f', name: 'Mediastinal Nodes', short: 'Mediastinal', regions: ['heart', 'lungs', 'thymus'], exit: 'rDuct',
       blurb: 'The mediastinal nodes sit in the chest between the lungs and filter lymph from the heart, lungs and thymus. Lymph from the right side of the chest reaches the blood through the right lymphatic duct.' },
-    { id: 'mesenteric', name: 'Mesenteric Nodes', short: 'Mesenteric', regions: ['gut', 'spleen'], exit: 'cisterna',
+    { id: 'mesenteric', accent: '#e0cf6f', name: 'Mesenteric Nodes', short: 'Mesenteric', regions: ['gut', 'spleen'], exit: 'cisterna',
       blurb: 'The mesenteric nodes filter lymph from the intestines. Fat absorbed from the gut travels in lymphatic vessels called lacteals. This town stands for the celiac and mesenteric chain.' },
-    { id: 'lumbar', name: 'Lumbar Nodes', short: 'Lumbar', regions: ['kidneys', 'gonads'], exit: 'cisterna',
+    { id: 'lumbar', accent: '#b89fe0', name: 'Lumbar Nodes', short: 'Lumbar', regions: ['kidneys', 'gonads'], exit: 'cisterna',
       blurb: 'The lumbar (para-aortic) nodes lie along the abdominal aorta. They drain the kidneys, testes and ovaries, and lymph from the legs passes through them too.' },
-    { id: 'inguinal', name: 'Inguinal Nodes', short: 'Inguinal', regions: ['femur', 'quads'], exit: 'cisterna',
+    { id: 'inguinal', accent: '#6fd8c4', name: 'Inguinal Nodes', short: 'Inguinal', regions: ['femur', 'quads'], exit: 'cisterna',
       blurb: 'The inguinal nodes in the groin drain the legs, the external genitals and the lower abdominal wall.' }
   ];
   const lymphOf = {}; // dungeon id -> { vessel, town }

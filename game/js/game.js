@@ -167,7 +167,7 @@ DD.game = (function () {
       const town = DD.world.townFor(run.regionId) || 'cervical';
       prof().loc = town;
       DD.save.save(); G.persist(); DD.ui.stopMap();
-      return DD.ui.town({ fled: true, id: town });
+      return DD.ui.town({ fled: true, id: town, via: 'lymph' });
     }
     const e = C.enemy, x = S.enemy.xp;
     e.alive = false; run.killed++;

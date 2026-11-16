@@ -4,7 +4,7 @@ DD.npc = (function () {
   const S = DD.S, { el } = DD.u;
   const N = {};
   const prof = () => DD.save.profile;
-  const run = () => DD.game.run;
+  const run = () => DD.town.here() ? DD.town.run() : DD.game.run; // in a town (3c) the saved run is the only copy
   const inv = id => prof().inventory[id] || 0;
   const cap = id => DD.data.items[id].cap || Infinity;
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -78,6 +78,7 @@ DD.npc = (function () {
   };
   N.restWhy = function () {
     const st = DD.game.stats(), r = run();
+    if (!r) return 'HP and ATP only matter inside a dungeon run.';
     if (r.hp >= st.maxHP && r.atp >= st.maxATP) return 'You are already fully rested.';
     if (prof().glucose < N.restCost()) return 'Not enough glucose.';
     return '';
@@ -86,6 +87,7 @@ DD.npc = (function () {
     if (N.restWhy()) return;
     const st = DD.game.stats(), r = run(), T = DD.game.talk;
     prof().glucose -= N.restCost(); r.hp = st.maxHP; r.atp = st.maxATP;
+    if (DD.town.here()) DD.save.saveRun(r);
     T.msg = 'You curl up in the lymph for a bit. Full HP and ATP.';
     DD.save.save(); DD.game.persist(); DD.ui.npc(); DD.ui.syncHud();
   };
