@@ -1,0 +1,199 @@
+<title>Marrow Depths Mockup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&family=Pixelify+Sans:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: one-screen game — HUD strip, glyph map, log; combat opens as an overlay panel */
+:root{
+  --bg:#140d10; --panel:#1f151a; --line:#3a2a31; --bone:#ece3d3; --dim:#8a7a7f;
+  --wall:#d8cdb8; --floor:#4a3b40; --art:#e0474f; --ven:#6c8fe0; --bile:#d9b44a; --ok:#6fcf8a;
+  --disp:"Pixelify Sans",ui-monospace,monospace; --body:"Atkinson Hyperlegible",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--bone);font-family:var(--body);font-size:15px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;box-sizing:border-box}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:10px;height:100%}
+.tag{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--bile)}
+.hud{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.floor{font-family:var(--disp);font-size:20px;font-weight:700}
+.floor small{display:block;font-family:var(--body);font-size:12px;color:var(--dim);font-weight:400}
+.stat{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.stat b{color:var(--bone);font-weight:700}
+.bar{width:110px;height:8px;background:#000;border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--art);transition:width .3s}
+.bar.xp i{background:var(--ven)}
+.mapbox{flex:1;min-height:0;overflow:auto;background:#0c0809;border:1px solid var(--line);border-radius:6px;display:grid;place-items:center;padding:10px}
+#map{font-family:var(--mono);font-weight:800;line-height:1.05;font-size:clamp(11px,2.6vw,19px);white-space:pre;margin:0;user-select:none}
+.w{color:var(--wall)} .f{color:var(--floor)} .d{color:var(--bile)} .p{color:#fff;text-shadow:0 0 8px #fff8}
+.m{color:var(--art)} .B{color:var(--art);text-shadow:0 0 10px var(--art)} .i{color:var(--ok)} .g{color:var(--bile)} .s{color:var(--ven)} .x{color:var(--bone);text-shadow:0 0 8px var(--bile)}
+.fog{color:#2a1f23}
+.log{font-size:13px;color:var(--dim);min-height:3.4em;display:flex;flex-direction:column-reverse;gap:2px}
+.log div:first-child{color:var(--bone)}
+.keys{display:flex;gap:6px;justify-content:center}
+.keys button,.btn{font:inherit;background:var(--panel);color:var(--bone);border:1px solid var(--line);border-radius:5px;padding:8px 12px;cursor:pointer}
+.keys button{width:44px;height:40px;font-family:var(--mono)}
+button:focus-visible{outline:2px solid var(--bile);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--dim)}
+.legend span b{font-family:var(--mono);margin-right:4px}
+/* combat */
+#combat{position:fixed;inset:0;background:#0009;display:grid;place-items:center;padding:16px;z-index:5}
+.cbox{width:min(560px,100%);background:var(--panel);border:1px solid var(--art);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:14px;max-height:100%;overflow:auto}
+.foe{display:flex;gap:14px;align-items:center}
+.glyph{font-family:var(--mono);font-weight:800;font-size:54px;color:var(--art);width:70px;text-align:center;text-shadow:0 0 18px var(--art)}
+.foe h2{font-family:var(--disp);margin:0 0 6px;font-size:22px}
+.q{font-size:17px;line-height:1.45;margin:0;text-wrap:balance}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;font:inherit;font-size:15px;background:#00000040;color:var(--bone);border:1px solid var(--line);border-radius:5px;padding:10px 12px;cursor:pointer;display:flex;gap:10px}
+.opt kbd{font-family:var(--mono);color:var(--bile)}
+.opt:hover{border-color:var(--bile)}
+.opt.right{border-color:var(--ok);background:#6fcf8a22} .opt.wrong{border-color:var(--art);background:#e0474f22}
+.fb{font-size:14px;line-height:1.5;border-left:3px solid var(--bile);padding-left:10px}
+.fb b{font-family:var(--disp)}
+.note{font-size:12px;color:var(--dim);text-align:center}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="tag">Mockup · not the real game</div>
+  <div class="hud">
+    <div class="floor">Floor 4 · The Ossuary<small>Skeletal system</small></div>
+    <div class="stat">HP <b id="hpT">20/20</b><div class="bar"><i id="hpB" style="width:100%"></i></div></div>
+    <div class="stat">XP · Lv 3<div class="bar xp"><i id="xpB" style="width:40%"></i></div></div>
+    <div class="stat">Gold <b id="gold">34</b></div>
+    <div class="stat">Potions <b id="pot">2</b></div>
+  </div>
+  <div class="mapbox"><pre id="map" aria-label="Dungeon map"></pre></div>
+  <div class="log" id="log"><div>You descend into the Ossuary. Walk into a monster to fight it.</div></div>
+  <div class="keys" aria-label="Move">
+    <button data-d="-1,0">←</button><button data-d="0,-1">↑</button><button data-d="0,1">↓</button><button data-d="1,0">→</button>
+  </div>
+  <div class="legend">
+    <span><b class="p">@</b>you</span><span><b class="m">o</b>osteoclast</span><span><b class="m">s</b>bone spur</span><span><b class="B">K</b>boss</span>
+    <span><b class="i">!</b>potion</span><span><b class="g">$</b>gold</span><span><b class="s">?</b>study scroll</span><span><b class="x">&gt;</b>stairs</span>
+  </div>
+</div>
+
+<div id="combat" hidden>
+  <div class="cbox" role="dialog" aria-label="Combat">
+    <div class="foe">
+      <div class="glyph" id="cg">o</div>
+      <div><h2 id="cn">Osteoclast</h2><div class="bar"><i id="chp" style="width:100%"></i></div></div>
+    </div>
+    <p class="q" id="cq"></p>
+    <div class="opts" id="copts"></div>
+    <div class="fb" id="cfb" hidden></div>
+    <button class="btn" id="cnext" hidden>Continue</button>
+    <div class="note">Right answer = you hit. Wrong answer = it hits you. Keys 1–4 work.</div>
+  </div>
+</div>
+
+<script>
+const RAW=[
+"##########            ##########",
+"#........#            #........#",
+"#..@.....+############+...o....#",
+"#......!.#            #....$...#",
+"####+#####            #####+####",
+"    #                      #    ",
+"    #                      #    ",
+"####+#########      #######+####",
+"#............#      #..........#",
+"#..?.....s...+######+....K.....#",
+"#............#      #..........#",
+"#.....$......#      #....>.....#",
+"##############      ############"];
+let grid=RAW.map(r=>r.split(''));
+let px,py; grid.forEach((r,y)=>r.forEach((c,x)=>{if(c==='@'){px=x;py=y;r[x]='.'}}));
+const seen=new Set();
+let hp=20,gold=34,pot=2,xp=40,bossDead=false;
+const Q={
+ o:{name:'Osteoclast',hp:2,qs:[
+  ["Which cells break down (resorb) bone matrix?","Osteoclasts",["Osteoblasts","Osteocytes","Chondrocytes"],"Osteo<b>c</b>lasts <b>c</b>hew bone. Osteo<b>b</b>lasts <b>b</b>uild it. Osteocytes are mature cells sitting in lacunae."],
+  ["Which hormone raises blood Ca²⁺ by stimulating osteoclasts?","Parathyroid hormone (PTH)",["Calcitonin","Insulin","Growth hormone"],"PTH pulls calcium out of bone. Calcitonin does the opposite and 'tones down' blood calcium."]]},
+ s:{name:'Bone Spur',hp:1,qs:[
+  ["What is the structural unit of compact bone?","Osteon (Haversian system)",["Trabecula","Lacuna","Epiphysis"],"Osteons are concentric lamellae around a central canal. Trabeculae make up spongy bone."]]},
+ K:{name:'The Ossified King',hp:3,boss:true,qs:[
+  ["The bony process you rest your elbow on (the olecranon) belongs to which bone?","Ulna",["Radius","Humerus","Scapula"],"The olecranon of the ulna fits into the olecranon fossa of the humerus when you straighten your arm."],
+  ["Which bone is part of the appendicular skeleton?","Scapula",["Sternum","Sacrum","Hyoid"],"The pectoral girdle (scapula and clavicle) is appendicular. Sternum, vertebrae (incl. sacrum) and hyoid are axial."],
+  ["What type of joint is the shoulder?","Synovial ball-and-socket",["Synovial hinge","Fibrous suture","Cartilaginous symphysis"],"The humeral head sits in the glenoid cavity, giving movement in all planes. That mobility is why shoulders dislocate easily."]]}
+};
+const mons={};
+const $=id=>document.getElementById(id);
+function log(t){const d=document.createElement('div');d.innerHTML=t;$('log').prepend(d);while($('log').children.length>3)$('log').lastChild.remove()}
+function vis(x,y){return Math.abs(x-px)<=6&&Math.abs(y-py)<=4}
+function draw(){
+  let out='';
+  for(let y=0;y<grid.length;y++){for(let x=0;x<grid[y].length;x++){
+    let c=grid[y][x];
+    if(vis(x,y))seen.add(x+','+y);
+    if(x===px&&y===py){out+='<span class="p">@</span>';continue}
+    if(!seen.has(x+','+y)){out+=' ';continue}
+    let cls={'#':'w','.':'f','+':'d','o':'m','s':'m','K':'B','!':'i','$':'g','?':'s','>':'x'}[c]||'';
+    if(c==='>'&&!bossDead){c='.';cls='f'}
+    if(!vis(x,y)&&!'#.+'.includes(c)){} // remembered items stay
+    out+=c===' '?' ':`<span class="${vis(x,y)?cls:cls+' fog'}">${c==='.'?'·':c}</span>`;
+  }out+='\n'}
+  $('map').innerHTML=out;
+  $('hpT').textContent=hp+'/20';$('hpB').style.width=(hp/20*100)+'%';
+  $('gold').textContent=gold;$('pot').textContent=pot;$('xpB').style.width=Math.min(100,xp)+'%';
+}
+function move(dx,dy){
+  if(!$('combat').hidden)return;
+  const nx=px+dx,ny=py+dy,c=grid[ny]?.[nx];
+  if(!c||c===' '||c==='#')return;
+  if(Q[c]){fight(nx,ny,c);return}
+  px=nx;py=ny;
+  if(c==='!'){pot++;grid[ny][nx]='.';log('You pick up a <b>healing potion</b>.')}
+  if(c==='$'){const g=5+Math.floor(Math.random()*8);gold+=g;grid[ny][nx]='.';log(`You find <b>${g} gold</b>.`)}
+  if(c==='?'){grid[ny][nx]='.';log('<b>Study scroll:</b> Epiphyseal plates are hyaline cartilage. They close after puberty, ending growth in length.')}
+  if(c==='>'&&bossDead){log('In the full game, the stairs lead to an apothecary and then <b>Floor 5: Muscular</b>.')}
+  draw();
+}
+let C=null;
+function fight(x,y,c){
+  const key=x+','+y;
+  if(!mons[key])mons[key]={...Q[c],max:Q[c].hp,qi:0};
+  C={m:mons[key],x,y,c};
+  $('cg').textContent=c;$('cn').textContent=C.m.name;
+  $('combat').hidden=false;ask();
+}
+function ask(){
+  const m=C.m,q=m.qs[m.qi%m.qs.length];
+  C.q=q;C.done=false;
+  $('chp').style.width=(m.hp/m.max*100)+'%';
+  $('cq').textContent=q[0];
+  const opts=[q[1],...q[2]].sort(()=>Math.random()-.5);
+  $('copts').innerHTML='';
+  opts.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';b.innerHTML=`<kbd>${i+1}</kbd><span>${o}</span>`;b.onclick=()=>answer(b,o);$('copts').append(b)});
+  $('cfb').hidden=true;$('cnext').hidden=true;
+  $('copts').firstChild.focus();
+}
+function answer(btn,o){
+  if(C.done)return;C.done=true;
+  const ok=o===C.q[1];
+  [...$('copts').children].forEach(b=>{if(b.lastChild.textContent===C.q[1])b.classList.add('right')});
+  if(!ok)btn.classList.add('wrong');
+  if(ok){C.m.hp--;$('chp').style.width=(C.m.hp/C.m.max*100)+'%'}else{hp=Math.max(1,hp-4)}
+  $('cfb').innerHTML=(ok?'<b>Hit!</b> ':`<b>${C.m.name} strikes you for 4.</b> `)+C.q[3];
+  $('cfb').hidden=false;$('cnext').hidden=false;$('cnext').focus();
+  C.m.qi++;draw();
+}
+$('cnext').onclick=()=>{
+  if(C.m.hp<=0){
+    grid[C.y][C.x]='.';$('combat').hidden=true;xp+=C.m.boss?40:15;gold+=C.m.boss?20:4;
+    if(C.m.boss){bossDead=true;log('<b>The Ossified King crumbles.</b> The stairs down are revealed.')}
+    else log(`You defeat the <b>${C.m.name}</b>.`);
+    C=null;draw();
+  }else ask();
+};
+addEventListener('keydown',e=>{
+  if(!$('combat').hidden){
+    if(/^[1-4]$/.test(e.key)&&!C.done){const b=$('copts').children[e.key-1];b&&b.click()}
+    return;
+  }
+  const k={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1],a:[-1,0],d:[1,0],w:[0,-1],s:[0,1]}[e.key];
+  if(k){e.preventDefault();move(...k)}
+});
+document.querySelectorAll('.keys button').forEach(b=>b.onclick=()=>move(...b.dataset.d.split(',').map(Number)));
+draw();
+</script>

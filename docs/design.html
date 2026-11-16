@@ -1,0 +1,395 @@
+<title>Derrick is the Dungeon Bible</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@600&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: single readable column, reference doc; tables scroll inside their own wrappers */
+:root{--bg:#f6f1ee;--fg:#221a1d;--dim:#6b5d62;--line:#ddd0cb;--acc:#a3242c;--code:#ece4e0;
+--disp:"Pixelify Sans",ui-monospace,monospace;--body:"Atkinson Hyperlegible",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#160f12;--fg:#ece3d3;--dim:#a8979c;--line:#3a2a31;--acc:#e0646b;--code:#241a1e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#160f12;--fg:#ece3d3;--dim:#a8979c;--line:#3a2a31;--acc:#e0646b;--code:#241a1e;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px}
+main{max-width:72ch;margin:0 auto}
+h1,h2,h3{font-family:var(--disp);text-wrap:balance;line-height:1.2}
+h1{font-size:2.2rem;margin:0 0 .3em}h2{font-size:1.45rem;margin:2em 0 .5em;color:var(--acc)}h3{font-size:1.1rem;margin:1.4em 0 .3em}
+.sub{color:var(--dim);margin:0}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:.1em .3em;border-radius:3px}
+pre{font-family:var(--mono);font-size:.85em;background:var(--code);padding:12px;border-radius:4px;overflow-x:auto}
+.t{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.93em}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:.8em;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+li{margin:.2em 0}
+.rule{border-left:3px solid var(--acc);padding-left:12px}
+</style>
+<main>
+<h1>Derrick is the Dungeon</h1>
+<p class="sub">Design bible for an anatomy &amp; physiology study roguelike set inside a guy named Derrick. Every build session reads this first.</p>
+
+<h2>Session rules</h2>
+<div class="rule">
+<ul>
+<li><b>Renamed.</b> The game was called “Marrow Depths” when the task cards were written. Any card that says Marrow Depths means this game. The artifact's title is <b>Derrick is the Dungeon</b> (if it already exists under the old title, find it by either name and retitle it). <b>Where a card and this doc disagree, this doc wins</b>, including the phase table below.</li>
+<li><b>Purpose:</b> a study tool for an intro A&amp;P student (fetal pig dissection, plastic-model lab practicals). The game exists to make studying stick. Never let scope grow beyond this doc without asking the user.</li>
+<li><b>Be token-frugal.</b> The user watches usage. Do only your phase part. No speculative features, no repeated render/check loops (one preview look max).</li>
+<li><b>Source of truth is GitHub:</b> <code>craigheadwilliamj-design/derrick-is-the-dungeon</code> (public). If it isn't attached to your session, attach it with <code>add_repo</code> (push access) and clone it. Game code lives in <code>game/</code>; this doc lives at <code>docs/design.html</code> (keep both copies in sync if you change the design). Work on a branch named <code>phase-&lt;id&gt;</code> (e.g. <code>phase-1a</code>) from the latest <code>main</code>, commit, push, and open a pull request to <code>main</code>. The user merges it before starting the next card. Never commit lab images, study materials or personal data: those live in the user's claude.ai account storage, and the repo is public.</li>
+<li><b>Where the game is played:</b> one private claude.ai artifact titled <b>Derrick is the Dungeon</b>, published from the repo's <code>game/</code> folder as a multi-file artifact (<code>file_path</code> = <code>game/index.html</code>, <code>root</code> = <code>game</code>, <code>files</code> = the other files). Phase 1a creates it and writes its URL into <code>README.md</code>. Later phases republish to that same <code>url</code>.</li>
+<li>Load the <code>artifact-design</code> guidance (via quickstart) and the <code>artifact-capabilities</code> skill before writing page code.</li>
+<li>Explanations shown to the player must be accurate A&amp;P. If unsure, leave it out.</li>
+<li>Mockup for look and feel: https://claude.ai/artifact/RR1EP1DFkhhLXZeYDGg8KW</li>
+</ul></div>
+
+<h2>Premise</h2>
+<p>The dungeon is a man named <b>Derrick</b>. You are one of his white blood cells. Derrick does not take great care of himself, and what he does to his body changes the world: his choices become region modifiers, chronic conditions, and the running joke NPCs comment on. Every consequence must be real physiology; the humor is how the fact sticks.</p>
+
+<h2>Tech</h2>
+<ul>
+<li>Plain JavaScript, no framework, no engine. Canvas or a DOM grid for the glyph map. Classic roguelike glyphs (<code>@ # . + &gt;</code>, letters for monsters), colored per region. Single dark visual world.</li>
+<li><b>Content is data.</b> Questions, items, enemies, classes, subclasses, NPCs, regions live in <code>data/*.js</code> tables. Logic in <code>js/*.js</code>. Balance numbers in one <code>js/settings.js</code>.</li>
+<li>Files: <code>index.html</code>, <code>js/</code> (engine, combat, effects, dungeon, ui, save, editor…), <code>data/</code>.</li>
+<li><b>Saving:</b> <code>db</code> + <code>user</code> capabilities, private path <code>data/users/&lt;id&gt;/…</code> (save doc, custom questions, image-question records). localStorage mirror as fallback. Store per-question stats and per-region last-reviewed timestamps.</li>
+<li><b>Images:</b> <code>assets</code> capability for lab-manual screenshots and dissection photos.</li>
+<li><b>In-game question writing</b> (phase 4): <code>sample</code> capability.</li>
+<li>Works on phone (tap controls, d-pad) and laptop (WASD/arrows, number keys for answers).</li>
+</ul>
+
+<h2>The effect system (backbone)</h2>
+<p>Gear, class passives/actives, subclasses, items, buffs, set bonuses and legendaries are all <b>effects</b>: <code>{trigger, condition?, result}</code>. Combat and travel only read final stats and fire triggers.</p>
+<pre>triggers: fightStart, turnStart, onLight, onHeavyCorrect, onHeavyWrong,
+          onBlock, onHit, onBigHit, onKill, onQuestionCorrect, onQuestionWrong,
+          travelSegment
+conditions: enemyType (bacteria|virus|fungus|protozoa|worm), isBoss,
+            hpBelow, firstHeavyOfFight, answeredFast
+results: damage, damageMult, heal, stat+, atp+, poison(n turns), shield,
+         removeWrongOptions(n), execute(threshold), summonAlly, repeatHit,
+         travelSpeed, revealNPCs</pre>
+<p>New content should almost always be new data combining existing effects.</p>
+
+<h2>Combat</h2>
+<ul>
+<li>Turn-based. Enemy <b>telegraphs</b> its next move: attack, big attack, defend, or question.</li>
+<li>Player: <b>light</b> (small, always lands), <b>heavy</b> (asks a question: right = big damage, wrong = whiff and open), <b>block</b>, <b>ability</b> (costs ATP), <b>item</b>.</li>
+<li>Enemy question move: right = player buff, wrong = enemy buff. Regular enemies ~once per fight; bosses every ~2 turns with bigger swings.</li>
+<li>Every answer shows a short explanation. Number keys 1–4 answer.</li>
+<li>Damage = Power × action multiplier × matchups − enemy defense. Strong class/pathogen matchup ≈ +50%.</li>
+<li>Abilities never skip a question. Questions must stay the best move (light-attack spam must be slow and costly).</li>
+<li>Target pacing: a question every 20–30 s of play.</li>
+</ul>
+
+<h2>Stats &amp; classes</h2>
+<p>Stats: HP, Power, Defense, ATP (mana). Leveling: +HP/+Power per level weighted by class. Milestone ability upgrades at 5/10/15, claimed at the thymus. Levels are shared across classes.</p>
+<div class="t"><table>
+<tr><th>Class</th><th>HP/Pow/Def/ATP</th><th>Weapon</th><th>Passive</th><th>Active</th><th>Strong vs</th></tr>
+<tr><td>Neutrophil · Berserker</td><td>2/5/1/2</td><td>Axes</td><td>First Responder: first heavy of fight ×2</td><td>NETosis: next heavy ×3, costs HP even if wrong</td><td>Bacteria, fungi</td></tr>
+<tr><td>B Cell · Wizard</td><td>2/3/2/5</td><td>Staffs</td><td>Memory: bonus vs species beaten before</td><td>Opsonize: enemy takes extra damage 3 turns</td><td>Bacteria</td></tr>
+<tr><td>Cytotoxic T · Rogue</td><td>2/4/2/3</td><td>Daggers</td><td>Precision: fast correct heavy crits</td><td>Apoptosis: correct heavy executes &lt;⅓ HP</td><td>Viruses</td></tr>
+<tr><td>Macrophage · Paladin</td><td>5/2/4/2</td><td>Maces+shields</td><td>Phagocytosis: heal on kill</td><td>Antigen Presentation: remove 2 wrong options</td><td>Bacteria, protozoa</td></tr>
+<tr><td>Eosinophil · Ranger</td><td>3/3/3/3</td><td>Bows</td><td>Big Game: bonus vs worms &amp; bosses</td><td>Degranulate: poison 3 turns</td><td>Worms</td></tr>
+<tr><td>Basophil · Bard</td><td>3/2/2/4</td><td>Instruments</td><td>Heparin: blocks absorb extra</td><td>Inflammation: neutrophil ally light-attacks 3 turns</td><td>(support)</td></tr>
+</table></div>
+<p>Soft weapon restriction: any class equips anything; own weapon type gets a bonus.</p>
+<h3>Subclasses (phase 5, picked at thymus ~lv 10)</h3>
+<p>Berserker: NET Weaver / Respiratory Burst. Wizard: Plasma Cell / Memory B Cell. Rogue: Cytotoxic Assassin / Regulatory T (debuffer). Paladin: M1 Crusader / M2 Warden. Ranger: Worm Hunter / Toxin Trapper. Bard: Histamine Herald / Heparin Keeper. Each = passive tweak + active upgrade.</p>
+
+<h2>Enemies</h2>
+<ul>
+<li>Pathogens: bacteria, viruses, fungi, protozoa, worms. Type only sets matchup bonuses; no special behaviors.</li>
+<li>Mild and common early (cold, strep throat, acne bacteria, athlete's foot, pinworm, cold sores, pink eye, ear infection, norovirus, UTI); serious later and as bosses (TB, plague, meningitis…).</li>
+<li>Bosses: more HP, harder hits, more questions, one unique legendary drop themed on the pathogen (e.g. Polysaccharide Capsule). No gimmick phases.</li>
+<li>Microbiology is flavor only: one-line codex blurb, never quizzed.</li>
+<li>Clots and plaques are vessel hazards (block or narrow paths), not enemies.</li>
+</ul>
+
+<h2>Traps</h2>
+<ul>
+<li>Hidden trap tiles in vessel segments and dungeon floors. Stepping on one triggers a <b>pop quiz</b>: one multiple-choice question. Wrong = damage (scaled in settings), right = disarmed plus a little XP. Always show the explanation.</li>
+<li>Questions come from the current region (vessels: blood and cardiovascular). Glyph <code>^</code> once revealed or triggered. Flavor names per place (turbulence in the aorta, a bone shard in the femur, an acid splash in the stomach).</li>
+<li>Frequency tuned so traps add questions without slowing travel: about 1–2 per trip, a few per floor.</li>
+</ul>
+
+<h2>World</h2>
+<div class="t"><table>
+<tr><th>Place</th><th>Role</th></tr>
+<tr><td>Bone Marrow</td><td>Home base, respawn, class choice. Tutorial: foundations + cells &amp; tissues</td></tr>
+<tr><td>Thymus</td><td>Training: milestone upgrades, subclasses (skill tree parked)</td></tr>
+<tr><td>Lymph nodes: cervical, axillary, mediastinal, mesenteric, lumbar (para-aortic), inguinal</td><td>Towns: plasma cell shop, mast cell inn, helper T quest giver, glucose→ATP. Six towns, placed by real lymphatic drainage (see 3a spec).</td></tr>
+<tr><td>Dungeons</td><td>Brain (nervous), Eyes &amp; Ears (senses), Glands (endocrine), Heart, Lungs, Spleen (lymphatic &amp; immune), Gut (digestive), Kidneys (urinary + fluid/acid-base), Gonads (reproductive), Femur (skeletal), Quadriceps (muscular), Skin</td></tr>
+<tr><td>Bloodstream</td><td>The Blood system: travel ambushes on vessel segments</td></tr>
+</table></div>
+<ul>
+<li>All regions open from the start. Body map drawn in glyphs; regions glow by mastery.</li>
+<li>Dungeon = 2–3 generated floors + boss floor. Each floor: region pathogens, one native-cell NPC, chests with system-themed gear, chance of the merchant.</li>
+<li><b>Travel</b>: walk the real circulation route as a directed graph (veins → vena cava → RA → tricuspid → RV → pulmonary valve → pulmonary arteries → lung capillaries → pulmonary veins → LA → mitral → LV → aortic valve → aorta → organ artery → capillaries → diapedesis into dungeon). Accurate detours: gut via hepatic portal vein → liver; brain drains via dural sinuses → internal jugular. Valves are one-way doors; arteries push you along, veins slower. Full trip 1–2 min, 1–2 ambushes, vessel-only loot.</li>
+<li>Lymph paths: tissue → lymphatic vessel → the node town that region really drains to → rejoin blood at the venous angle (subclavian/internal jugular junction). Lymphocyte classes (Wizard, Rogue) may use lymph as a shortcut.</li>
+<li><b>Fast travel</b>: after walking a route a couple of times, name the route in order (ordering quiz) to unlock it.</li>
+</ul>
+
+<h2>NPCs</h2>
+<ul>
+<li>Town: plasma cell (shop), mast cell (inn), helper T (quests/bounties).</li>
+<li>Traveling merchant: dendritic cell. Random dungeon floors, limited stock (sometimes unique), rest at ~2× inn price, tips about fading regions.</li>
+<li>Native cells, one per dungeon floor (osteocyte, neuron, parietal cell, podocyte, cardiac myocyte…): 1–2 lines of dialogue that teach a fact, one question drawn from the player's weak spots. Right = loot, wrong = explanation only. No combat.</li>
+<li><b>Derrick commentary:</b> every NPC has lines reacting to Derrick's current events and conditions, in character, and accurate. Examples: osteocyte after a broken leg, “Fourteen years in this lacuna and he jumps off a roof for a video.” Podocyte after a night out, “No ADH. None. Do you know how much filtrate I'm dealing with?” Mast cell after a salad, “He ate a vegetable. Voluntarily. Rooms are half off.”</li>
+</ul>
+
+<h2>Economy</h2>
+<ul>
+<li><b>Glucose</b> = currency (enemies, chests, vessels, NPCs, outbreaks). <b>ATP</b> = mana: small trickle per correct answer, big refills only by converting glucose at towns (≈30 ATP per glucose flavor) or pricey ATP Reserve.</li>
+<li>Classic RPG attrition: inns give a full restore for glucose. Healing carry cap: 3 Cytokine Tonics.</li>
+<li>Consumables: Cytokine Tonic (heal), ATP Reserve, Complement (next heavy +50%), Mucus Ward (block next hit), Fever (+damage, self-damage per turn), Interferon (bonus vs viruses), Antibiotic (bonus vs bacteria, useless vs viruses), Lymph Drain (escape to nearest node).</li>
+</ul>
+
+<h2>Gear</h2>
+<ul>
+<li>Slots: weapon, armor, 2 accessories. Rarity: Common (white), Uncommon (green), Rare (blue), Legendary (gold, boss-only).</li>
+<li>Hand-designed fixed items, no random stats, built from the effect list. ~60 in phase 4, ~150 by phase 5. Every item's description is a true A&amp;P/immunology fact.</li>
+<li>Examples: Antibody Sword, Lysozyme Axe, Perforin Dagger, Respiratory Burst Staff, Defensin Mace, Major Basic Protein Bow, Histamine Lute; Keratin Plate, Myelin Sheath, Tight Junction Mail, Mucous Membrane Robe; Selectin Boots (travel speed), Chemokine Compass (reveal NPCs), Toll-like Receptor Ring, Melanin Charm. Regional: Hydroxyapatite Shield, Osteon Helm, Actin-Myosin Gauntlets, Purkinje Whip, Pepsin Blade.</li>
+<li>Sources: towns (basic), dungeon chests (system-themed), merchant, boss legendaries.</li>
+<li>Phase 5: 3-piece set bonuses (e.g. Barrier set) and rule-changing legendaries (“heavy attacks hit twice”).</li>
+</ul>
+
+<h2>Study systems</h2>
+<ul>
+<li>Multiple choice only. Text questions: <code>{id, system, q, answer, wrong[3], explain, source}</code>.</li>
+<li><b>Image questions</b> (label-cover, like Anki image occlusion): upload a lab-manual screenshot or dissection photo, drag boxes over labels, type each label. Each box = a question; wrong options come from other labels on the same image. Tag source: <code>human-model</code> or <code>fetal-pig</code>; question shows the tag; filter by source. Never mirror images.</li>
+<li>Question picker: weighted toward missed, unseen and stale questions. NPCs weight weak spots harder.</li>
+<li>Mastery per region from accuracy + recency; <b>fades over ~2 weeks</b>, computed from timestamps on load. <b>Outbreaks spawn in faded regions</b> with boosted loot.</li>
+<li>Missed-question review list with explanations; post-mortem screen on death lists the run's misses.</li>
+<li>Flag-a-question button. Generated questions are reviewed by the player before going live.</li>
+<li>Questions come from the user's own study guides and lecture notes (blood and lymphatic first). Starter questions are placeholders, marked as such.</li>
+</ul>
+
+<h2>Derrick's life (replaces generic outbreaks)</h2>
+<ul>
+<li>Each session (or day) rolls <b>what Derrick's been up to</b>. Events are region modifiers built from existing effects: pathogen mix, hazards, player buffs/debuffs, loot and glucose. Events land preferentially in the player's <b>most-faded regions</b>, with boosted loot.</li>
+<li><b>Acute (session/day):</b> big night out (alcohol suppresses ADH → dehydration: sluggish vessels, harsher kidneys, busy liver); all-nighter (high cortisol suppresses immunity → lower Defense); didn't wash hands (influenza in the lungs); sunburn (UV-damaged skin dungeon); untrained 10K (muscle microtears; NPCs debunk the lactic-acid soreness myth); broken leg (inflamed femur, debris, macrophage bonus, osteoblast NPCs).</li>
+<li><b>Positive:</b> flu shot (bonus vs influenza; synergizes with Memory), ate well and slept 8 hours (small global buffs, NPCs shocked).</li>
+<li><b>Chronic (whole playthrough, mainly in NG+):</b> type 2 diabetes (more glucose drops, but glycosuria: lose some glucose each pass through the kidneys; weaker healing), hypertension (worse vessel hazards), smoking (cilia impaired: nastier lungs, weaker Mucus Ward).</li>
+</ul>
+
+<h2>Derrick's chart</h2>
+<ul>
+<li>A status screen styled as a medical chart: heart rate, blood pressure, blood glucose, hydration, temperature, current events and conditions, each beside its <b>normal range</b>.</li>
+<li>Values reflect his current state (night out → dehydrated, diabetes → high glucose). Opening it is a quick review of normal values.</li>
+</ul>
+
+<h2>Death &amp; long game</h2>
+<ul>
+<li>Death: respawn at marrow, may switch class, lose half carried glucose, current dungeon resets. Keep levels, gear, mastery, missed list, routes.</li>
+<li>Reinfection (NG+) after all bosses: “Derrick is now 45.” Tougher strains, higher loot tier, one or two chronic conditions.</li>
+</ul>
+
+<h2>Build phases</h2>
+<div class="t"><table>
+<tr><th>Part</th><th>Scope</th></tr>
+<tr><td>1a</td><td>Engine: dungeon menu (all regions listed), generated floors, glyph map, movement, combat with intents/light/heavy/block/enemy questions, effect system core, one class (Macrophage), leveling, save/load via db + fallback. Seed Blood and Spleen with ~15 starter questions each, marked placeholder.</td></tr>
+<tr><td>1b</td><td>Label-cover image editor + image questions in combat, source tags, assets storage.</td></tr>
+<tr><td>1c</td><td>Replace placeholders with questions from the user's blood &amp; lymphatic study guides/notes (user provides).</td></tr>
+<tr><td>2a</td><td>All 6 classes and abilities as effect data, ATP, class select at marrow.</td></tr>
+<tr><td>2b</td><td>Consumables, glucose, one town (shop + inn), death/respawn, missed-question review, post-mortem.</td></tr>
+<tr><td>3a</td><td>Body map, circulation graph, walkable vessel segments, hazards/ambushes, lymph paths, all four towns, fast travel + ordering quiz. <b>Traps</b> in vessels and dungeon floors.</td></tr>
+<tr><td>3b</td><td>NPCs (native cells, town cells, dendritic merchant), thymus + milestone upgrades, bosses with legendary drops. Baseline NPC dialogue with Derrick jokes (event-reactive lines come in 5b).</td></tr>
+<tr><td>4a</td><td>In-game question writer (sample capability) with review step; mastery fading on the map; flag button.</td></tr>
+<tr><td>4b</td><td>Gear: 4 slots, rarity, ~60 items, chests/shops/merchant stock.</td></tr>
+<tr><td>5a</td><td>Subclasses, set bonuses, rule-changing legendaries, gear to ~150.</td></tr>
+<tr><td>5b</td><td>Derrick's life events (acute + positive) tied to faded regions, Derrick's chart, event-reactive NPC lines, Reinfection (NG+) with chronic conditions.</td></tr>
+</table></div>
+<p><b>Parked:</b> thymus skill tree, antibody class switching (IgM/IgG/IgA/IgE), timed practical mode.</p>
+
+<h2>Phase specs (detailed instructions for build sessions)</h2>
+<p>These are written so a session with no other context can build its part. Read <b>Shared conventions</b> and then <b>only your phase's spec</b> in full. Numbers given are starting defaults: put them in <code>js/settings.js</code>, never inline.</p>
+
+<h3>Shared conventions (every phase)</h3>
+<ul>
+<li><b>Before coding:</b> call Artifact <code>action:"quickstart"</code> (intent <code>other</code>, <code>design_systems:false</code>) for the page contract, and load the <code>artifact-capabilities</code> skill. Read the type definitions it points to for any capability you touch (<code>claude.d.ts</code>, <code>db.d.ts</code>, <code>user.d.ts</code>, plus <code>assets.d.ts</code> or <code>sample.d.ts</code> when relevant). Don't guess APIs.</li>
+<li><b>Getting the code:</b> from the repo clone (<code>game/</code>), never by downloading the artifact's files. To publish: read the artifact URL from <code>README.md</code>, Artifact <code>action:"read"</code> it once (required before updating), then publish with that <code>url</code>, <code>file_path:"game/index.html"</code>, <code>root:"game"</code>, and <code>files</code> listing every changed or new path. Unchanged files are kept automatically.</li>
+<li><b>Capabilities:</b> a non-empty <code>capabilities</code> object replaces the whole set. When a phase adds one, restate all of them. Otherwise omit the field. The full set by phase: 1a <code>{db:{},user:{}}</code>; 1b adds <code>assets:{}</code>; 4a adds <code>sample:{}</code>.</li>
+<li><b>No modules, no bundler.</b> Plain <code>&lt;script src="js/x.js"&gt;</code> tags in a fixed order in <code>index.html</code>. Every file attaches to one global: <code>window.DD = window.DD || {}</code>. Data files go on <code>DD.data.*</code>.</li>
+<li><b>File layout</b> (create files as your phase needs them):
+<pre>index.html            shell: &lt;title&gt;Derrick is the Dungeon&lt;/title&gt;, CSS tokens, script tags
+js/settings.js        every balance number
+js/util.js            seeded RNG (mulberry32), clamp, pick, shuffle, weightedPick, el()
+js/save.js            load/save profile (db + localStorage), debounce
+js/effects.js         effect engine
+js/stats.js           final stat computation
+js/questions.js       question pool, picker, stats updates, mastery
+js/dungeon.js         floor generation, FOV, entity movement
+js/combat.js          combat state machine
+js/render.js          glyph map drawing
+js/input.js           keys, d-pad, tap
+js/ui.js              screens + overlays (menu, HUD, combat, results)
+js/main.js            boot
+later: js/editor.js (1b), js/town.js (2b), js/world.js js/travel.js (3a),
+       js/npc.js (3b), js/writer.js (4a), js/gear.js (4b), js/derrick.js (5b)
+data/regions.js data/enemies.js data/classes.js data/items.js data/gear.js
+data/npcs.js data/events.js data/circulation.js
+data/q-blood.js data/q-lymph.js …  one file per system: DD.data.questions.blood = […]</pre></li>
+<li><b>System ids:</b> <code>found cells integ skeletal muscular nervous senses endo blood cardio lymph resp digest urinary repro</code>.</li>
+<li><b>Region (dungeon) ids → systems:</b> <code>marrow→found+cells</code> (tutorial dungeon under the home base), <code>brain→nervous</code>, <code>eyesears→senses</code>, <code>glands→endo</code>, <code>heart→cardio</code>, <code>lungs→resp</code>, <code>spleen→lymph</code>, <code>gut→digest</code>, <code>kidneys→urinary</code>, <code>gonads→repro</code>, <code>femur→skeletal</code>, <code>quads→muscular</code>, <code>skin→integ</code>, <code>bloodstream→blood</code> (a temporary dungeon in 1a–2b; from 3a, blood questions live in vessel ambushes and traps, and the dungeon is removed).</li>
+<li><b>Question record:</b>
+<pre>{ id:"blood-001", system:"blood", q:"…", answer:"…", wrong:["…","…","…"],
+  explain:"1–2 sentences", source:"starter|study-guide|notes|generated|image",
+  placeholder:true?, flagged:false?,
+  img?: { assetId, tag:"human-model|fetal-pig", boxes:[{x,y,w,h,label}], box:2 } }
+// box coords are 0–1 fractions of image width/height</pre>
+Options are shuffled at display time. Answer by click, tap, or keys 1–4. Always show <code>explain</code> after answering, with a Continue button (Enter/Space).</li>
+<li><b>Profile (persistent) shape:</b>
+<pre>{ v:1, updatedAt, level, xp, classId, glucose, atp,
+  inventory:{itemId:count}, equipment:{weapon,armor,acc1,acc2}, gearBag:[…],
+  qstats:{ [qid]:{seen,right,wrong,last,streak} },
+  regions:{ [regionId]:{ lastReviewed, cleared:bool } },
+  routes:{ "from>to":{ walks, unlocked } }, milestones:[…], subclass:{},
+  ngPlus:0, conditions:[…], event:{ id, day }, settings:{ sourceFilter:"all" } }</pre>
+Mid-dungeon run state (floor, map, entities, HP) is saved separately as <code>run</code> so a reload resumes the floor.</li>
+<li><b>Saving:</b> <code>const db = await claude.use("db")</code> and <code>user</code>. If either is null, use localStorage only (key <code>dd_profile</code> / <code>dd_run</code>, always in try/catch). Docs: <code>db.collection("data/users/"+uid).doc("profile")</code>, <code>.doc("run")</code>, custom questions as <code>.doc("cq_"+id)</code>, image records as <code>.doc("img_"+id)</code>. Check the size limits in <code>db.d.ts</code>, and if <code>qstats</code> could exceed them, shard it as <code>qstats_&lt;system&gt;</code>. Save after each combat, on floor change, and on town or menu actions (debounced 1.5 s, one write in flight per doc). Never save on every step. On load, take whichever of db and localStorage has the newer <code>updatedAt</code>. The game must start and play before db answers.</li>
+<li><b>Question picker</b> (<code>DD.q.pick(systems, opts)</code>): weight = 1 + (unseen ? 2 : 0) + 1.5·wrong − 0.5·right (floor 0.25) + min(2, daysSinceLast/7). Exclude the last 8 asked and anything flagged. <code>opts.weakBias</code> (NPCs, 3b) multiplies the wrong term by 2. Respect the source filter for image questions.</li>
+<li><b>Mastery</b> (per region, 0–100): accuracy over that region's last 20 answers × recency, where recency drops linearly from 1.0 at 0 days to 0.25 at 14+ days since <code>lastReviewed</code>. With fewer than 5 answers, show "unexplored". Update <code>lastReviewed</code> whenever a question from that region is answered.</li>
+<li><b>Effect engine</b> (<code>js/effects.js</code>):
+<pre>effect = { id, src:"class|subclass|gear|item|buff|event|set",
+  trigger:"static|fightStart|turnStart|onLight|onHeavyCorrect|onHeavyWrong|onBlock|
+           onHit|onBigHit|onKill|onQuestionCorrect|onQuestionWrong|travelSegment",
+  cond?:{ enemyType, isBoss, hpBelow, firstHeavyOfFight, answeredFast, region },
+  result:{ type:"damageMult|damage|heal|stat|atp|poison|shield|removeWrong|
+                 execute|summonAlly|repeatHit|travelSpeed|revealNPCs", …params },
+  turns?:n, charges?:n }
+DD.fx.active(ctx)       → every effect from class, subclass, gear, buffs, event, sets
+DD.fx.fire(trigger,ctx) → applies matching results to the mutable ctx
+                          (ctx.mult, ctx.dmg, ctx.heal, ctx.opts …)</pre>
+Static stat effects are read by <code>DD.stats.compute()</code>. Fire order: class → subclass → gear → set → buffs → event. Buffs with <code>turns</code> tick down at <code>turnStart</code>.</li>
+<li><b>Stats</b> (class ratings are the bible's 1–5 numbers): maxHP = 20 + 8·hp + 4·level. power = 2 + 1.2·pow + 0.6·level. defense = 0.8·def + 0.2·level. maxATP = 10 + 4·atp. XP to next level = 20·level.</li>
+<li><b>Combat math:</b> dmg = max(1, round(power × actionMult × matchup × fxMult − targetDef)). Light 0.6, heavy-correct 1.8, heavy-wrong 0 (and the enemy's next attack does +50%). Block cuts incoming damage by 60%. A strong matchup is 1.5. Enemy intents: attack 1.0, big attack 1.8 (telegraphed with a red "!!"), defend (halves damage taken this turn), question. An enemy question's buff to the player, if right: +25% damage for 2 turns or heal 15% maxHP. To the enemy, if wrong: heal 15% or +25% damage for 2 turns. Regular enemies use the question intent about once per fight; bosses every 2nd turn.</li>
+<li><b>Enemy scaling:</b> level = playerLevel + floorIndex. HP = 12 + 5·level, atk = 2 + 1.1·level, def = 0.3·level. Bosses get ×3 HP and ×1.4 atk. The pathogen roster is picked by level band: mild under level 5, moderate 5–9, serious 10+. Regular rosters are your choice, but they must be pathogens that really infect that region. Codex blurbs are one accurate line, never quizzed.</li>
+<li><b>Visual language:</b> follow the mockup. A single dark world, tokens on <code>:root</code> with <code>color-scheme:dark</code>, Pixelify Sans for display, Atkinson Hyperlegible for body text, JetBrains Mono for glyphs. Each region has an accent color in <code>data/regions.js</code>. Phone width (360px) must work with an on-screen d-pad. Keyboard: arrows/WASD to move, 1–4 to answer, L/H/B for light/heavy/block, A for ability, I for items. Respect reduced motion.</li>
+<li><b>Accuracy:</b> every explanation, codex line, item description and NPC line must be correct intro-level A&amp;P. If you aren't sure, cut it.</li>
+<li><b>Checks, kept cheap:</b> <code>node --check</code> on every js file; one headless Playwright load of the local <code>index.html</code> that walks into one fight and reports console errors; one Artifact preview look at most. Then publish. Report what you tested and what you couldn't (for example, db behavior outside the viewer).</li>
+<li><b>Don't:</b> add features from later phases, rename existing ids, or change save shapes without a migration (bump <code>v</code> and migrate on load).</li>
+</ul>
+
+<h3>1a · Core engine</h3>
+<ul>
+<li><b>Boot:</b> title screen ("Derrick is the Dungeon", Continue / New), then the Bone Marrow menu. The menu lists every region from <code>data/regions.js</code> with its name, system, mastery meter and status. Only <code>bloodstream</code> and <code>spleen</code> are playable. The rest show "No questions yet".</li>
+<li><b>Floors:</b> 3 per dungeon, the last is the boss floor. Grid 48×32. 6–10 rectangular rooms (5–11 × 4–8), no overlap with a 1-tile margin, connected in sequence by L-shaped corridors plus one extra random connection for a loop. Doors <code>+</code> where corridors meet rooms. The player starts in room 0 and the stairs <code>&gt;</code> go in the farthest room. On the boss floor the boss stands in the farthest room and the exit appears when it dies. 4–7 enemies per floor, never in room 0. 1–3 glucose pickups <code>$</code> (cosmetic until 2b; just count them).</li>
+<li><b>FOV:</b> radius 7, Bresenham line of sight. Explored tiles stay dimmed. Enemies that can see you chase within 8 tiles (greedy step, no stacking). Bosses don't move. Moving into an enemy, or an enemy moving into you, starts combat.</li>
+<li><b>Rendering:</b> a canvas sized to its container. The camera centers on the player and shows about 25×17 tiles, with tile size = min(fit width, fit height). Glyphs: <code>@</code> player; lowercase letter per pathogen; uppercase for bosses (with glow); <code>#</code> walls in the region accent; <code>·</code> floor; <code>+</code> door; <code>&gt;</code> stairs.</li>
+<li><b>Combat overlay:</b> the enemy glyph, name, type chip (bacteria, virus…), HP bar, and an <b>intent chip</b> for its next move. The player HP and ATP bars. Actions: Light, Heavy, Block, Ability (Antigen Presentation, 6 ATP: removes 2 wrong options from the next question shown), Flee (disabled until 2b). Heavy opens a question in the same panel. The explanation shows after every answer. Turn log of the last 3 lines.</li>
+<li><b>Class:</b> Macrophage · Paladin only (hp 5, pow 2, def 4, atp 2). Passive Phagocytosis: <code>onKill → heal 12% maxHP</code>. ATP regen: +2 per correct answer. All abilities run through the effect engine, even this first one.</li>
+<li><b>Death in 1a:</b> a simple "Your cell has died" screen, then back to the marrow with HP restored and the dungeon reset (full rules come in 2b).</li>
+<li><b>Data:</b> <code>data/enemies.js</code> entries are <code>{id, name, type, glyph, regions:[…], band:"mild|moderate|serious", codex}</code>. Bloodstream bands: mild <i>Streptococcus pyogenes</i> (bacteria), <i>Candida albicans</i> (fungus), cytomegalovirus (virus). Moderate <i>Staphylococcus aureus</i>, hepatitis B virus. Boss <i>Plasmodium falciparum</i> (protozoa, malaria; infects red blood cells). Spleen: mild Epstein-Barr virus, <i>Streptococcus pneumoniae</i>. Moderate <i>Salmonella</i> Typhi. Boss "Epstein-Barr Colossus" (EBV; mononucleosis enlarges the spleen).</li>
+<li><b>Starter questions:</b> 15 for <code>blood</code> and 15 for <code>lymph</code>, accurate intro A&amp;P, <code>placeholder:true</code>, <code>source:"starter"</code>. Cover plasma proteins, formed elements and their functions, hemoglobin, erythropoietin, hemostasis, ABO/Rh; lymph formation and flow, lymphoid organs, innate vs adaptive, B vs T cells, antibody classes.</li>
+<li><b>Done when:</b> you can clear both dungeons on a phone-width viewport and a laptop, the save survives a reload, and question stats and mastery update.</li>
+</ul>
+
+<h3>1b · Label-cover image editor</h3>
+<ul>
+<li>Add <code>assets:{}</code> to capabilities (restate db and user). If <code>claude.use("assets")</code> is null, show "Image questions need the claude.ai viewer" and hide the editor.</li>
+<li><b>Editor screen</b> (from the marrow menu, "Lab images"): pick a file, or paste with the <code>paste</code> event. Choose the system and the tag (human model / fetal pig), and an optional title. Show the image fitted to width. Drag with pointer events (mouse and touch) to draw a box, with a minimum size of 2% of width. Each box gets a text field for its label. Boxes can be moved, resized from a corner handle, and deleted. Save with an upload through <code>assets.upload</code>, then write the record <code>img_&lt;id&gt;</code> = <code>{id, assetId, system, tag, title, boxes:[…], createdAt}</code>. List screen: thumbnails grouped by system, with edit and delete (deleting removes both the asset and the record).</li>
+<li><b>Questions:</b> each box generates one question with id <code>img-&lt;id&gt;-&lt;i&gt;</code>, built at load time (not stored separately). Display: draw the image on a canvas with every box filled solid (a neutral token) and the target box outlined in the accent color with a "?". Wrong options: 3 random other labels from the same image. If there are fewer than 3, fill from other images of the same system. If still short, skip the question. Show the tag as a chip ("Fetal pig"). Never mirror or rotate the image. The explanation is "This is the <i>label</i>." plus the image title.</li>
+<li><b>Mixing:</b> image questions join their system's pool through the same picker. A source filter on the marrow menu (All / Human model / Fetal pig / Text only) is saved in <code>settings.sourceFilter</code>. The combat panel scales the image to fit its width, and tapping opens it full screen.</li>
+<li><b>Done when:</b> on a phone and a laptop, you can add a screenshot, box 5 labels, see those questions in its dungeon, edit a label, and delete the image.</li>
+</ul>
+
+<h3>1c · Real blood &amp; lymph questions</h3>
+<ul>
+<li>Ask the user for the blood and lymphatic study guides and lecture notes (upload, paste, or a Google Drive file). Read all of it before writing anything.</li>
+<li>First draft <b>10 sample questions</b> and show them in chat for approval of style and difficulty. Then write the full set.</li>
+<li><b>Coverage:</b> about one question per testable fact the material emphasizes (bolded terms, study-guide prompts, lists, comparisons). Mix the kinds: definition, function, compare/contrast, cause→effect, sequence (asked as "what comes next/before"), and simple clinical application.</li>
+<li><b>Distractors:</b> from the same topic and the same category (wrong hormones for a hormone question), similar length, no "all/none of the above", no joke options. <b>Explanations:</b> 1–2 sentences, matching the user's notes' terminology.</li>
+<li>Ids <code>blood-101…</code> and <code>lymph-101…</code>, source <code>study-guide</code> or <code>notes</code>. Delete the <code>placeholder:true</code> questions. Where the notes are ambiguous or contradict standard A&amp;P, list those points for the user instead of guessing. Change data files only.</li>
+</ul>
+
+<h3>2a · All six classes</h3>
+<ul>
+<li><code>data/classes.js</code>: <code>{id, name, role, weapon, ratings:{hp,pow,def,atp}, matchups:[types], passive:effect, active:{name, cost, effect, desc}, codex}</code>, with ratings from the class table.</li>
+<li><b>Abilities (defaults):</b> Neutrophil, First Responder: <code>onHeavyCorrect + firstHeavyOfFight → damageMult 2</code>. NETosis (8 ATP): the next heavy is ×3 and costs 20% current HP right away, right or wrong. B Cell, Memory: <code>static</code> ×1.3 damage against species in <code>profile.beaten</code>. Opsonize (8 ATP): the enemy takes ×1.35 from everything for 3 turns. T Cell, Precision: <code>answeredFast</code> (≤6 s) on heavy-correct → ×1.75. Apoptosis (10 ATP): arms the next correct heavy to execute if the target is under ⅓ HP afterward. Macrophage: unchanged from 1a. Eosinophil, Big Game: ×1.4 against worms and bosses. Degranulate (7 ATP): poison of 8% enemy maxHP per turn for 3 turns. Basophil, Heparin: blocks cut 80% instead of 60%. Inflammation (9 ATP): a neutrophil ally does a light attack (0.6 × player power) at the end of each player turn for 3 turns.</li>
+<li>Track <code>profile.beaten</code> as a set of enemy ids. Add the timer needed for <code>answeredFast</code> (show a thin bar, but never fail on timeout).</li>
+<li><b>Class select</b> at the marrow ("Hematopoiesis"): 6 cards with name and role, a stat bar for each rating, passive and active text, matchups, and a 2–3 sentence codex on the real cell. Switching is free at the marrow only.</li>
+<li><b>Done when:</b> every class's passive and active is exercised in a fight, and the settings file holds every number.</li>
+</ul>
+
+<h3>2b · Economy, first town, death, review</h3>
+<ul>
+<li><b>Glucose:</b> enemies drop 3–6 (×1 + 0.1·level), bosses 25, pickups <code>$</code> 5–12. Shown in the HUD.</li>
+<li><b>Consumables</b> (<code>data/items.js</code>, as effects): Cytokine Tonic (heal 40% maxHP, 15 g, carry cap 3), ATP Reserve (+60% maxATP, 30 g), Complement (next heavy ×1.5, 12 g), Mucus Ward (shield: the next hit does 0, 14 g), Fever (×1.3 damage for the fight, 4% maxHP self-damage per turn, 10 g), Interferon (×1.6 against viruses for the fight, 12 g), Antibiotic (×1.6 against bacteria, nothing against viruses, with a tooltip saying so, 12 g), Lymph Drain (escape a non-boss fight to the town, 20 g; enables Flee). Each item has one accurate line of real-world description. Item use takes the player's turn.</li>
+<li><b>Town</b> (Cervical Nodes, opened from the marrow menu until 3a): plasma cell shop (buy and sell at 50%), mast cell inn (full HP+ATP for 10 + 2·level glucose), and a respiration counter (5 glucose → +15 ATP, with the flavor line "aerobic respiration yields roughly 30–32 ATP per glucose"). NPC names and one line each; the full NPC system is 3b.</li>
+<li><b>Death:</b> post-mortem screen (enemy that killed you, questions missed this run with answer and explanation) → respawn at the marrow with full HP/ATP, half of carried glucose lost (rounded down), class switch offered, and that dungeon reset. Everything else is kept.</li>
+<li><b>Review screen</b> ("Missed questions"): every question with wrong ≥ 1, sorted by (wrong − right) descending, grouped by system, showing answer and explanation, with a "Drill these" button that runs a no-damage practice fight against a training dummy using only those questions.</li>
+</ul>
+
+<h3>3a · Body map, circulation, travel, traps</h3>
+<ul>
+<li><b>Body map:</b> replaces the menu. A glyph human silhouette (~40×44 characters) with a labeled marker for each place. Color = region accent, brightness = mastery. Tapping a place shows its info and "Travel". The current location is marked <code>@</code>.</li>
+<li><b>Graph</b> (<code>data/circulation.js</code>): nodes <code>{id, name, kind:"vessel|chamber|valve|capillary|place|lymph"}</code>, directed edges. Route-find with BFS over directed edges. Build it from these real paths (left-side branches where a side is needed):
+<pre>HEART: RA → tricuspid → RV → pulmonary valve → pulmonary trunk → pulmonary arteries
+  → pulmonary capillaries [LUNGS entry] → pulmonary veins → LA → mitral → LV
+  → aortic valve → ascending aorta
+ascending aorta → coronary arteries → [HEART dungeon] → cardiac veins → coronary sinus → RA
+ascending aorta → aortic arch → left common carotid → internal carotid → [BRAIN]
+     brain veins → dural venous sinuses → internal jugular → brachiocephalic v. → SVC → RA
+  internal carotid → ophthalmic a. → [EYES &amp; EARS] → ophthalmic v. → cavernous sinus
+     → (dural sinuses) → internal jugular …
+  left common carotid → external carotid → superior thyroid a. → [GLANDS]
+     → superior/middle thyroid v. → internal jugular …
+aortic arch → left subclavian → axillary a. → brachial a. → [SKIN (arm)]
+     → basilic/cephalic v. → axillary v. → subclavian v. → brachiocephalic v. → SVC
+  left subclavian → internal thoracic a. → [THYMUS] → thymic v. → left brachiocephalic v. → SVC
+aortic arch → thoracic aorta → abdominal aorta →
+  celiac trunk → splenic a. → [SPLEEN] → splenic v. → hepatic portal v. → liver sinusoids
+     → hepatic veins → IVC → RA
+  superior mesenteric a. → [GUT] → superior mesenteric v. → hepatic portal v. → liver …
+  renal a. → [KIDNEYS] → renal v. → IVC
+  gonadal a. → [GONADS] → left gonadal v. → LEFT RENAL v. → IVC   (classic exam point)
+  common iliac → internal iliac → [BONE MARROW (ilium)] → internal iliac v. → common iliac v. → IVC
+  common iliac → external iliac → femoral a. → deep femoral a. → [FEMUR] / [QUADS]
+     → femoral v. → external iliac v. → common iliac v. → IVC</pre>
+Diapedesis (a short "squeeze through the endothelium" moment) happens on entering a place from a capillary.</li>
+<li><b>Segments:</b> vessels are generated corridors (60×5, slight bends), chambers small rooms (14×9), valves a one-way door tile (walk through, can't return). Arteries: every 3rd player turn the current pushes you 1 tile downstream. Veins: no push, and venous valves are one-way doors. Show a route progress strip at the top ("Renal vein → IVC → RA …"). Target 1–2 minutes for a full trip. Ambush chance 15% per vessel segment (blood/cardio questions, enemies from the bloodstream roster, which moves here). Clot hazard: a tile that blocks the main lane and forces a side path. Plaque: narrows the lane to 1 tile. Vessel-only pickups (glucose, the occasional consumable).</li>
+<li><b>Lymph:</b> from any dungeon exit, choose "Lymphatic vessel" to reach that region's node town. Drainage (simplified but accurate): brain*, eyes &amp; ears, glands → <b>cervical</b>. Skin (arm) → <b>axillary</b>. Heart, lungs, thymus → <b>mediastinal</b>. Gut, spleen → <b>mesenteric</b> (celiac and mesenteric chain). Kidneys, gonads → <b>lumbar (para-aortic)</b> (testes and ovaries drain to lumbar nodes, not inguinal, a classic exam point). Femur, quads → <b>inguinal</b>. Mediastinal town → right lymphatic duct → right venous angle. All the others → thoracic duct → left venous angle (left subclavian/internal jugular junction) → brachiocephalic → SVC. *Brain: meningeal lymphatics drain to the deep cervical nodes. Wizard and Rogue only can also travel town→town along the lymph chain (cervical ↔ axillary ↔ mediastinal ↔ thoracic duct ↔ lumbar ↔ mesenteric ↔ inguinal). Add the remaining towns with the 2b town features.</li>
+<li><b>Fast travel:</b> after 2 completed walks of a route, offer the route quiz: 6–10 key waypoints shuffled, tap them in order. All correct = unlocked (that route's travel becomes instant from the map). Any wrong = show the correct order and walk.</li>
+<li><b>Traps:</b> hidden <code>^</code> tiles, 2–4 per dungeon floor and 1 per 2 vessel segments. Stepping on one triggers a pop quiz from the current region (vessels: blood or cardio). Wrong = 10% maxHP + level damage. Right = disarmed plus 5 XP. Revealed traps stay visible. Flavor names per place.</li>
+<li>Remove the temporary bloodstream dungeon. Move the blood questions into ambushes and traps, and keep the "Bloodstream" mastery entry on the map.</li>
+</ul>
+
+<h3>3b · NPCs, thymus, bosses</h3>
+<ul>
+<li><code>data/npcs.js</code>: <code>{id, name, kind:"native|town|merchant", regions:[…], lines:{greet:[…], derrick:[…]}, codex}</code>.</li>
+<li><b>Native cells</b> (one per dungeon floor, glyph <code>☺</code> in a calm color, at least 2 per region to rotate). Marrow: hematopoietic stem cell, reticular cell. Brain: neuron, astrocyte. Eyes &amp; ears: rod cell, hair cell. Glands: follicular cell, chromaffin cell. Heart: cardiac myocyte, pacemaker (SA nodal) cell. Lungs: type II alveolar cell, ciliated epithelial cell. Spleen: red pulp macrophage, reticular cell. Gut: parietal cell, goblet cell, enterocyte. Kidneys: podocyte, juxtaglomerular cell. Gonads: Sertoli cell, granulosa cell. Femur: osteocyte, osteoblast. Quads: skeletal muscle fiber, satellite cell. Skin: keratinocyte, melanocyte. Each has 2 greet lines that teach a true fact in first person, and 2 Derrick jokes (accurate, affectionate, PG-13). Interaction: talk → one question with <code>weakBias</code>. Right: loot (8–15 glucose or a consumable). Wrong: explanation plus a friendly line. Once per NPC per floor.</li>
+<li><b>Town NPCs:</b> plasma cell (shop), mast cell (inn), helper T (bounties: "defeat N &lt;type&gt; in &lt;region&gt;", "answer N &lt;system&gt; questions correctly", "clear &lt;region&gt;"; 3 active at once; rewards are glucose plus a consumable; track them in the profile).</li>
+<li><b>Merchant:</b> dendritic cell, a 20% chance per non-boss floor, glyph <code>¥</code>. Stocks 3–4 random consumables at 1.5× price, with a rare-stock slot left empty until 4b. Rest costs 2× the inn price. Tip (5 glucose): names your 2 most-faded regions.</li>
+<li><b>Thymus:</b> a map place. At levels 5, 10 and 15 the player claims a milestone upgrade for their current class's active (choose one: −25% ATP cost, +1 turn duration or +25% effect, or an extra charge for one-shot actives). Store per class.</li>
+<li><b>Bosses</b> (one per region, real pathogen, codex line): marrow tutorial rhinovirus (mild); brain <i>Neisseria meningitidis</i>; eyes &amp; ears <i>Chlamydia trachomatis</i> (trachoma); glands mumps virus (infects glandular tissue); heart <i>Trypanosoma cruzi</i> (Chagas cardiomyopathy); lungs <i>Mycobacterium tuberculosis</i>; spleen Epstein-Barr virus; gut <i>Taenia solium</i> (tapeworm); kidneys uropathogenic <i>E. coli</i> (pyelonephritis); gonads <i>Treponema pallidum</i>; femur <i>Staphylococcus aureus</i> (osteomyelitis); quads <i>Trichinella spiralis</i>; skin MRSA. The first kill drops a legendary stub <code>{id, name, slot, desc}</code> saved to <code>profile.gearBag</code> for 4b to give stats to (for example TB → "Waxy Cell Wall", armor; <i>S. pneumoniae</i>-style capsule names are fine where accurate).</li>
+<li>Region status "cleared" after its boss. The map shows cleared regions with a mark.</li>
+</ul>
+
+<h3>4a · Question writer, fading, flags</h3>
+<ul>
+<li>Add <code>sample:{}</code> (restate db, user, assets). If it's null, hide the writer.</li>
+<li><b>"Add study material"</b> (marrow and towns): a textarea plus a system picker. Split the text into chunks of about 5000 characters at paragraph breaks. For each chunk, call <code>sample.json</code> with an instruction to return <code>[{q, answer, wrong:[3], explain}]</code> using only facts in the text, with the same distractor and explanation rules as 1c, 5–15 per chunk depending on density. Show progress and allow cancel (AbortController).</li>
+<li><b>Review:</b> a card list, each with Keep / Edit (inline fields) / Discard, and "Keep all". Deduplicate against existing questions (normalized text match). Kept questions are saved as <code>cq_&lt;id&gt;</code> with <code>source:"generated"</code> and join the pool on save.</li>
+<li><b>Fading on the map:</b> region brightness and a meter from mastery (formula above), plus a "fading" badge when recency is under 0.6.</li>
+<li><b>Flag:</b> a small flag button on every question (combat, traps, NPCs, review). Flagged questions leave rotation immediately. A "Flagged" screen lists them with Edit (for custom and generated ones), Unflag and Delete (custom only; built-in ones can only stay flagged).</li>
+</ul>
+
+<h3>4b · Gear</h3>
+<ul>
+<li><code>data/gear.js</code>: <code>{id, name, slot:"weapon|armor|acc", wtype?, rarity:"common|uncommon|rare|legendary", region?, effects:[…], desc}</code>. <code>desc</code> is one true A&amp;P or immunology fact.</li>
+<li><b>Stat budget by rarity</b> (static effects): common about +1 stat-rating-equivalent, uncommon +2, rare +3 or +2 plus a conditional, legendary +3 plus a strong conditional. Own weapon type: ×1.15 damage.</li>
+<li><b>~60 items:</b> 18 weapons (3 per weapon type), 14 armor, 28 accessories. Include all the bible's named examples, plus 2–3 system-themed items per region. Turn the 3b legendary stubs into real items.</li>
+<li><b>Sources:</b> chests <code>=</code> (1–2 per floor; drop odds by floor: common 60 / uncommon 30 / rare 10, the boss floor shifts one tier up), town shops (commons and a few uncommons that rotate per visit), and the merchant's rare-stock slot. Duplicates sell for glucose.</li>
+<li><b>Equipment screen:</b> 4 slots, a bag list filterable by slot, item cards with rarity color (white, green, blue, gold), effects in plain language, and a stat comparison against what's equipped. Equipping goes through the effect engine.</li>
+</ul>
+
+<h3>5a · Subclasses, sets, legendaries</h3>
+<ul>
+<li><b>Subclasses</b> (at the thymus, level 10+, one per class, changeable there for 50 glucose). Each is a passive change plus an active upgrade, as effects, with 2–3 sentences of accurate codex. NET Weaver: NETosis costs 15% HP and is ×3.5. Respiratory Burst: +6% damage per turn of the fight (max +40%). Plasma Cell: actives −30% ATP. Memory B: Memory ×1.6 and applies to the pathogen <i>type</i>. Cytotoxic Assassin: crit ×2.2, execute under 40%. Regulatory T: Suppress (new active) makes the enemy skip its next move, and its big attacks become normal attacks. M1 Crusader: +20% damage, Phagocytosis heals half. M2 Warden: Phagocytosis 20% and blocks also heal 5%. Worm Hunter: Big Game ×1.8. Toxin Trapper: poison stacks up to 3. Histamine Herald: ally lasts 5 turns and hits ×1.0. Heparin Keeper: blocks cut 90% and a block reflects 20%.</li>
+<li><b>Sets</b> (6 sets × 3 pieces, bonus at 3): Barrier (Keratin Plate, Mucous Membrane Robe, Lysozyme Axe: first hit each fight does 0), Complement Cascade, Antibody Arsenal, Inflammation, Cytotoxic, Bone Remodeling. Each groups items about a real concept and says so in its description.</li>
+<li><b>Rule-changing legendaries</b> (8): heavy attacks hit twice; blocking a big attack fully heals you; light attacks can crit; correct answers restore 2× ATP; wrong heavy attacks still do 0.5×; enemy questions give double buffs; poison spreads to the next enemy; the first wrong answer each fight is forgiven. These are boss drops, distributed across regions.</li>
+<li>Grow gear to about 150, all data, every <code>desc</code> a true fact. Recheck that questions stay the best move: light-attack spam should take more than 2× the turns of a heavy-mixed fight.</li>
+</ul>
+
+<h3>5b · Derrick's life, chart, NG+</h3>
+<ul>
+<li><b>Events</b> (<code>data/events.js</code>): <code>{id, name, kind:"acute|positive|chronic", regions:[…], effects:[…], mapNote, chart:{…}, npcLines:{npcId|"any":[…]}}</code>. Roll once per calendar day on load (store <code>profile.event = {id, day}</code>). Weight acute and positive events toward regions whose mastery recency is under 0.6. An event's regions get ×1.5 loot. Show an intro card ("This week, Derrick…") and a map note.</li>
+<li><b>Events to include</b> (effects from the existing list): big night out (vessels: arteries push every 4th turn instead of 3rd; kidneys enemies +1 level; ADH suppressed → dehydration), all-nighter (global defense −20%; cortisol), didn't wash hands (lungs: influenza-heavy roster), sunburn (skin: traps ×2), untrained 10K (quads: +2 enemies per floor; NPCs say soreness is mostly microtears and inflammation, not lactic acid), broke his leg (femur: Paladin and Macrophage effects ×1.25; osteoblast NPCs), takeout week (gut: acid-splash traps), flu shot (×1.5 against influenza for the day; mention memory cells), ate well and slept 8 hours (global +10% heal), stayed hydrated (vessels: ambush chance −5%).</li>
+<li><b>Chronic</b> (from NG+ 1 on, roll 1, and add 1 per NG+ level): type 2 diabetes (glucose drops ×1.5; lose 10% carried glucose each time a route passes the renal vein or kidneys, glycosuria; heals ×0.8), hypertension (more plaque and clot hazards), smoking (lungs harsher; Mucus Ward blocks 50% instead of 100%).</li>
+<li><b>Derrick's chart</b> (button in the HUD): vitals with normal ranges, computed from baseline plus active event and conditions. HR 60–100 bpm; BP below 120/80 mmHg; RR 12–20/min; SpO₂ 95–100%; temp 36.5–37.5 °C (97.7–99.5 °F); fasting glucose 70–99 mg/dL (diabetes ≥126); plasma osmolality 275–295 mOsm/kg (hydration). Out-of-range values are highlighted, with one plain-language line why ("Alcohol suppresses ADH, so he's losing water and osmolality is up").</li>
+<li><b>Event-reactive NPC lines:</b> each native and town NPC gets lines for the events that touch its region. They're accurate, in character, short.</li>
+<li><b>Reinfection (NG+):</b> after every region is cleared, offer "Derrick is now 45". Enemies get +5 levels per NG+, a loot tier shift (common chests become uncommon minimum), chronic conditions as above, every region's cleared status reset, questions all back in rotation. Keep levels, gear and stats.</li>
+</ul>
+</main>
