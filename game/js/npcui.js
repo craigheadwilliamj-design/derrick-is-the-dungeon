@@ -75,7 +75,7 @@
   // ---------- the thymus ----------
   ui.thymus = function () {
     ui.mode = 'thymus';
-    const p = prof(), cls = DD.data.classes[p.classId], TH = DD.thymus, a = cls.active, cur = TH.active(p);
+    const p = prof(), cls = DD.data.classes[p.classId], TH = DD.thymus, a = TH.base(p.classId), cur = TH.active(p);
     const rows = TH.levels.map(L => {
       const got = TH.claimed(p.classId, L), ok = TH.available(p.classId, L);
       let inner;
@@ -85,6 +85,20 @@
       else inner = el('div', { class: 'dim small' }, 'Locked until level ' + L + '.');
       return el('div', { class: 'card' }, el('div', { class: 'rhead' }, el('h3', null, 'Level ' + L + ' milestone'), el('span', { class: 'chip' + (got ? ' ok' : '') }, got ? 'claimed' : ok ? 'ready' : 'locked')), inner);
     });
+    const sub = DD.sub.get(p), SB = S.subclass;
+    const subCard = s => {
+      const mine = sub && sub.id === s.id, cost = DD.sub.switchCost(p.classId);
+      return el('div', { class: 'card' + (mine ? ' sel' : '') },
+        el('div', { class: 'rhead' }, el('h3', null, s.name), el('span', { class: 'chip' + (mine ? ' ok' : '') }, mine ? 'yours' : s.role)),
+        el('div', { class: 'small' }, el('b', null, 'Passive: '), s.passiveText),
+        el('div', { class: 'small' }, el('b', null, 'Active: '), s.activeText),
+        el('div', { class: 'dim small' }, s.codex),
+        mine ? null : el('button', { class: 'btn' + (sub ? '' : ' primary'), type: 'button', disabled: !!(cost && p.glucose < cost),
+          onclick: () => { if (!DD.sub.choose(p.classId, s.id)) ui.thymus(); } }, sub ? 'Switch for ' + cost + ' glucose' : 'Choose ' + s.name));
+    };
+    const subs = DD.sub.unlocked()
+      ? [el('h2', null, 'Subclass'), el('p', { class: 'dim small' }, 'Pick one for ' + cls.name + '. The first pick is free; switching later costs ' + SB.switchCost + ' glucose. Each is a passive tweak plus an active upgrade.'), ].concat(DD.sub.list(p.classId).map(subCard))
+      : [el('div', { class: 'card' }, el('div', { class: 'rhead' }, el('h3', null, 'Subclass'), el('span', { class: 'chip' }, 'locked')), el('div', { class: 'dim small' }, 'Two paths for ' + cls.name + ' open at level ' + SB.level + '.'))];
     ui.mount(el('div', { class: 'screen menu' },
       el('div', { class: 'tag' }, 'Thymus'),
       el('h1', null, 'Training hall'),
@@ -93,6 +107,7 @@
         el('div', { class: 'rhead' }, el('h3', null, cls.name + ': ' + a.name), el('span', { class: 'chip' }, 'Level ' + p.level)),
         el('div', { class: 'small' }, el('b', null, cur.cost + ' ATP: '), cur.desc)),
       rows,
+      subs,
       el('div', { class: 'toolrow2' }, el('button', { class: 'btn primary', type: 'button', onclick: () => ui.menu('thymus') }, 'Open the body map'))));
   };
 })();

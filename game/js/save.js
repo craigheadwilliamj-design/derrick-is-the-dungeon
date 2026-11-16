@@ -29,6 +29,9 @@ DD.save = (function () {
     o.gearBag = o.gearBag.map(g => (g && typeof g === 'object' ? g.id : g)).filter(known);
     if (!o.equipment || typeof o.equipment !== 'object' || Array.isArray(o.equipment)) o.equipment = {};
     (DD.data.gearSlots || []).forEach(s => { if (o.equipment[s] && !known(o.equipment[s])) delete o.equipment[s]; });
+    // v6 (5a): subclass is {classId: subclassId}; drop anything unknown or from another class
+    const sc = {}; if (o.subclass && typeof o.subclass === 'object' && !Array.isArray(o.subclass)) for (const k of Object.keys(o.subclass)) { const d = DD.data.subclassById[o.subclass[k]]; if (d && d.classId === k) sc[k] = d.id; }
+    o.subclass = sc;
     o.glucose = Math.max(0, Math.floor(+o.glucose) || 0);
     if (!o.inventory || typeof o.inventory !== 'object' || Array.isArray(o.inventory)) o.inventory = {};
     Object.keys(o.inventory).forEach(k => { if (!(o.inventory[k] > 0)) delete o.inventory[k]; });

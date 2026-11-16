@@ -5,7 +5,8 @@ DD.combat = (function () {
 
   function ctx(C, extra) {
     return Object.assign({ C, enemy: C.enemy, buffs: C.buffs, profile: DD.save.profile, maxHP: C.st.maxHP, maxATP: C.st.maxATP, hp: C.run.hp, log: C.log, mult: 1, dmg: 0, heal: 0, atp: 0,
-      removeWrong: 0, execute: 0, firstHeavy: C.firstHeavy, answeredFast: false, region: C.run.regionId }, extra);
+      removeWrong: 0, execute: 0, firstHeavy: C.firstHeavy, answeredFast: false, region: C.run.regionId,
+      round: C.round, poisoned: !!C.poison, allyActive: !!C.ally, blocked: false }, extra);
   }
   function gain(C, x) {
     if (x.heal) C.run.hp = Math.min(C.st.maxHP, C.run.hp + Math.round(x.heal));
@@ -16,18 +17,21 @@ DD.combat = (function () {
     if (C.enemy.boss) { if (C.round % S.bossQuestionEvery === 0) return 'question'; }
     else if (!C.enemyQUsed && C.round === C.enemyQRound) return 'question';
     const w = C.enemy.boss ? S.bossIntentWeights : S.intentWeights;
-    return DD.u.weightedPick(R, Object.keys(w), k => w[k]);
+    const it = DD.u.weightedPick(R, Object.keys(w), k => w[k]);
+    return it === 'big' && DD.fx.rules(DD.save.profile, 'tameBig').length ? 'attack' : it; // Regulatory T: big attacks become normal attacks
   }
   function create(run, enemy, opts) {
     const prof = DD.save.profile, cls = DD.thymus.cls(prof);
     const C = { run, enemy, cls, st: DD.stats.compute(prof), buffs: [], enemyBuffs: [], round: 1, phase: 'choose', log: [], intent: null,
       firstHeavy: true, wrongBonus: false, blocking: false, q: null, opts: null, qKind: null, qStart: 0, answer: null, over: null,
       enemyQUsed: false, enemyQRound: DD.u.int(R, S.enemyQuestionRound.min, S.enemyQuestionRound.max),
-      matchup: cls.matchups.includes(enemy.type) ? S.strongMatchup : 1, xpGain: 0, poison: null, ally: null,
+      matchup: cls.matchups.includes(enemy.type) ? S.strongMatchup : 1, xpGain: 0, poison: null, ally: null, suppress: 0, forgiven: false,
       drill: opts && opts.drill ? { left: new Set(opts.drill), total: opts.drill.length, qs: new Map(DD.q.all().map(q => [q.id, q])) } : null, drop: 0 };
     C.intent = rollIntent(C);
     if (!C.drill) { // gear that triggers at the start of a fight (4b): ATP, a shield for the first hit
       const fs = ctx(C); DD.fx.fire('fightStart', fs); gain(C, fs);
+      if (fs.ally) C.ally = fs.ally; // set bonuses can bring an ally in at the start
+      if (run.carryPoison) { C.poison = run.carryPoison; delete run.carryPoison; say(C, 'The poison spreads to ' + enemy.name + '.'); } // Fimbria Lash
       if (fs.shield) C.buffs.push({ id: 'gear-ward', src: 'gear', label: 'Gear ward: first hit does 0', trigger: 'static', result: { type: 'shield' }, expires: 'hit' });
     }
     say(C, C.drill ? 'Training dummy. No damage either way: answer every question right once.' : enemy.name + ' (Lv ' + enemy.lvl + ') attacks!' + (C.matchup > 1 ? ' You are strong against ' + enemy.type + '.' : ''));
@@ -52,6 +56,7 @@ DD.combat = (function () {
   function win(C) {
     if (C.drill) { C.phase = 'end'; C.over = 'win'; return; }
     C.drop = rollDrop(C.enemy); DD.save.profile.glucose += C.drop; C.run.glucose += C.drop;
+    if (C.poison && DD.fx.rules(DD.save.profile, 'poisonSpread').length) C.run.carryPoison = { turns: C.poison.turns, pct: C.poison.pct, stacks: C.poison.stacks || 1 };
     const x = ctx(C); DD.fx.fire('onKill', x); gain(C, x);
     say(C, C.enemy.name + ' is destroyed.' + (x.heal ? ' ' + C.cls.passive.name + ' heals ' + Math.round(x.heal) + ' HP.' : '') + ' +' + C.drop + ' glucose.');
     C.phase = 'end'; C.over = 'win';
@@ -66,8 +71,8 @@ DD.combat = (function () {
       if (--C.ally.turns <= 0) { C.ally = null; say(C, 'Your neutrophil ally fades away.'); }
     }
     if (C.poison && e.hp > 0) {
-      const d = Math.max(1, Math.round(C.poison.pct * e.maxHP));
-      e.hp = Math.max(0, e.hp - d); say(C, 'Poison eats at ' + e.name + ' for ' + d + '.');
+      const d = Math.max(1, Math.round(C.poison.pct * e.maxHP * (C.poison.stacks || 1)));
+      e.hp = Math.max(0, e.hp - d); say(C, 'Poison eats at ' + e.name + ' for ' + d + '.' + (C.poison.stacks > 1 ? ' (' + C.poison.stacks + ' stacks)' : ''));
       if (--C.poison.turns <= 0) { C.poison = null; say(C, 'The poison wears off.'); }
     }
   }
@@ -80,6 +85,10 @@ DD.combat = (function () {
 
   function enemyTurn(C) {
     const e = C.enemy, it = C.intent;
+    if (C.suppress > 0) { // Regulatory T: Suppress
+      C.suppress--; say(C, e.name + ' is suppressed and loses its move.');
+      return endRound(C);
+    }
     if (it === 'attack' || it === 'big') {
       let mult = it === 'big' ? S.big : 1;
       if (C.wrongBonus) { mult *= S.wrongBonus; C.wrongBonus = false; }
@@ -90,15 +99,18 @@ DD.combat = (function () {
         say(C, e.name + (it === 'big' ? ' unleashes a big attack' : ' attacks') + ', but ' + (wardId === 'gear-ward' ? 'your gear absorbs it' : 'the Mucus Ward absorbs it') + '.');
         return endRound(C);
       }
-      let d = Math.max(S.minHit, Math.round(e.atk * mult - C.st.defense * S.defenseWeight));
-      if (C.blocking) {
+      let d = Math.max(S.minHit, Math.round(e.atk * mult - C.st.defense * S.defenseWeight)), reflected = 0;
+      const blocked = C.blocking;
+      if (blocked) {
+        reflected = Math.round(d * DD.fx.ruleMax(DD.save.profile, 'reflect', 0)); // Heparin Keeper: a block throws part of the hit back
         d = Math.max(1, Math.round(d * (1 - C.st.blockCut)));
         const x = ctx(C); DD.fx.fire('onBlock', x); gain(C, x);
       }
       C.run.hp = Math.max(0, C.run.hp - d);
-      const x2 = ctx(C); DD.fx.fire(it === 'big' ? 'onBigHit' : 'onHit', x2);
-      say(C, e.name + (it === 'big' ? ' unleashes a big attack' : ' attacks') + (C.blocking ? ' (blocked)' : '') + ' for ' + d + '.');
+      const x2 = ctx(C, { blocked }); DD.fx.fire(it === 'big' ? 'onBigHit' : 'onHit', x2); gain(C, x2);
+      say(C, e.name + (it === 'big' ? ' unleashes a big attack' : ' attacks') + (blocked ? ' (blocked)' : '') + ' for ' + d + '.' + (blocked && it === 'big' && x2.heal ? ' You are fully restored.' : ''));
       if (C.run.hp <= 0) return lose(C);
+      if (reflected > 0) { hit(C, reflected, 'Your block reflects the blow'); if (e.hp <= 0) return win(C); }
     } else if (it === 'defend') {
       say(C, e.name + ' held its guard this turn.');
     } else if (it === 'question') {
@@ -133,6 +145,12 @@ DD.combat = (function () {
     return DD.u.pick(R, cand.length ? cand : left);
   }
 
+  // The first wrong answer each fight carries no penalty (PBP2a Plate). Stats still record it as wrong.
+  function forgive(C) {
+    if (C.forgiven || !DD.fx.rules(DD.save.profile, 'forgive').length) return false;
+    C.forgiven = true; return true;
+  }
+
   const A = {
     create, rollDrop,
     light(C) {
@@ -152,10 +170,17 @@ DD.combat = (function () {
       const a = C.cls.active;
       C.run.atp -= a.cost;
       if (a.effect) C.buffs.push(Object.assign({}, a.effect));
+      (a.extra || []).forEach(b => C.buffs.push(Object.assign({}, b))); // extra buffs a subclass adds to the cast
       if (a.cast) { // immediate results go through the effect engine too
         const x = ctx(C); DD.fx.apply(a.cast, x);
-        if (x.poison) C.poison = x.poison;
+        if (x.poison) {
+          const max = DD.fx.ruleMax(DD.save.profile, 'poisonStacks', 1);
+          if (C.poison && max > 1) { C.poison.stacks = Math.min(max, (C.poison.stacks || 1) + 1); C.poison.turns = Math.max(C.poison.turns, x.poison.turns); say(C, 'The poison stacks (' + C.poison.stacks + ').'); }
+          else C.poison = x.poison;
+        }
         if (x.ally) C.ally = x.ally;
+        if (x.suppress) C.suppress = x.suppress;
+        if (x.heal) gain(C, x);
         if (x.selfDmg) {
           const d = Math.min(C.run.hp - 1, Math.max(1, Math.round(x.selfDmg))); // never kills you
           C.run.hp -= d; say(C, a.name + ' costs you ' + d + ' HP.');
@@ -167,7 +192,8 @@ DD.combat = (function () {
     // Already running (armed buff, poison or ally): can't be stacked.
     abilityActive(C) {
       const a = C.cls.active;
-      return !!((a.effect && C.buffs.some(b => b.id === a.effect.id)) || (a.cast && ((a.cast.type === 'poison' && C.poison) || (a.cast.type === 'summonAlly' && C.ally))));
+      const stackMax = DD.fx.ruleMax(DD.save.profile, 'poisonStacks', 1); // Toxin Trapper: poison can be cast again until it holds 3 stacks
+      return !!((a.effect && C.buffs.some(b => b.id === a.effect.id)) || (a.cast && ((a.cast.type === 'poison' && C.poison && (C.poison.stacks || 1) >= stackMax) || (a.cast.type === 'summonAlly' && C.ally) || (a.cast.type === 'suppress' && C.suppress > 0))));
     },
     canAbility(C) { const a = C.cls.active; return C.phase === 'choose' && !C.drill && C.run.atp >= a.cost && !A.abilityActive(C); },
     // Items (phase 2b). Using one takes the turn. Lymph Drain is also what Flee uses.
@@ -212,27 +238,33 @@ DD.combat = (function () {
       if (C.qKind === 'heavy') {
         if (ok) {
           const x = ctx(C, { mult: S.heavyRight, answeredFast: fast });
-          DD.fx.fire('onHeavyCorrect', x); DD.fx.fire('onQuestionCorrect', x); gain(C, x);
+          DD.fx.fire('onHeavyCorrect', x); DD.fx.fire('onQuestionCorrect', x); x.atp *= DD.fx.ruleMax(DD.save.profile, 'atpMult', 1); gain(C, x);
           C.firstHeavy = false;
           if (x.poison && !C.poison) { C.poison = x.poison; say(C, 'Your gear poisons ' + C.enemy.name + '.'); }
-          hit(C, playerDamage(C, x), 'Your heavy blow lands');
+          const d = playerDamage(C, x);
+          hit(C, d, 'Your heavy blow lands');
+          for (let k = 0; k < (x.repeat || 0) && C.enemy.hp > 0; k++) hit(C, d, 'It strikes again'); // heavy attacks that hit twice
           if (x.execute && C.enemy.hp > 0 && C.enemy.hp / C.enemy.maxHP < x.execute) {
             C.enemy.hp = 0; say(C, 'Executed: ' + C.enemy.name + ' fell below ' + Math.round(x.execute * 100) + '% HP.');
           }
         } else {
           const x = ctx(C); DD.fx.fire('onHeavyWrong', x); DD.fx.fire('onQuestionWrong', x);
-          C.firstHeavy = false; C.wrongBonus = true;
-          say(C, 'Your heavy attack whiffs. Its next attack hits harder.');
+          C.firstHeavy = false;
+          const chip = DD.fx.ruleMax(DD.save.profile, 'wrongHeavy', 0), pardon = forgive(C);
+          if (!pardon) C.wrongBonus = true;
+          if (chip > 0) { hit(C, playerDamage(C, ctx(C, { mult: S.heavyRight * chip })), 'Your heavy attack glances off'); say(C, pardon ? 'Forgiven: no penalty.' : 'Its next attack hits harder.'); }
+          else say(C, pardon ? 'Your heavy attack whiffs, but the slip is forgiven.' : 'Your heavy attack whiffs. Its next attack hits harder.');
         }
       } else if (ok) {
-        const x = ctx(C); DD.fx.fire('onQuestionCorrect', x); gain(C, x);
-        const rw = S.questionReward;
-        if (R() < 0.5) { C.buffs.push({ id: 'q-focus', label: '+25% damage', src: 'buff', trigger: 'static', result: { type: 'damageMult', mult: rw.dmgMult }, turns: rw.turns, fresh: true }); say(C, 'Correct! Your attacks hit +25% harder for ' + rw.turns + ' turns.'); }
-        else { const h = Math.round(rw.healPct * C.st.maxHP); C.run.hp = Math.min(C.st.maxHP, C.run.hp + h); say(C, 'Correct! You recover ' + h + ' HP.'); }
+        const x = ctx(C); DD.fx.fire('onQuestionCorrect', x); x.atp *= DD.fx.ruleMax(DD.save.profile, 'atpMult', 1); gain(C, x);
+        const rw = S.questionReward, k = DD.fx.ruleMax(DD.save.profile, 'questionBuff', 1), bonus = Math.round((rw.dmgMult - 1) * k * 100); // Polysaccharide Capsule doubles the buff
+        if (R() < 0.5) { C.buffs.push({ id: 'q-focus', label: '+' + bonus + '% damage', src: 'buff', trigger: 'static', result: { type: 'damageMult', mult: 1 + bonus / 100 }, turns: rw.turns, fresh: true }); say(C, 'Correct! Your attacks hit +' + bonus + '% harder for ' + rw.turns + ' turns.'); }
+        else { const h = Math.round(rw.healPct * k * C.st.maxHP); C.run.hp = Math.min(C.st.maxHP, C.run.hp + h); say(C, 'Correct! You recover ' + h + ' HP.'); }
       } else {
         const x = ctx(C); DD.fx.fire('onQuestionWrong', x);
         const eb = S.enemyBoost;
-        if (R() < 0.5) { C.enemyBuffs.push({ mult: eb.dmgMult, turns: eb.turns, fresh: true }); say(C, 'Wrong. ' + C.enemy.name + ' hits +25% harder for ' + eb.turns + ' turns.'); }
+        if (forgive(C)) say(C, 'Wrong, but the slip is forgiven: ' + C.enemy.name + ' gets nothing.');
+        else if (R() < 0.5) { C.enemyBuffs.push({ mult: eb.dmgMult, turns: eb.turns, fresh: true }); say(C, 'Wrong. ' + C.enemy.name + ' hits +25% harder for ' + eb.turns + ' turns.'); }
         else { const h = Math.round(eb.healPct * C.enemy.maxHP); C.enemy.hp = Math.min(C.enemy.maxHP, C.enemy.hp + h); say(C, 'Wrong. ' + C.enemy.name + ' recovers ' + h + ' HP.'); }
       }
       if (C.qKind === 'heavy') for (let i = C.buffs.length - 1; i >= 0; i--) if (C.buffs[i].expires === 'heavy') C.buffs.splice(i, 1); // one-heavy buffs, hit or miss
