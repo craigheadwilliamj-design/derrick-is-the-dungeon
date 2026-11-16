@@ -28,6 +28,7 @@
   const labelOf = n => n.short || n.name;
   const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
   const masteryOf = id => DD.data.region(id) && !DD.data.region(id).noPlace ? DD.q.mastery(id) : { value: null, n: 0 };
+  const isCleared = id => { const r = DD.save.profile.regions[id]; return !!(r && r.cleared && DD.data.region(id) && !DD.data.region(id).noPlace); };
   const dungeonRun = () => { const r = DD.save.run; return r && !r.kind ? r : null; };
 
   function geometry() {
@@ -68,7 +69,7 @@
     }
     ctx.font = '500 ' + lf + 'px' + mono; ctx.lineJoin = 'round';
     for (const p of places) {
-      const r = p.side === 'r', t = labelOf(p.node);
+      const r = p.side === 'r', t = labelOf(p.node) + (isCleared(p.id) ? ' ✓' : '');
       ctx.textAlign = r ? 'left' : 'right';
       const x = (p.x + 0.5) * cw + (r ? 1.2 : -1.2) * cw, y = (p.y + 0.55) * ch;
       ctx.lineWidth = 3.5; ctx.strokeStyle = v('--map-bg'); ctx.strokeText(t, x, y);
@@ -106,6 +107,7 @@
       if (W.isDungeon(id)) actions.push(r.playable ? el('button', { class: 'btn primary', onclick: () => ui.enter(id, false) }, 'Enter the ' + r.name)
         : el('p', { class: 'dim small' }, 'No pathogens or questions here yet. The dungeon opens once it has content.'));
       if (n.sub === 'town') actions.push(el('button', { class: 'btn primary', onclick: () => ui.town({ id }) }, 'Visit the ' + n.name));
+      if (n.sub === 'thymus') actions.push(el('button', { class: 'btn primary', onclick: ui.thymus }, 'Enter the thymus' + (DD.thymus.pending(p.classId) ? ' (upgrade ready)' : '')));
       const tn = W.townFor(id);
       if (tn) actions.push(el('button', { class: 'btn', onclick: () => DD.travel.start(W.plan(id, tn)) }, 'Take the lymphatic vessel to the ' + DD.data.town(tn).name));
     } else {
@@ -128,7 +130,7 @@
     const filterNote = r && r.playable && !DD.q.available(r.systems) ? el('div', { class: 'warn small' }, 'No questions match this source filter here. All questions are used instead.') : null;
     const imgN = r && !r.playable && DD.img.questions(r.systems, null).length;
     return el('div', { class: 'card place', style: { '--accent': acc } },
-      el('div', { class: 'rhead' }, el('h3', null, n.name), el('div', { class: 'chips' }, here ? el('span', { class: 'chip ok' }, '@ you are here') : null, el('span', { class: 'chip' }, kindText(n)))),
+      el('div', { class: 'rhead' }, el('h3', null, n.name), el('div', { class: 'chips' }, here ? el('span', { class: 'chip ok' }, '@ you are here') : null, isCleared(id) ? el('span', { class: 'chip ok' }, '✓ cleared') : null, el('span', { class: 'chip' }, kindText(n)))),
       r ? el('div', { class: 'dim small' }, r.system + (r.blurb ? ' · ' + r.blurb : '')) : null,
       el('p', { class: 'small' }, n.note),
       drains ? el('div', { class: 'dim small' }, 'Drains: ' + drains) : null,
@@ -148,7 +150,7 @@
   function chipBtn(id) {
     const n = id === 'bloodstream' ? null : C.nodes[id], loc = DD.save.profile.loc;
     return el('button', { class: 'btn small chipbtn' + (sel === id ? ' primary' : ''), type: 'button', style: { '--accent': id === 'bloodstream' ? DD.data.region(id).accent : accentOf(id) }, 'aria-pressed': String(sel === id),
-      onclick: () => ui.menu(id) }, (id === loc ? '@ ' : '') + (n ? labelOf(n) : 'Bloodstream'));
+      onclick: () => ui.menu(id) }, (id === loc ? '@ ' : '') + (n ? labelOf(n) : 'Bloodstream') + (isCleared(id) ? ' ✓' : ''));
   }
   ui.menu = function (arg) {
     ui.mode = 'menu';
@@ -181,7 +183,8 @@
         el('div', { class: 'small' }, el('b', null, 'Glucose ' + p.glucose), el('span', { class: 'dim' }, '  ' + (ui.invText(p) || 'no items'))),
         ui.pctBar('xp', ui.pct(p.xp, st.xpToNext)), el('div', { class: 'small dim' }, p.xp + ' / ' + st.xpToNext + ' XP'),
         el('div', { class: 'small' }, el('b', null, cls.passive.name + ': '), cls.passive.desc),
-        el('div', { class: 'small' }, el('b', null, cls.active.name + ' (' + cls.active.cost + ' ATP): '), cls.active.desc),
+        el('div', { class: 'small' }, el('b', null, DD.thymus.active(p).name + ' (' + DD.thymus.active(p).cost + ' ATP): '), DD.thymus.active(p).desc),
+        p.gearBag.length ? el('div', { class: 'small' }, el('b', null, 'Legendaries (stats come with gear): '), p.gearBag.map(g => g.name).join(', ')) : null,
         W.isLymphocyte() ? el('div', { class: 'small' }, el('b', null, 'Lymphocyte shortcut: '), 'you can travel town to town along the lymph node chain.') : null,
         el('div', { class: 'toolrow2' },
           el('button', { class: 'btn small primary', type: 'button', disabled: !atMarrow || !!drun, onclick: ui.classes, title: atMarrow ? '' : 'Blood cells are made in the bone marrow. Travel there to change class.' }, 'Hematopoiesis: change class'),

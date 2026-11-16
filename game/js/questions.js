@@ -47,6 +47,7 @@ DD.q = (function () {
     const r = p.regions[regionId] || (p.regions[regionId] = { lastReviewed: 0, cleared: false, recent: [] });
     r.recent = (r.recent || []).concat(correct ? 1 : 0).slice(-M.window);
     r.lastReviewed = Date.now();
+    if (DD.bounty) DD.bounty.onAnswer(q.system, correct);
   }
   // 0-100 or null ("unexplored"): accuracy over the last 20 answers x recency (1.0 today, 0.25 after 14+ days).
   function mastery(regionId) {

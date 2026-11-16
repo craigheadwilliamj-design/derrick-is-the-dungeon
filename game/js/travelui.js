@@ -70,7 +70,8 @@
       el('div', { class: 'stack' },
         playable ? el('button', { class: 'btn primary', onclick: () => ui.enter(dest, false) }, 'Enter the ' + region.name) : null,
         town ? el('button', { class: 'btn primary', onclick: () => ui.town({ id: dest }) }, 'Visit the ' + p.name) : null,
-        el('button', { class: 'btn' + (playable || town ? '' : ' primary'), onclick: () => ui.menu(dest) }, 'Open the body map'))));
+        dest === 'thymus' ? el('button', { class: 'btn primary', onclick: ui.thymus }, 'Enter the thymus') : null,
+        el('button', { class: 'btn' + (playable || town || dest === 'thymus' ? '' : ' primary'), onclick: () => ui.menu(dest) }, 'Open the body map'))));
   };
 
   // ---- route quiz: tap the stops in order ----

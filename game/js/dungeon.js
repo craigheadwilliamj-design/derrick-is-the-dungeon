@@ -121,6 +121,14 @@ DD.dungeon = (function () {
       const p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]);
       if (p) f.traps.push({ x: p.x, y: p.y, state: 0, name: tname });
     }
+    // NPCs (3b), drawn after everything else so earlier layouts and rolls stay the same: one native cell per floor, and sometimes the dendritic merchant.
+    f.npcs = [];
+    const nd = DD.npc.nativeFor(o.regionId, o.floorIdx, o.seed);
+    if (nd) { const p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]); if (p) f.npcs.push({ kind: 'native', id: nd.id, glyph: '☺', x: p.x, y: p.y, done: false }); }
+    if (!o.boss && r() < S.merchant.chance) {
+      const stock = DD.npc.makeStock(r), p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]);
+      if (p) f.npcs.push({ kind: 'merchant', id: 'dendritic', glyph: '¥', x: p.x, y: p.y, stock, tip: null });
+    }
     return f;
   }
 
@@ -138,7 +146,7 @@ DD.dungeon = (function () {
         if (!mx && !my) continue;
         const nx = e.x + mx, ny = e.y + my;
         if (nx === px && ny === py) return e;
-        if (walk(f, nx, ny) && !enemyAt(f, nx, ny)) { e.x = nx; e.y = ny; break; }
+        if (walk(f, nx, ny) && !enemyAt(f, nx, ny) && !(f.npcs || []).some(n => n.x === nx && n.y === ny)) { e.x = nx; e.y = ny; break; }
       }
     }
     return null;

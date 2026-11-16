@@ -25,6 +25,7 @@ DD.game = (function () {
       saved.en.forEach((s, i) => { const e = f.enemies[i]; if (e) { e.x = s[0]; e.y = s[1]; e.alive = !!s[2]; } });
       saved.taken.forEach(i => { if (f.pickups[i]) f.pickups[i].taken = true; });
       (saved.traps || []).forEach((s, i) => { if (f.traps[i]) f.traps[i].state = s; });
+      DD.npc.loadState(f, saved.npcs);
       f.bossDead = !!saved.bossDead;
       if (f.bossDead && f.exit) f.g[f.exit.y][f.exit.x] = '>';
       run.px = saved.px; run.py = saved.py;
@@ -42,7 +43,7 @@ DD.game = (function () {
     DD.save.saveRun({ v: 1, regionId: r.regionId, seed: r.seed, floorIdx: r.floorIdx, genLevel: r.genLevel, hp: r.hp, atp: r.atp,
       killed: r.killed, glucose: r.glucose, miss: r.miss, px: r.px, py: r.py, bossDead: f.bossDead,
       explored: Array.from(f.explored).join(''), en: f.enemies.map(e => [e.x, e.y, e.alive ? 1 : 0]),
-      taken: f.pickups.map((p, i) => p.taken ? i : -1).filter(i => i >= 0), traps: f.traps.map(t => t.state) });
+      taken: f.pickups.map((p, i) => p.taken ? i : -1).filter(i => i >= 0), traps: f.traps.map(t => t.state), npcs: DD.npc.saveState(f) });
   };
   G.resume = function (saved) {
     G.run = { v: 1, regionId: saved.regionId, seed: saved.seed, floorIdx: saved.floorIdx, genLevel: saved.genLevel, hp: saved.hp, atp: saved.atp,
@@ -60,6 +61,8 @@ DD.game = (function () {
     if (!DD.dungeon.walk(f, nx, ny)) return;
     const foe = DD.dungeon.enemyAt(f, nx, ny);
     if (foe) return G.startCombat(foe);
+    const npc = DD.npc.at(f, nx, ny);
+    if (npc) return DD.npc.open(npc); // bump into a cell to talk to it
     run.px = nx; run.py = ny;
     const p = f.pickups.find(q => !q.taken && q.x === nx && q.y === ny);
     if (p) {
@@ -84,7 +87,7 @@ DD.game = (function () {
   G.clearDungeon = function () {
     const run = G.run, r = prof().regions[run.regionId] || (prof().regions[run.regionId] = { lastReviewed: 0, cleared: false, recent: [] });
     r.cleared = true;
-    const summary = { region: DD.data.region(run.regionId), killed: run.killed, glucose: run.glucose, missed: run.miss.length };
+    const summary = { region: DD.data.region(run.regionId), killed: run.killed, glucose: run.glucose, missed: run.miss.length, legendary: run.legend || null };
     G.run = null; DD.save.saveRun(null); DD.save.save();
     DD.ui.showCleared(summary);
   };
@@ -173,7 +176,11 @@ DD.game = (function () {
     G.say(e.name + ' destroyed. +' + gain + ' XP.');
     G.gainXp(gain);
     if (run.trip) DD.travel.afterKill();
+    if (!run.trip) DD.bounty.onKill(e, run.regionId);
     if (e.boss) {
+      DD.npc.markCleared(run.regionId); DD.bounty.onClear(run.regionId); // the region counts as cleared as soon as its boss falls
+      const L = DD.npc.legendary(e.defId);
+      if (L) { run.legend = L.name; G.say('Legendary drop: ' + L.name + ' (' + L.slot + '). It is saved for the gear update.'); }
       run.floor.bossDead = true;
       run.floor.g[run.floor.exit.y][run.floor.exit.x] = '>';
       G.say('The boss is down. The exit (>) has opened.');

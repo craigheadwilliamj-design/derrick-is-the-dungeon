@@ -285,7 +285,10 @@ DD.travel = (function () {
       if (i === segs.length - 1) return arrive(run, n);
       // a dungeon in the middle of a route (blood in, lymph out): pass through its tissue
       t.idx = i;
-      return DD.ui.diapedesis(n, { pass: true }, () => { advance(); });
+      return DD.ui.diapedesis(n, { pass: true }, () => {
+        advance();
+        if (DD.ui.mode === 'dia') { DD.ui.game(); banner(); } // the diapedesis screen replaced the map: put it back for the next segment
+      });
     }
     enter(i); g.say(n.name + '.'); DD.ui.refreshMap(); banner();
   }
