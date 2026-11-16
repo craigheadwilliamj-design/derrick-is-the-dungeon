@@ -81,6 +81,26 @@ DD.S = {
   picker: { recentExclude: 8, unseen: 2, wrong: 1.5, right: 0.5, floor: 0.25, staleCap: 2, staleDays: 7, weakBias: 2 },
   mastery: { window: 20, minAnswers: 5, fadeDays: 14, fadeFloor: 0.25 },
   img: { minBoxFrac: 0.02, maxBytes: 20 * 1024 * 1024, labelMax: 60, panelMaxW: 1000, zoomMaxW: 2000 },
+  // World & travel (phase 3a). Segment sizes are tiles; pace is only used for the time estimate shown on the map.
+  travel: {
+    h: 11,                                              // segment grid height (vessel lumen sits in the middle)
+    lumen: { vessel: 5, lymph: 3 },                     // lane width in tiles
+    len: { vessel: 34, chamber: 14, valve: 9, capillary: 14, lymph: 24, nodeRoom: 12 },  // x node.lenMul for vessels
+    tileEst: { capillary: 1.8 },                        // capillary beds meander, so they cost more steps than their length
+    pace: 5,                                            // steps per second, for the estimate only
+    pushEvery: 3,                                       // arteries push you 1 tile downstream every Nth step
+    ambush: { chance: 0.15, max: 2, minVessels: 4 },    // per blood vessel segment; a trip gets 1-2 (min only when it has enough vessels)
+    systems: { blood: ['blood', 'cardio'], lymph: ['lymph'] },
+    hazard: { clot: 0.35, plaque: 0.35 },               // per vessel segment; plaque on arteries only
+    plaqueLen: 5,
+    valveChance: { vein: 0.6, lymph: 0.9 },             // one-way door tile inside veins and lymph vessels
+    pickups: { min: 0, max: 2, itemChance: 0.1 },
+    lootItems: ['complement', 'mucusWard', 'fever', 'interferon', 'antibiotic', 'tonic', 'atpReserve'],
+    trap: { perVessel: 0.5, perFloor: { min: 2, max: 4 }, dmgPct: 0.10, dmgPerLevel: 1, xp: 5 },
+    fastTravel: { walks: 2, quizMax: 10, quizMin: 3 },
+    bannerMs: 2800, diapedesisMs: 650,
+    accent: { artery: '#e0474f', vein: '#6c8fe0', lymph: '#6fcfb8', capillary: '#e08fc0', chamber: '#ff7a59', valve: '#d9b44a', nodeRoom: '#6fcfb8' }
+  },
   save: { debounceMs: 1500, dbTimeoutMs: 10000 },
   log: { lines: 3 }
 };

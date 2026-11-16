@@ -2,7 +2,7 @@
 DD.ui = (function () {
   const { el } = DD.u, S = DD.S;
   const ui = { mode: 'title' };
-  let root, g = {}, titleConfirm = false, menuConfirm = false;
+  let root, g = {}, titleConfirm = false;
 
   const mount = n => root.replaceChildren(n);
   const pct = (v, m) => Math.max(0, Math.min(100, Math.round((v / m) * 100)));
@@ -24,7 +24,7 @@ DD.ui = (function () {
   ui.stopMap = function () { if (g.ro) g.ro.disconnect(); stopTimer(); g = {}; };
   ui.init = function (r) { root = r; };
   ui.refresh = function () { if (ui.mode === 'title') ui.title(); else if (ui.mode === 'menu') ui.menu(); };
-  const FILTERS = [['all', 'All'], ['human-model', 'Human model'], ['fetal-pig', 'Fetal pig'], ['text', 'Text only']];
+  ui.pctBar = bar; ui.pct = pct; ui.ago = ago; ui.invText = invText;
 
   // ---------- title ----------
   ui.title = function () {
@@ -50,61 +50,13 @@ DD.ui = (function () {
   };
   ui.continueGame = function () {
     const run = DD.save.run;
-    if (run && DD.data.region(run.regionId)) { DD.game.resume(run); ui.game(); } else ui.menu();
+    if (run && DD.travel.valid(run)) { if (DD.travel.resume(run)) { ui.game(); DD.travel.banner(); return; } }
+    else if (run && !run.kind && run.regionId !== 'bloodstream' && DD.data.region(run.regionId)) { DD.game.resume(run); ui.game(); return; }
+    else if (run) DD.game.abandon(); // a leftover from before the world map (the old Bloodstream dungeon) or an unreadable trip
+    ui.menu();
   };
 
-  // ---------- dungeon menu ----------
-  ui.menu = function () {
-    ui.mode = 'menu';
-    const p = DD.save.profile, st = DD.stats.compute(p), cls = DD.data.classes[p.classId], run = DD.save.run;
-    const cards = DD.data.regions.map(r => {
-      const m = DD.q.mastery(r.id), reg = p.regions[r.id];
-      const meter = r.playable
-        ? el('div', { class: 'mastery' }, bar('mas', m.value == null ? 0 : m.value),
-          el('span', null, m.value == null ? 'Unexplored (' + m.n + '/' + S.mastery.minAnswers + ' answers)' : 'Mastery ' + m.value + '%'))
-        : null;
-      const resume = run && run.regionId === r.id;
-      return el('div', { class: 'card region' + (r.playable ? '' : ' locked'), style: { '--accent': r.accent } },
-        el('div', { class: 'rhead' }, el('h3', null, r.name + (r.temp ? ' (temporary)' : '')),
-          el('span', { class: 'chip ' + (r.playable ? 'ok' : '') }, r.playable ? (reg && reg.cleared ? 'Cleared' : 'Playable') : 'Needs content')),
-        el('div', { class: 'dim small' }, r.system + (r.blurb ? ' · ' + r.blurb : '')),
-        meter,
-        r.playable ? el('div', { class: 'dim small' }, ago(reg && reg.lastReviewed)) : null,
-        r.playable && !DD.q.available(r.systems) ? el('div', { class: 'warn small' }, 'No questions match this source filter here. All questions are used instead.') : null,
-        !r.playable && DD.img.questions(r.systems, null).length ? el('div', { class: 'dim small' }, DD.img.questions(r.systems, null).length + ' image questions saved. They appear when this dungeon opens.') : null,
-        r.playable ? el('button', { class: 'btn primary', onclick: () => ui.enter(r.id, resume) }, resume ? 'Resume floor ' + (run.floorIdx + 1) : 'Enter dungeon') : null);
-    });
-    mount(el('div', { class: 'screen menu' },
-      el('div', { class: 'tag' }, 'Bone Marrow'),
-      el('h1', null, 'Choose a dungeon'),
-      el('div', { class: 'card profile' },
-        el('div', null, el('b', null, cls.name + ' · ' + cls.role), el('span', { class: 'dim' }, '  Level ' + p.level)),
-        el('div', { class: 'stats small dim' }, 'HP ' + st.maxHP + ' · Power ' + st.power.toFixed(1) + ' · Defense ' + st.defense.toFixed(1) + ' · ATP ' + st.maxATP),
-        el('div', { class: 'small' }, el('b', null, 'Glucose ' + p.glucose), el('span', { class: 'dim' }, '  ' + (invText(p) || 'no items'))),
-        bar('xp', pct(p.xp, st.xpToNext)), el('div', { class: 'small dim' }, p.xp + ' / ' + st.xpToNext + ' XP'),
-        el('div', { class: 'small' }, el('b', null, cls.passive.name + ': '), cls.passive.desc),
-        el('div', { class: 'small' }, el('b', null, cls.active.name + ' (' + cls.active.cost + ' ATP): '), cls.active.desc),
-        el('div', { class: 'toolrow2' },
-          el('button', { class: 'btn small primary', type: 'button', onclick: ui.classes }, 'Hematopoiesis: change class'),
-          run ? el('span', { class: 'dim small' }, 'Locked while a run is in progress. Resume or abandon it first.') : null),
-        el('div', { class: 'toolrow2' },
-          el('button', { class: 'btn small primary', type: 'button', onclick: () => ui.town({}) }, 'Cervical Nodes (town)'),
-          el('button', { class: 'btn small', type: 'button', onclick: DD.review.screen }, 'Missed questions (' + Object.values(p.qstats).filter(s => s.wrong >= 1).length + ')'))),
-      el('div', { class: 'card toolrow' },
-        el('div', { class: 'filter', role: 'group', 'aria-label': 'Question source' }, el('span', { class: 'tag' }, 'Source'),
-          FILTERS.map(([v, l]) => el('button', { class: 'btn small' + (p.settings.sourceFilter === v ? ' primary' : ''), type: 'button', 'aria-pressed': String(p.settings.sourceFilter === v),
-            onclick: () => { p.settings.sourceFilter = v; DD.save.save(); ui.menu(); } }, l))),
-        DD.img.state === 'unavailable' ? el('span', { class: 'dim small' }, 'Image questions need the claude.ai viewer.')
-          : el('button', { class: 'btn small', type: 'button', disabled: DD.img.state !== 'ready', onclick: DD.editor.open }, 'Lab images' + (DD.img.state === 'ready' ? ' (' + DD.img.records.length + ')' : '…'))),
-      el('p', { class: 'dim small' }, 'Questions are starter placeholders until the real study-guide set arrives.'),
-      el('div', { class: 'grid' }, cards),
-      el('div', { class: 'foot' },
-        el('span', { class: 'dim small' }, DD.save.status()),
-        menuConfirm
-          ? el('span', null, el('button', { class: 'btn danger', onclick: () => { menuConfirm = false; DD.save.reset(); DD.game.abandon(); ui.menu(); } }, 'Yes, erase everything'),
-            el('button', { class: 'btn', onclick: () => { menuConfirm = false; ui.menu(); } }, 'Cancel'))
-          : el('button', { class: 'btn', onclick: () => { menuConfirm = true; ui.menu(); } }, 'Erase save'))));
-  };
+  // The dungeon menu is now the body map (js/bodymap.js defines ui.menu).
   // ---------- class select (Hematopoiesis) ----------
   const RATINGS = [['hp', 'HP', 'maxHP'], ['pow', 'Power', 'power'], ['def', 'Defense', 'defense'], ['atp', 'ATP', 'maxATP']];
   ui.classes = function () {
@@ -134,6 +86,7 @@ DD.ui = (function () {
       back, el('div', { class: 'grid' }, cards)));
   };
   ui.enter = function (regionId, resume) {
+    DD.save.profile.loc = regionId; // you stand in the dungeon you enter (also after a Lymph Drain and "Return to the dungeon")
     if (resume) DD.game.resume(DD.save.run); else DD.game.newRun(regionId);
     ui.game();
   };
@@ -141,43 +94,79 @@ DD.ui = (function () {
   // ---------- game screen ----------
   ui.game = function () {
     ui.mode = 'map';
+    if (g.ro) g.ro.disconnect();
     g = {};
     g.floor = el('div', { class: 'floorname' });
     g.hp = el('div', { class: 'stat' }); g.atp = el('div', { class: 'stat' }); g.xp = el('div', { class: 'stat' }); g.glu = el('div', { class: 'stat' });
-    g.leave = el('button', { class: 'btn small', onclick: ui.leave }, 'Leave');
-    g.canvas = el('canvas', { 'aria-label': 'Dungeon map' });
-    g.mapbox = el('div', { class: 'mapbox' }, g.canvas);
+    const trip = !!(DD.game.run && DD.game.run.trip);
+    g.trip = trip;
+    g.leave = el('button', { class: 'btn small', onclick: ui.leave }, trip ? 'Pause' : 'Leave');
+    g.abort = trip ? el('button', { class: 'btn small', onclick: ui.abortTrip, title: 'Give up this trip and wash back up where you set out' }, 'Abort') : null;
+    g.strip = trip ? el('div', { class: 'strip', 'aria-label': 'Route' }) : null;
+    g.canvas = el('canvas', { 'aria-label': trip ? 'Vessel map' : 'Dungeon map' });
+    g.banner = el('div', { class: 'banner', hidden: true, role: 'status' });
+    g.mapbox = el('div', { class: 'mapbox' }, g.canvas, g.banner);
     g.log = el('div', { class: 'log', 'aria-live': 'polite' });
     g.combat = el('div', { class: 'overlay', hidden: true });
-    const key = (label, dx, dy, cls) => el('button', { class: 'key ' + cls, 'aria-label': 'Move ' + label, onclick: () => DD.game.move(dx, dy) }, label);
+    // Holding a d-pad key keeps walking on trips (vessels are long). A tap fires on pointerdown; click only handles keyboard activation.
+    const key = (label, dx, dy, cls) => {
+      let timer = null; const stop = () => { clearInterval(timer); timer = null; };
+      return el('button', { class: 'key ' + cls, 'aria-label': 'Move ' + label, onclick: e => { if (e.detail === 0) DD.game.move(dx, dy); },
+        onpointerdown: () => { DD.game.move(dx, dy); if (trip) { stop(); timer = setInterval(() => DD.game.move(dx, dy), 120); } },
+        onpointerup: stop, onpointerleave: stop, onpointercancel: stop }, label);
+    };
     const dpad = el('div', { class: 'dpad' }, key('↑', 0, -1, 'u'), key('←', -1, 0, 'l'), key('↓', 0, 1, 'd'), key('→', 1, 0, 'r'));
-    const legend = el('div', { class: 'legend' },
-      el('span', null, el('b', { class: 'gp' }, '@'), 'you'), el('span', null, el('b', { class: 'gm' }, 'a–z'), 'pathogen'), el('span', null, el('b', { class: 'gm' }, 'A–Z'), 'boss'),
-      el('span', null, el('b', { class: 'gg' }, '$'), 'glucose'), el('span', null, el('b', { class: 'gd' }, '+'), 'door'), el('span', null, el('b', { class: 'gs' }, '>'), 'stairs'));
+    const L = (cls, ch, label) => el('span', null, el('b', { class: cls }, ch), label);
+    const legend = el('div', { class: 'legend' }, trip
+      ? [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gg', '$', 'glucose'), L('gg', '!', 'item'), L('gc', '%', 'clot'), L('gd', '=', 'plaque'), L('gv', '»', 'one-way valve'), L('gt', '^', 'trap'), L('gs', '>', 'onward')]
+      : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gg', '$', 'glucose'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
-      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.leave),
-      g.mapbox, g.log,
+      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.leave, g.abort),
+      g.strip, g.mapbox, g.log,
       el('div', { class: 'controls' }, dpad, legend),
       g.combat));
     if (window.ResizeObserver) { g.ro = new ResizeObserver(() => ui.refreshMap(true)); g.ro.observe(g.mapbox); }
     ui.refreshMap();
     if (DD.game.combat) ui.openCombat();
   };
+  // Vessel trips: Pause saves where the current stop began; Abort washes you back up where you set out.
+  ui.abortTrip = function () {
+    if (!g.abortArmed) {
+      g.abortArmed = true; g.abort.textContent = 'Abort trip?';
+      setTimeout(() => { if (g.abort) { g.abortArmed = false; g.abort.textContent = 'Abort'; } }, 3000);
+      return;
+    }
+    if (g.ro) g.ro.disconnect();
+    stopTimer(); DD.travel.abort();
+  };
   ui.leave = function () {
+    if (g.trip) { // pause the trip: the title screen's Continue picks it back up
+      if (g.ro) g.ro.disconnect();
+      DD.game.persist(); DD.save.save(); DD.save.flush(); stopTimer(); g = {}; return ui.title();
+    }
     if (!g.leaveArmed) {
       g.leaveArmed = true; g.leave.textContent = 'Abandon run?';
       setTimeout(() => { if (g.leave) { g.leaveArmed = false; g.leave.textContent = 'Leave'; } }, 3000);
       return;
     }
     if (g.ro) g.ro.disconnect();
-    DD.game.abandon(); DD.save.save(); ui.menu();
+    DD.game.abandon(); DD.save.save(); ui.menu(DD.save.profile.loc);
   };
   ui.refreshMap = function (resizeOnly) {
     const run = DD.game.run; if (!run || !g.canvas) return;
     DD.render.draw(g.canvas, run);
     if (resizeOnly) return;
     const r = DD.data.region(run.regionId), st = DD.game.stats(), p = DD.save.profile;
-    g.floor.replaceChildren(el('b', null, r.name), el('small', null, run.floor.boss ? 'Boss floor' : 'Floor ' + (run.floorIdx + 1) + ' of ' + S.floorsPerDungeon));
+    if (run.trip) {
+      const segs = DD.travel.segs(run), n = segs[run.trip.idx], last = segs.length - 1;
+      const kind = n.kind === 'vessel' ? (n.flow === 'artery' ? 'artery · the current pushes you on' : 'vein') : n.kind === 'lymph' ? 'lymphatic vessel' : n.kind === 'capillary' ? 'capillary bed' : n.sub === 'nodeRoom' ? 'lymph node' : n.kind;
+      g.floor.replaceChildren(el('b', null, n.name), el('small', null, 'Stop ' + (run.trip.idx + 1) + ' of ' + last + ' · ' + kind));
+      if (g.stripIdx !== run.trip.idx) {
+        g.stripIdx = run.trip.idx;
+        g.strip.replaceChildren(...segs.map((s, i) => el('span', { class: 'stop' + (i < run.trip.idx ? ' past' : i === run.trip.idx ? ' now' : ''), 'aria-current': i === run.trip.idx ? 'step' : null }, s.name)));
+        const now = g.strip.querySelector('.now'); if (now && now.scrollIntoView) now.scrollIntoView({ inline: 'center', block: 'nearest' });
+      }
+    } else g.floor.replaceChildren(el('b', null, r.name), el('small', null, run.floor.boss ? 'Boss floor' : 'Floor ' + (run.floorIdx + 1) + ' of ' + S.floorsPerDungeon));
     const stat = (node, label, v, m, cls) => node.replaceChildren(label + ' ', el('b', null, Math.round(v) + (m ? '/' + m : '')), bar(cls, m ? pct(v, m) : 0));
     stat(g.hp, 'HP', run.hp, st.maxHP, 'hp'); stat(g.atp, 'ATP', run.atp, st.maxATP, 'atp');
     g.xp.replaceChildren('Lv ' + p.level + ' XP ', el('b', null, p.xp + '/' + st.xpToNext), bar('xp', pct(p.xp, st.xpToNext)));
@@ -211,7 +200,7 @@ DD.ui = (function () {
     });
     return el('div', { class: 'stack', style: { alignItems: 'stretch' } },
       el('div', { class: 'tag' }, 'Items · using one takes your turn'),
-      rows.length ? el('div', { class: 'actions' }, rows) : el('p', { class: 'dim small' }, 'You are carrying nothing. Buy supplies at the Cervical Nodes, from the marrow menu.'),
+      rows.length ? el('div', { class: 'actions' }, rows) : el('p', { class: 'dim small' }, 'You are carrying nothing. Buy supplies in any lymph node town.'),
       el('button', { class: 'btn', onclick: () => act('items') }, 'Back'));
   }
   ui.renderCombat = function () {
@@ -250,7 +239,7 @@ DD.ui = (function () {
         el('button', { class: 'btn ability', disabled: !can, title: a.name + ' (' + a.cost + ' ATP, free action): ' + a.desc, 'aria-label': a.name + ', ' + a.cost + ' ATP, free action. ' + a.desc, onclick: () => act('ability') },
           el('kbd', null, 'A'), a.name, el('small', { class: 'adesc' }, a.desc), el('small', { class: 'acost' }, a.cost + ' ATP · free action')),
         el('button', { class: 'btn', onclick: () => act('items') }, el('kbd', null, 'I'), 'Item', el('small', null, 'uses your turn')),
-        el('button', { class: 'btn', disabled: !!fleeWhy, title: fleeWhy || 'Uses a Lymph Drain to escape to the Cervical Nodes', onclick: () => act('flee') },
+        el('button', { class: 'btn', disabled: !!fleeWhy, title: fleeWhy || 'Uses a Lymph Drain to escape to the lymph node town that drains this region', onclick: () => act('flee') },
           'Flee', el('small', null, fleeWhy === 'None left' ? 'needs a Lymph Drain' : fleeWhy || 'uses a Lymph Drain (×' + DD.combat.count('lymphDrain') + ')'))));
     } else if (C.phase === 'question' || C.phase === 'explain') {
       const q = C.q, ans = C.answer;
@@ -271,7 +260,7 @@ DD.ui = (function () {
     } else if (C.phase === 'end') {
       body.append(el('h3', null, C.drill ? 'Drill complete' : C.over === 'win' ? 'Pathogen destroyed' : C.over === 'flee' ? 'You slipped away' : 'Your cell has died'),
         C.over === 'win' && !C.drill ? el('p', { class: 'warn' }, '+' + C.drop + ' glucose') : null,
-        el('p', { class: 'dim small' }, C.over === 'flee' ? 'The lymph carries you to the Cervical Nodes. The pathogen stays behind, healed.' : e.codex),
+        el('p', { class: 'dim small' }, C.over === 'flee' ? 'The lymph carries you to the ' + DD.data.town(DD.world.townFor(run.regionId) || 'cervical').name + '. The pathogen stays behind, healed.' : e.codex),
         el('button', { class: 'btn primary', onclick: () => act('cont') }, el('kbd', null, '↵'), 'Continue'));
     }
     const log = el('div', { class: 'clog' }, C.log.slice(-S.log.lines).reverse().map(t => el('div', null, t)));
@@ -315,7 +304,10 @@ DD.ui = (function () {
       el('div', { class: 'tag' }, s.region.name),
       el('h1', null, 'Dungeon cleared'),
       el('p', { class: 'lede' }, s.killed + ' pathogens destroyed · ' + s.glucose + ' glucose collected · ' + s.missed + ' questions missed.'),
-      el('button', { class: 'btn primary', onclick: ui.menu }, 'Back to the marrow')));
+      el('p', { class: 'dim small' }, 'Leave through the body map, or take this region’s lymphatic vessel to its node town.'),
+      el('div', { class: 'stack' },
+        DD.world.townFor(s.region.id) ? el('button', { class: 'btn primary', onclick: () => DD.travel.start(DD.world.plan(s.region.id, DD.world.townFor(s.region.id))) }, 'Lymphatic vessel to the ' + DD.data.town(DD.world.townFor(s.region.id)).name) : null,
+        el('button', { class: 'btn' + (DD.world.townFor(s.region.id) ? '' : ' primary'), onclick: () => ui.menu(s.region.id) }, 'Open the body map'))));
   };
   return ui;
 })();

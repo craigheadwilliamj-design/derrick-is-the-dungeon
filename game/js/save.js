@@ -6,7 +6,7 @@ DD.save = (function () {
   let timer = null;
 
   function defaultProfile() {
-    return { v: 2, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: 0,
+    return { v: 3, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: 0, loc: 'marrow',
       inventory: {}, equipment: {}, gearBag: [], qstats: {}, regions: {}, routes: {},
       milestones: [], beaten: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' } };
   }
@@ -15,7 +15,10 @@ DD.save = (function () {
     const o = Object.assign(defaultProfile(), p); // bump v and migrate here when the shape changes
     if (!Array.isArray(o.beaten)) o.beaten = []; // v2 (2a): enemy ids beaten, for B Cell Memory
     if (!DD.data.classes[o.classId]) o.classId = 'macrophage';
-    o.v = 2;
+    o.v = 3;
+    const place = DD.data.circ && DD.data.circ.nodes[o.loc]; // v3 (3a): where Derrick's cell is standing
+    if (!place || place.kind !== 'place') o.loc = 'marrow';
+    if (!o.routes || typeof o.routes !== 'object' || Array.isArray(o.routes)) o.routes = {};
     o.glucose = Math.max(0, Math.floor(+o.glucose) || 0);
     if (!o.inventory || typeof o.inventory !== 'object' || Array.isArray(o.inventory)) o.inventory = {};
     Object.keys(o.inventory).forEach(k => { if (!(o.inventory[k] > 0)) delete o.inventory[k]; });

@@ -1,11 +1,11 @@
-// Cervical Nodes: the first lymph node town. Plasma cell shop, mast cell inn, respiration counter.
-// Reachable from the marrow menu until the world map (3a). HP and ATP only exist inside a run, so the inn and
-// the counter act on the saved run; with no run in progress they explain themselves instead.
+// The six lymph node towns (data/circulation.js) share one layout: plasma cell shop, mast cell inn, respiration counter.
+// HP and ATP only exist inside a dungeon run, so the inn and the counter act on the saved run; with none in progress
+// they explain themselves instead.
 DD.town = (function () {
   const { el } = DD.u, E = DD.S.economy;
   const T = { msg: '' };
   const prof = () => DD.save.profile;
-  const run = () => DD.save.run;
+  const run = () => { const r = DD.save.run; return r && !r.kind ? r : null; }; // dungeon runs only, never a trip
   const inv = id => prof().inventory[id] || 0;
   const cap = id => DD.data.items[id].cap || Infinity;
   const sellPrice = id => Math.floor(DD.data.items[id].price * E.sellPct);
@@ -56,7 +56,9 @@ DD.town = (function () {
 
   DD.ui.town = function (opts) {
     const ui = DD.ui; ui.mode = 'town';
-    if (opts) T.msg = opts.fled ? 'You flowed into a lymphatic vessel and out into the Cervical Nodes. The pathogen is still back there.' : '';
+    if (opts && opts.id) T.id = opts.id; else if (!T.id) T.id = DD.world.isTown(prof().loc) ? prof().loc : 'cervical';
+    const town = DD.data.town(T.id);
+    if (opts) T.msg = opts.fled ? 'You flowed into a lymphatic vessel and out into the ' + town.name + '. The pathogen is still back there.' : '';
     const p = prof(), r = run(), st = maxes();
     const note = (txt, cls) => el('div', { class: 'small ' + (cls || 'dim') }, txt);
     const shop = DD.data.itemOrder.map(id => {
@@ -75,8 +77,8 @@ DD.town = (function () {
     const iw = T.innWhy(), cw = T.convertWhy();
     ui.mount(el('div', { class: 'screen menu' },
       el('div', { class: 'tag' }, 'Lymph node'),
-      el('h1', null, 'Cervical Nodes'),
-      el('p', { class: 'dim small' }, 'Lymph nodes filter lymph before it returns to the blood, and they are packed with lymphocytes. The cervical nodes drain the head and neck.'),
+      el('h1', null, town.name),
+      el('p', { class: 'dim small' }, town.blurb),
       el('div', { class: 'chips' }, el('span', { class: 'chip warn' }, 'Glucose ' + p.glucose),
         r ? el('span', { class: 'chip' }, 'HP ' + Math.round(r.hp) + '/' + st.maxHP + ' · ATP ' + Math.round(r.atp) + '/' + st.maxATP) : el('span', { class: 'chip' }, 'no run in progress')),
       T.msg ? el('div', { class: 'fb good', role: 'status' }, T.msg) : null,
@@ -93,7 +95,7 @@ DD.town = (function () {
         cw ? note(cw, 'warn') : null),
       el('div', { class: 'toolrow2' },
         r ? el('button', { class: 'btn primary', type: 'button', onclick: () => ui.enter(r.regionId, true) }, 'Return to the dungeon') : null,
-        el('button', { class: 'btn' + (r ? '' : ' primary'), type: 'button', onclick: ui.menu }, 'Back to the marrow'))));
+        el('button', { class: 'btn' + (r ? '' : ' primary'), type: 'button', onclick: () => ui.menu(T.id) }, 'Open the body map'))));
   };
   return T;
 })();

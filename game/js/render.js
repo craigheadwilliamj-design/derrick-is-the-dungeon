@@ -3,7 +3,7 @@ DD.render = (function () {
   let colors = null;
   function loadColors() {
     const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
-    colors = { floor: v('--floor'), door: v('--bile'), player: '#ffffff', mon: v('--art'), item: v('--bile'), stairs: v('--bone'), ok: v('--ok'), bg: v('--map-bg') };
+    colors = { floor: v('--floor'), door: v('--bile'), player: '#ffffff', mon: v('--art'), item: v('--bile'), stairs: v('--bone'), ok: v('--ok'), bg: v('--map-bg'), clot: '#ff9ea6', trap: '#ff7a59' };
   }
   function fit(canvas) {
     const box = canvas.parentElement, dpr = window.devicePixelRatio || 1;
@@ -14,7 +14,7 @@ DD.render = (function () {
   }
   function draw(canvas, run) {
     if (!colors) loadColors();
-    const f = run.floor, cam = DD.S.camera, accent = DD.data.region(run.regionId).accent;
+    const f = run.floor, cam = DD.S.camera, accent = run.accent || DD.data.region(run.regionId).accent;
     const { w, h, dpr } = fit(canvas), ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = colors.bg; ctx.fillRect(0, 0, w, h);
@@ -38,11 +38,20 @@ DD.render = (function () {
       else if (t === '.') put('·', i, j, colors.floor, a);
       else if (t === '+') put('+', i, j, colors.door, a);
       else if (t === '>') put('>', i, j, colors.stairs, a, seen ? colors.door : null);
+      else if (t === '%') put('%', i, j, colors.clot, a, seen ? colors.clot : null);   // clot
+      else if (t === '=') put('=', i, j, colors.door, a);                                 // plaque
+      else if (t === '»') put('»', i, j, colors.ok, a, seen ? colors.ok : null);          // one-way valve
+      else if (t === '|') put('|', i, j, colors.floor, a);                                // closed valve
+    }
+    for (const tr of f.traps || []) {
+      if (!tr.state) continue; // hidden until stepped on; revealed traps stay visible
+      const idx = tr.y * f.W + tr.x; if (!f.explored[idx]) continue;
+      put('^', tr.x - x0, tr.y - y0, tr.state === 2 ? colors.ok : colors.trap, f.vis[idx] ? 1 : 0.45);
     }
     for (const p of f.pickups) {
       if (p.taken) continue;
       const idx = p.y * f.W + p.x; if (!f.explored[idx]) continue;
-      put('$', p.x - x0, p.y - y0, colors.item, f.vis[idx] ? 1 : 0.45);
+      put(p.glyph || '$', p.x - x0, p.y - y0, colors.item, f.vis[idx] ? 1 : 0.45);
     }
     for (const e of f.enemies) {
       if (!e.alive || !f.vis[e.y * f.W + e.x]) continue;

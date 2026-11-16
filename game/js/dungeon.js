@@ -93,7 +93,7 @@ DD.dungeon = (function () {
       }
       return null;
     };
-    const f = { W, H, g, rooms, start, enemies: [], pickups: [], stairs: null, exit: null, boss: !!o.boss,
+    const f = { W, H, g, rooms, start, enemies: [], pickups: [], traps: [], stairs: null, exit: null, boss: !!o.boss,
       explored: new Uint8Array(W * H), vis: new Uint8Array(W * H), bossDead: false };
     const level = o.playerLevel + o.floorIdx;
     let uid = 0;
@@ -115,10 +115,16 @@ DD.dungeon = (function () {
       const p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]);
       if (p) f.pickups.push({ x: p.x, y: p.y, taken: false });
     }
+    // hidden traps: stepping on one asks a pop quiz. Generated after everything else so older floors keep their layout.
+    const TR = S.travel.trap, nt = DD.u.int(r, TR.perFloor.min, TR.perFloor.max), tname = (DD.data.region(o.regionId) || {}).trap || 'Hidden trap';
+    for (let i = 0; i < nt; i++) {
+      const p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]);
+      if (p) f.traps.push({ x: p.x, y: p.y, state: 0, name: tname });
+    }
     return f;
   }
 
-  const walk = (f, x, y) => x >= 0 && y >= 0 && x < f.W && y < f.H && f.g[y][x] !== '#';
+  const walk = (f, x, y) => x >= 0 && y >= 0 && x < f.W && y < f.H && !'#%=|'.includes(f.g[y][x]); // clots, plaque and closed valves block too
   const enemyAt = (f, x, y) => f.enemies.find(e => e.alive && e.x === x && e.y === y);
 
   // Enemies that can see the player within the chase radius take one greedy step. Returns an enemy that reached the player.
@@ -137,5 +143,5 @@ DD.dungeon = (function () {
     }
     return null;
   }
-  return { generate, computeFov, enemiesAct, enemyAt, walk, los };
+  return { generate, computeFov, enemiesAct, enemyAt, walk, los, pickDef, makeEnemy };
 })();
