@@ -72,8 +72,9 @@ DD.town = (function () {
 
   // One greeting and one Derrick joke per NPC per visit (rolled when you arrive, not on every redraw).
   const talk = id => {
-    if (!T.lines[id]) { const l = DD.data.npc(id).lines; T.lines[id] = [DD.u.pick(Math.random, l.greet), DD.u.pick(Math.random, l.derrick)]; }
-    return T.lines[id].map(t => el('div', { class: 'small dim' }, '“' + t + '”'));
+    if (!T.lines[id]) { const l = DD.data.npc(id).lines, ev = DD.derrick.npcLine(id); T.lines[id] = [DD.u.pick(Math.random, l.greet), ev ? ev.text : DD.u.pick(Math.random, l.derrick), ev ? ev.from : null]; } // 5b: an event line replaces the joke
+    const L = T.lines[id];
+    return L.slice(0, 2).map(t => el('div', { class: 'small dim' }, '“' + t + '”')).concat(L[2] ? [el('span', { class: 'chip' }, 'Derrick lately: ' + L[2])] : []);
   };
   T.claim = function (id) {
     const b = DD.bounty.claim(id);
@@ -181,7 +182,8 @@ DD.town = (function () {
     if (n.kind === 'town') return T.open(TM.keepers[n.id]);
     // ambient: an accurate fact or a Derrick joke, sometimes gossip about a region that drains here
     const d = DD.data.npc(n.id), gossip = town().regions.flatMap(id => DD.data.townGossip[id] || []);
-    const line = gossip.length && Math.random() < TS.gossipChance ? DD.u.pick(Math.random, gossip) : DD.u.pick(Math.random, d.lines.greet);
+    const ev = DD.derrick.npcLine(n.id); // 5b: sometimes they react to what Derrick has been up to
+    const line = ev && Math.random() < 0.5 ? ev.text : gossip.length && Math.random() < TS.gossipChance ? DD.u.pick(Math.random, gossip) : DD.u.pick(Math.random, d.lines.greet);
     say(d.name + ': “' + line + '”');
     // then it gets out of your way, so a cell in a narrow gap never blocks the path: step aside, or swap places with you
     const dir = DD.u.shuffle(Math.random, [[1, 0], [-1, 0], [0, 1], [0, -1]]).find(([dx, dy]) => roamable(n, n.x + dx, n.y + dy));

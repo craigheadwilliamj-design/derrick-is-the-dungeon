@@ -10,6 +10,8 @@ DD.input = {
       } else if (ui.mode === 'town') {
         const m = { arrowup: [0, -1], w: [0, -1], arrowdown: [0, 1], s: [0, 1], arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0] }[k];
         if (m) { e.preventDefault(); DD.town.move(m[0], m[1]); }
+      } else if (ui.mode === 'chart') {
+        if ((k === 'escape' || k === 'enter') && DD.derrickui.close) { e.preventDefault(); DD.derrickui.close(); }
       } else if (ui.mode === 'townpanel') {
         if (k === 'escape') { e.preventDefault(); DD.town.close(); }
       } else if (ui.mode === 'popquiz') {

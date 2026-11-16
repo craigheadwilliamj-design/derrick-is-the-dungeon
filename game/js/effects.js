@@ -35,9 +35,9 @@ DD.fx = (function () {
     }
     return out;
   }
-  // Every effect from class, subclass, gear, set, buffs, (later: event). Fire order = this order.
+  // Every effect from class, subclass, gear, set, buffs, event. Fire order = this order.
   function active(ctx) {
-    return classEffects(ctx.profile).concat(gearEffects(ctx.profile), setEffects(ctx.profile), ctx.buffs || []);
+    return classEffects(ctx.profile).concat(gearEffects(ctx.profile), setEffects(ctx.profile), ctx.buffs || [], DD.derrick.effects(ctx.profile)); // event and chronic effects fire last (5b)
   }
   // Total of one utility result across equipped gear (travelSpeed adds up).
   const gearSum = (profile, type) => gearEffects(profile).reduce((a, e) => a + (e.result.type === type ? (e.result.add || 1) : 0), 0);
@@ -49,7 +49,9 @@ DD.fx = (function () {
     if (c.hpBelow != null && !(e && e.hp / e.maxHP < c.hpBelow)) return false;
     if (c.firstHeavyOfFight && !ctx.firstHeavy) return false;
     if (c.answeredFast && !ctx.answeredFast) return false;
-    if (c.beatenBefore != null && ((ctx.profile.beaten || []).includes(e && e.defId)) !== c.beatenBefore) return false;
+    if (c.beatenBefore != null && ((ctx.profile.beaten || []).includes(e && e.defId) || DD.derrick.primed(e && e.defId)) !== c.beatenBefore) return false; // a flu shot counts as having met influenza
+    if (c.enemyId && !(e && e.defId === c.enemyId)) return false;
+    if (c.classId && ctx.profile.classId !== c.classId) return false;
     if (c.blocked && !ctx.blocked) return false;                 // the hit that just landed was blocked
     if (c.poisoned && !ctx.poisoned) return false;               // the enemy is poisoned
     if (c.allyActive && !ctx.allyActive) return false;           // your neutrophil ally is out

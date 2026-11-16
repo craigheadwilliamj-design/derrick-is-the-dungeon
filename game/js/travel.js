@@ -28,7 +28,7 @@ DD.travel = (function () {
     o = o || {};
     const f = blank(L + 2, T.h), mid = T.h >> 1, cx = [];
     // plaque needs a straight stretch, so decide it first and keep the lumen from bending there
-    const plq = n.kind === 'vessel' && n.flow === 'artery' && r() < T.hazard.plaque ? DD.u.int(r, 6, Math.max(6, L - 6 - T.plaqueLen)) : null;
+    const plq = n.kind === 'vessel' && n.flow === 'artery' && r() < T.hazard.plaque * DD.derrick.hazardMult() ? DD.u.int(r, 6, Math.max(6, L - 6 - T.plaqueLen)) : null;
     let c = mid, next = DD.u.int(r, 5, 9);
     for (let x = 1; x <= L; x++) {
       const still = plq != null && x >= plq - 2 && x <= plq + T.plaqueLen + 2;
@@ -55,7 +55,7 @@ DD.travel = (function () {
         const keep = cx[x] + DD.u.int(r, -half, half);
         for (let k = 0; k < span; k++) for (const y of lumenRows(cx[x], half)) if (y !== keep) f.g[y][x + k] = '=';
       }
-      if (r() < T.hazard.clot) { // clot: blocks the main lane, the two edge lanes stay open
+      if (r() < T.hazard.clot * DD.derrick.hazardMult()) { // clot: blocks the main lane, the two edge lanes stay open
         const x = spot(1);
         if (x != null) for (let k = 0; k < 2; k++) for (let y = cx[x] - 1; y <= cx[x] + 1; y++) f.g[y][x + k] = '%';
       }
@@ -154,7 +154,7 @@ DD.travel = (function () {
       if (p) f.traps.push({ x: p[0], y: p[1], state: 0, name: n.trap || (n.kind === 'lymph' ? 'Lymph eddy' : n.kind === 'capillary' ? 'Tight squeeze' : n.flow === 'artery' ? 'Pressure surge' : 'Sluggish eddy') });
     }
     if (o.ambush) {
-      const level = prof().level, def = DD.dungeon.pickDef('bloodstream', level, false, r), p = free(Math.max(6, f.L >> 1), f.L - 1);
+      const level = prof().level + DD.derrick.tripLevels(), def = DD.dungeon.pickDef('bloodstream', level, false, r), p = free(Math.max(6, f.L >> 1), f.L - 1);
       if (def && p) f.enemies.push(DD.dungeon.makeEnemy(def, 0, p[0], p[1], level, false));
     }
   }
@@ -171,7 +171,7 @@ DD.travel = (function () {
   // 1-2 blood ambushes per trip: 15% per blood vessel segment, at most 2, at least 1 when there are enough vessels.
   function planAmbushes(segs, r) {
     const elig = []; segs.forEach((n, i) => { if ((n.kind === 'vessel' || n.kind === 'capillary')) elig.push(i); });
-    const A = T.ambush; let hit = elig.filter(() => r() < A.chance);
+    const A = T.ambush; let hit = elig.filter(() => r() < A.chance + DD.derrick.ambushDelta()); // hydrated Derrick: fewer ambushes (5b)
     if (!hit.length && elig.length >= A.minVessels) hit = [DD.u.pick(r, elig)];
     return DD.u.shuffle(r, hit).slice(0, A.max).sort((a, b) => a - b);
   }
@@ -183,7 +183,7 @@ DD.travel = (function () {
       trip: { key: plan.key, from: plan.from, to: plan.to, ids: plan.ids, mode: plan.mode, idx: 0, steps: 0, amb: planAmbushes(plan.ids.slice(1).map(DD.world.get), r), done: 0 } };
     g.run = run; g.combat = null; g.msgs = [];
     DD.save.save();
-    enter(0);
+    enter(0); taxNode(plan.ids[1]);
     DD.ui.game();
     banner();
   };
@@ -239,7 +239,7 @@ DD.travel = (function () {
     run.px = nx; run.py = ny; t.steps++;
     if (land(f, run, nx, ny)) return;
     const flow = X.segs(run)[t.idx].flow, boots = DD.fx.gearSum(prof(), 'travelSpeed'); // Selectin Boots: arteries push more often, veins get a nudge
-    const every = flow === 'artery' ? Math.max(1, T.pushEvery - boots) : flow === 'vein' && boots ? DD.S.gear.veinPushEvery : 0;
+    const every = flow === 'artery' ? Math.max(1, DD.derrick.pushEvery(T.pushEvery) - boots) : flow === 'vein' && boots ? DD.S.gear.veinPushEvery : 0;
     if (every && t.steps % every === 0) {
       const px = run.px + 1;
       if (walkable(f, px, run.py) && !DD.dungeon.enemyAt(f, px, run.py)) {
@@ -262,10 +262,10 @@ DD.travel = (function () {
       p.taken = true;
       if (p.kind === 'item') {
         const d = DD.data.items[p.item], inv = prof().inventory, have = inv[p.item] || 0;
-        if (d.cap && have >= d.cap) { const v = DD.u.int(Math.random, S.economy.pickup.min, S.economy.pickup.max); prof().glucose += v; run.glucose += v; g.say('You find a ' + d.name + ' but cannot carry more. It breaks down into ' + v + ' glucose.'); }
+        if (d.cap && have >= d.cap) { const v = DD.derrick.loot(DD.u.int(Math.random, S.economy.pickup.min, S.economy.pickup.max), 'bloodstream'); prof().glucose += v; run.glucose += v; g.say('You find a ' + d.name + ' but cannot carry more. It breaks down into ' + v + ' glucose.'); }
         else { inv[p.item] = have + 1; g.say('You catch a ' + d.name + ' drifting in the current.'); }
       } else {
-        const E = S.economy.pickup, v = DD.u.int(Math.random, E.min, E.max);
+        const E = S.economy.pickup, v = DD.derrick.loot(DD.u.int(Math.random, E.min, E.max), 'bloodstream');
         run.glucose += v; prof().glucose += v; g.say('You absorb ' + v + ' glucose.');
       }
     }
@@ -286,13 +286,18 @@ DD.travel = (function () {
     if (n.kind === 'place') {
       if (i === segs.length - 1) return arrive(run, n);
       // a dungeon in the middle of a route (blood in, lymph out): pass through its tissue
-      t.idx = i;
+      t.idx = i; taxNode(n.id);
       return DD.ui.diapedesis(n, { pass: true }, () => {
         advance();
         if (DD.ui.mode === 'dia') { DD.ui.game(); banner(); } // the diapedesis screen replaced the map: put it back for the next segment
       });
     }
-    enter(i); g.say(n.name + '.'); DD.ui.refreshMap(); banner();
+    enter(i); g.say(n.name + '.'); taxNode(n.id); DD.ui.refreshMap(); banner();
+  }
+  // Diabetes: passing the renal vein or the kidneys costs glucose (glycosuria).
+  function taxNode(id) {
+    const lost = DD.derrick.glycosuria(id);
+    if (lost > 0) { G().say('Glycosuria: ' + lost + ' glucose spills into the urine.'); DD.save.save(); }
   }
   function arrive(run, place) {
     const g = G(), t = run.trip;
@@ -305,6 +310,7 @@ DD.travel = (function () {
       DD.ui.arrive(info);
     };
     if (place.sub === 'town') return done();
+    taxNode(place.id);
     DD.ui.diapedesis(place, {}, done);
   }
   // Instant travel along an unlocked route.

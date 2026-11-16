@@ -114,6 +114,7 @@ DD.gear = (function () {
     const C = G.chest;
     let tier = DD.u.weightedPick(r, TIERS, t => C.odds[t]);
     if (boss) tier = TIERS[Math.min(TIERS.length - 1, TIERS.indexOf(tier) + C.bossShift)];
+    tier = TIERS[Math.max(TIERS.indexOf(tier), DD.derrick.chestMinTier())]; // Reinfection (5b): common chests become uncommon, then rare
     const w = it => it.region === regionId ? C.regionWeight : !it.region ? C.genericWeight : 0;
     for (const t of [tier].concat(TIERS.filter(x => x !== tier))) {
       const pool = DD.data.gear.filter(it => it.rarity === t && w(it) > 0);

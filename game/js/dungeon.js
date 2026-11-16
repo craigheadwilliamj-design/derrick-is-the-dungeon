@@ -25,9 +25,10 @@ DD.dungeon = (function () {
     }
   }
   function bandRank(level) { return level >= S.enemy.seriousAt ? 2 : level >= S.enemy.moderateAt ? 1 : 0; }
-  function pickDef(regionId, level, boss, r) {
+  function pickDef(regionId, level, boss, r, roster, rosterChance) {
     const defs = DD.data.enemies.filter(d => d.regions.includes(regionId));
     if (boss) return defs.find(d => d.boss);
+    if (roster && r() < rosterChance && defs.some(d => d.id === roster)) return defs.find(d => d.id === roster); // an event's favored pathogen (5b)
     const rank = bandRank(level);
     // Bands the region has content for, up to the player's band. Missing bands fall back to what exists.
     const ok = defs.filter(d => !d.boss && BAND_RANK[d.band] <= rank);
@@ -95,7 +96,8 @@ DD.dungeon = (function () {
     };
     const f = { W, H, g, rooms, start, enemies: [], pickups: [], traps: [], chests: [], stairs: null, exit: null, boss: !!o.boss,
       explored: new Uint8Array(W * H), vis: new Uint8Array(W * H), bossDead: false };
-    const level = o.playerLevel + o.floorIdx;
+    const gm = o.gm || { lvlAdd: 0, extra: 0, trap: 1, roster: null, rosterChance: 0 }; // Derrick's events and Reinfection (5b), fixed when the run starts
+    const level = o.playerLevel + o.floorIdx + gm.lvlAdd;
     let uid = 0;
     if (o.boss) {
       const c = { x: rooms[far].cx, y: rooms[far].cy }; occ.add(key(c.x, c.y));
@@ -108,7 +110,7 @@ DD.dungeon = (function () {
     const n = o.boss ? S.bossFloorMinions : DD.u.int(r, S.enemiesPerFloor.min, S.enemiesPerFloor.max);
     for (let i = 0; i < n; i++) {
       const rm = rooms[DD.u.int(r, 1, rooms.length - 1)], p = freeIn(rm);
-      if (p) f.enemies.push(makeEnemy(pickDef(o.regionId, level, false, r), uid++, p.x, p.y, level, false));
+      if (p) f.enemies.push(makeEnemy(pickDef(o.regionId, level, false, r, gm.roster, gm.rosterChance), uid++, p.x, p.y, level, false));
     }
     const np = DD.u.int(r, S.pickups.min, S.pickups.max);
     for (let i = 0; i < np; i++) {
@@ -135,6 +137,15 @@ DD.dungeon = (function () {
     for (let i = 0; i < nc; i++) {
       const p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]);
       if (p) f.chests.push({ x: p.x, y: p.y, taken: false, item: DD.gear.rollChest(r, o.regionId, !!o.boss) });
+    }
+    // Event extras (5b), drawn last so layouts without an event stay the same: more pathogens, more traps.
+    if (gm.extra > 0 && !o.boss) for (let i = 0; i < gm.extra; i++) {
+      const rm = rooms[DD.u.int(r, 1, rooms.length - 1)], p = freeIn(rm);
+      if (p) f.enemies.push(makeEnemy(pickDef(o.regionId, level, false, r, gm.roster, gm.rosterChance), uid++, p.x, p.y, level, false));
+    }
+    if (gm.trap > 1) for (let i = 0, extra = Math.round(nt * (gm.trap - 1)); i < extra; i++) {
+      const p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]);
+      if (p) f.traps.push({ x: p.x, y: p.y, state: 0, name: tname });
     }
     return f;
   }

@@ -52,7 +52,7 @@ kbd{font-family:var(--mono);color:var(--bile);margin-right:8px}
 .hud{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px}
 .floorname{font-family:var(--disp);font-size:18px;font-weight:700;min-width:7em} .floorname small{display:block;font:12px var(--body);color:var(--dim)}
 .stat{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums} .stat b{color:var(--bone)}
-.hud .btn{margin-left:auto}
+.hud .btn{margin-left:auto} .hud .chartbtn + .btn{margin-left:0}
 .mapbox{flex:1;min-height:120px;background:var(--map-bg);border:1px solid var(--line);border-radius:6px;overflow:hidden;position:relative}
 .mapbox canvas{position:absolute;inset:0;display:block}
 .log{font-size:13px;color:var(--dim);min-height:4.2em;display:flex;flex-direction:column;gap:2px} .log div:first-child{color:var(--bone)}
@@ -67,6 +67,15 @@ kbd{font-family:var(--mono);color:var(--bile);margin-right:8px}
 .gp{color:#fff}.gm{color:var(--art)}.gg{color:var(--bile)}.gd{color:var(--bile)}.gs{color:var(--bone)}
 /* combat */
 .overlay{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:12px;z-index:5}
+/* Derrick's life (5b): event cards, place notes, the chart */
+.evcard{border-left:3px solid var(--bile)} .evcard.intro{border-color:var(--bile);background:color-mix(in srgb,var(--bile) 10%,var(--panel))} .evcard.reinfect{border-left-color:var(--art)}
+.evlist{margin:0;padding-left:18px} .evnote{border-left:3px solid var(--bile);padding-left:8px;display:flex;flex-direction:column;gap:4px}
+.chip.warnchip{color:var(--bile);border-color:var(--bile)} .linkchip{background:none;cursor:pointer;font:inherit;font-family:var(--mono);font-size:11px}
+.chartov{z-index:9;overflow-y:auto;align-items:start} .chartcard{max-width:560px;width:100%;margin:8px auto}
+.chart-t{overflow-x:auto} .chart-t table{border-collapse:collapse;width:100%;font-size:13px}
+.chart-t th{font:11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+.chart-t td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top} .chart-t .val{font-family:var(--mono);white-space:nowrap}
+.chart-t tr.out td{color:var(--bile)} .chart-t tr.out .val{font-weight:700} .chart-t tr.why td{color:var(--bone);font-size:12px;border-bottom-color:var(--bile)}
 .cbox{width:min(600px,100%);max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--accent);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .foe{display:flex;gap:14px;align-items:center}
 .glyph{font:800 48px var(--mono);width:60px;text-align:center;color:var(--art);text-shadow:0 0 16px var(--art)}
@@ -187,6 +196,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 <script src="data/gear.js"></script>
 <script src="data/sets.js"></script>
 <script src="data/npcs.js"></script>
+<script src="data/events.js"></script>
 <script src="data/townmap.js"></script>
 <script src="data/circulation.js"></script>
 <script src="data/q-blood.js"></script>
@@ -195,6 +205,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 <script src="js/save.js"></script>
 <script src="js/images.js"></script>
 <script src="js/effects.js"></script>
+<script src="js/derrick.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/questions.js"></script>
 <script src="js/dungeon.js"></script>
@@ -211,6 +222,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 <script src="js/npcui.js"></script>
 <script src="js/travel.js"></script>
 <script src="js/travelui.js"></script>
+<script src="js/derrickui.js"></script>
 <script src="js/bodymap.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/input.js"></script>

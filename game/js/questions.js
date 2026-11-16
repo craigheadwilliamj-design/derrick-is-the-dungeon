@@ -18,8 +18,10 @@ DD.q = (function () {
 
   function weight(q, opts) {
     const st = DD.save.profile.qstats[q.id] || { seen: 0, right: 0, wrong: 0, last: 0 };
-    const wrongMult = opts && opts.weakBias ? P.weakBias : 1;
-    let w = 1 + (st.seen ? 0 : P.unseen) + P.wrong * wrongMult * st.wrong - P.right * st.right;
+    const wrongMult = opts && opts.weakBias ? P.weakBias : 1, ng = DD.save.profile.ngPlus | 0;
+    // Reinfection (5b): every question counts as unseen again and earlier right answers stop lowering its weight; misses still count.
+    const fresh = st.seen && (st.ng | 0) >= ng, right = Math.max(0, st.right - (st.r0 | 0));
+    let w = 1 + (fresh ? 0 : P.unseen) + P.wrong * wrongMult * st.wrong - P.right * right;
     w = Math.max(P.floor, w);
     if (st.last) w += Math.min(P.staleCap, (Date.now() - st.last) / DAY / P.staleDays);
     return w;
@@ -44,12 +46,18 @@ DD.q = (function () {
   function record(q, correct, regionId) {
     const p = DD.save.profile;
     const s = p.qstats[q.id] || (p.qstats[q.id] = { seen: 0, right: 0, wrong: 0, last: 0, streak: 0 });
-    s.seen++; s.last = Date.now();
+    s.seen++; s.last = Date.now(); s.ng = p.ngPlus | 0;
     if (correct) { s.right++; s.streak++; } else { s.wrong++; s.streak = 0; }
     const r = p.regions[regionId] || (p.regions[regionId] = { lastReviewed: 0, cleared: false, recent: [] });
     r.recent = (r.recent || []).concat(correct ? 1 : 0).slice(-M.window);
     r.lastReviewed = Date.now();
     if (DD.bounty) DD.bounty.onAnswer(q.system, correct);
+  }
+  // Reinfection (5b): all questions go back into full rotation (see weight()). Missed-question stats are kept.
+  function newRotation() {
+    const p = DD.save.profile;
+    recent.length = 0;
+    Object.keys(p.qstats).forEach(id => { p.qstats[id].r0 = p.qstats[id].right; });
   }
   // 0-100 or null ("unexplored"): accuracy over the last 20 answers x recency (1.0 today, 0.25 after 14+ days).
   function mastery(regionId) {
@@ -74,5 +82,5 @@ DD.q = (function () {
     if (on) p.flagged[id] = Date.now(); else delete p.flagged[id];
     DD.save.save();
   }
-  return { isFlagged, setFlag, pick, options, record, mastery, pool, available, all, byId, regionOf };
+  return { newRotation, isFlagged, setFlag, pick, options, record, mastery, pool, available, all, byId, regionOf };
 })();
