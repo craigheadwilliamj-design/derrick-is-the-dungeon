@@ -57,5 +57,14 @@ DD.q = (function () {
     const rec = 1 - (1 - M.fadeFloor) * DD.u.clamp(days / M.fadeDays, 0, 1);
     return { value: Math.round(100 * acc * rec), n: r.recent.length, lastReviewed: r.lastReviewed };
   }
-  return { pick, options, record, mastery, pool, available };
+  // Lookup across every system (text + saved image questions). Image options are rebuilt each time.
+  const SYS = () => DD.img.SYSTEMS.map(s => s[0]);
+  function all() { return SYS().flatMap(s => text([s]).concat(imgs([s], null))); }
+  function byId(id) {
+    for (const s of SYS()) { const q = (DD.data.questions[s] || []).find(x => x.id === id); if (q) return q; }
+    return String(id).startsWith('img-') ? imgs(SYS(), null).find(x => x.id === id) || null : null;
+  }
+  // The dungeon whose systems include this question's system (stats are tracked per region).
+  const regionOf = q => (DD.data.regions.find(r => r.systems.includes(q.system)) || {}).id || 'marrow';
+  return { pick, options, record, mastery, pool, available, all, byId, regionOf };
 })();

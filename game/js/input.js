@@ -10,7 +10,7 @@ DD.input = {
       } else if (ui.mode === 'combat') {
         const C = DD.game.combat; if (!C) return;
         if (C.phase === 'choose') {
-          const a = { l: 'light', h: 'heavy', b: 'block', a: 'ability' }[k];
+          const a = { l: 'light', h: 'heavy', b: 'block', a: 'ability', i: 'items' }[k];
           if (a) { e.preventDefault(); ui.act(a); }
         } else if (C.phase === 'question' && /^[1-4]$/.test(k)) {
           if (+k <= C.opts.length) { e.preventDefault(); ui.act('answer', +k - 1); }
