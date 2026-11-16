@@ -2,6 +2,7 @@
   function boot() {
     DD.ui.init(document.getElementById('app'));
     DD.save.loadLocal();
+    DD.cq.loadLocal();
     DD.input.init();
     DD.ui.title(); // playable before the db answers
     DD.save.init().then(remote => {
@@ -14,7 +15,7 @@
         if (rr.none) DD.save.saveRun(null); else { DD.save.run = rr; try { localStorage.setItem('dd_run', JSON.stringify(rr)); } catch (e) { /* ignore */ } }
       } else if (lr) DD.save.saveRun(lr);
       DD.ui.refresh(); // only redraws the title or menu, never mid-run
-    }).then(() => DD.img.init()).then(() => DD.ui.refresh());
+    }).then(() => Promise.all([DD.img.init(), DD.cq.init()])).then(() => DD.ui.refresh());
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

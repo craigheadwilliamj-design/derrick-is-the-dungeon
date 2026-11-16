@@ -79,7 +79,8 @@ DD.S = {
     lymphDrain: { price: 20 }
   },
   picker: { recentExclude: 8, unseen: 2, wrong: 1.5, right: 0.5, floor: 0.25, staleCap: 2, staleDays: 7, weakBias: 2 },
-  mastery: { window: 20, minAnswers: 5, fadeDays: 14, fadeFloor: 0.25 },
+  mastery: { window: 20, minAnswers: 5, fadeDays: 14, fadeFloor: 0.25, fadingBelow: 0.6 },
+  writer: { chunkChars: 5000, minPerChunk: 5, maxPerChunk: 15, maxChunks: 12, minChars: 200 },
   img: { minBoxFrac: 0.02, maxBytes: 20 * 1024 * 1024, labelMax: 60, panelMaxW: 1000, zoomMaxW: 2000 },
   // World & travel (phase 3a). Segment sizes are tiles; pace is only used for the time estimate shown on the map.
   travel: {

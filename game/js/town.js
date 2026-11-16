@@ -117,7 +117,8 @@ DD.town = (function () {
         cw ? note(cw, 'warn') : null),
       el('div', { class: 'toolrow2' },
         r ? el('button', { class: 'btn primary', type: 'button', onclick: () => ui.enter(r.regionId, true) }, 'Return to the dungeon') : null,
-        el('button', { class: 'btn' + (r ? '' : ' primary'), type: 'button', onclick: () => ui.menu(T.id) }, 'Open the body map'))));
+        el('button', { class: 'btn' + (r ? '' : ' primary'), type: 'button', onclick: () => ui.menu(T.id) }, 'Open the body map'),
+        r ? null : el('button', { class: 'btn', type: 'button', onclick: DD.writer.open }, 'Add study material'))));
   };
   return T;
 })();

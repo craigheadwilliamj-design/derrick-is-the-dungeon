@@ -69,7 +69,7 @@
     }
     ctx.font = '500 ' + lf + 'px' + mono; ctx.lineJoin = 'round';
     for (const p of places) {
-      const r = p.side === 'r', t = labelOf(p.node) + (isCleared(p.id) ? ' ✓' : '');
+      const r = p.side === 'r', t = labelOf(p.node) + (isCleared(p.id) ? ' ✓' : '') + (masteryOf(p.id).fading ? ' ↓' : '');
       ctx.textAlign = r ? 'left' : 'right';
       const x = (p.x + 0.5) * cw + (r ? 1.2 : -1.2) * cw, y = (p.y + 0.55) * ch;
       ctx.lineWidth = 3.5; ctx.strokeStyle = v('--map-bg'); ctx.strokeText(t, x, y);
@@ -143,14 +143,15 @@
     const reg = id ? DD.save.profile.regions[id] : DD.save.profile.regions.bloodstream;
     return el('div', { class: 'mastery' }, ui.pctBar('mas', m.value == null ? 0 : m.value),
       el('span', null, m.value == null ? 'Unexplored (' + m.n + '/' + S.mastery.minAnswers + ' answers)' : 'Mastery ' + m.value + '%' + (reg && reg.cleared ? ' · cleared' : '')),
-      el('span', null, ui.ago(reg && reg.lastReviewed)));
+      el('span', null, ui.ago(reg && reg.lastReviewed)),
+      m.fading ? el('span', { class: 'chip fading', title: 'Mastery fades over about two weeks without review. Answer questions here to bring it back.' }, 'fading · memory ' + Math.round(100 * m.recency) + '%') : null);
   }
 
   // ---- the screen ----
   function chipBtn(id) {
     const n = id === 'bloodstream' ? null : C.nodes[id], loc = DD.save.profile.loc;
     return el('button', { class: 'btn small chipbtn' + (sel === id ? ' primary' : ''), type: 'button', style: { '--accent': id === 'bloodstream' ? DD.data.region(id).accent : accentOf(id) }, 'aria-pressed': String(sel === id),
-      onclick: () => ui.menu(id) }, (id === loc ? '@ ' : '') + (n ? labelOf(n) : 'Bloodstream') + (isCleared(id) ? ' ✓' : ''));
+      onclick: () => ui.menu(id) }, (id === loc ? '@ ' : '') + (n ? labelOf(n) : 'Bloodstream') + (isCleared(id) ? ' ✓' : '') + (masteryOf(id).fading ? ' ↓' : ''));
   }
   ui.menu = function (arg) {
     ui.mode = 'menu';
@@ -168,7 +169,7 @@
       el('div', { class: 'tag' }, 'Body map'),
       el('h1', null, 'Derrick'),
       el('div', { class: 'dim small' }, 'You are in the ' + locNode.name + '.'),
-      el('p', { class: 'dim small' }, 'Questions are starter placeholders until the real study-guide set arrives. Every place is open: pick one and travel. ◆ has a dungeon, ◇ is not built yet, ○ is a lymph node town, and brighter glow means higher mastery.'),
+      el('p', { class: 'dim small' }, 'Questions are starter placeholders until the real study-guide set arrives. Every place is open: pick one and travel. ◆ has a dungeon, ◇ is not built yet, ○ is a lymph node town, and brighter glow means higher mastery, and ↓ marks a place that is fading from lack of review.'),
       el('div', { class: 'worldgrid' },
         el('div', { class: 'bodybox' }, canvas),
         el('div', { class: 'worldside' },
@@ -189,7 +190,9 @@
         el('div', { class: 'toolrow2' },
           el('button', { class: 'btn small primary', type: 'button', disabled: !atMarrow || !!drun, onclick: ui.classes, title: atMarrow ? '' : 'Blood cells are made in the bone marrow. Travel there to change class.' }, 'Hematopoiesis: change class'),
           !atMarrow ? el('span', { class: 'dim small' }, 'Only at the Bone Marrow.') : drun ? el('span', { class: 'dim small' }, 'Locked while a run is in progress.') : null,
-          el('button', { class: 'btn small', type: 'button', onclick: DD.review.screen }, 'Missed questions (' + Object.values(p.qstats).filter(s => s.wrong >= 1).length + ')'))),
+          el('button', { class: 'btn small', type: 'button', onclick: DD.review.screen }, 'Missed questions (' + Object.values(p.qstats).filter(s => s.wrong >= 1).length + ')'),
+          DD.writer ? el('button', { class: 'btn small', type: 'button', onclick: DD.writer.open }, 'Add study material') : null,
+          el('button', { class: 'btn small', type: 'button', onclick: DD.writer.flagged }, 'Flagged (' + Object.keys(p.flagged || {}).length + ')'))),
       el('div', { class: 'card toolrow' },
         el('div', { class: 'filter', role: 'group', 'aria-label': 'Question source' }, el('span', { class: 'tag' }, 'Source'),
           FILTERS.map(([v, l]) => el('button', { class: 'btn small' + (p.settings.sourceFilter === v ? ' primary' : ''), type: 'button', 'aria-pressed': String(p.settings.sourceFilter === v),
