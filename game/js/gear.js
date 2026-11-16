@@ -5,6 +5,7 @@ DD.gear = (function () {
   const gear = {};
   const prof = () => DD.save.profile;
   const by = id => DD.data.gearById[id];
+  const inCourse = it => !['eyesears', 'glands'].includes(it.region);
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
   const pc = x => Math.round(x * 100) + '%';
   const SLOT_NAME = { weapon: 'Weapon', armor: 'Armor', acc1: 'Accessory 1', acc2: 'Accessory 2' };
@@ -117,7 +118,7 @@ DD.gear = (function () {
     tier = TIERS[Math.max(TIERS.indexOf(tier), DD.derrick.chestMinTier())]; // Reinfection (5b): common chests become uncommon, then rare
     const w = it => it.region === regionId ? C.regionWeight : !it.region ? C.genericWeight : 0;
     for (const t of [tier].concat(TIERS.filter(x => x !== tier))) {
-      const pool = DD.data.gear.filter(it => it.rarity === t && w(it) > 0);
+      const pool = DD.data.gear.filter(it => inCourse(it) && it.rarity === t && w(it) > 0);
       if (pool.length) return DD.u.weightedPick(r, pool, w).id;
     }
     return DD.data.gear.find(it => it.rarity === 'common').id;
@@ -132,7 +133,7 @@ DD.gear = (function () {
     const r = DD.rng((seed ^ 0x6ea7) >>> 0), S = G.shop;
     const w = it => (regions || []).includes(it.region) ? S.regionWeight : 1;
     const take = (tier, n) => {
-      const pool = DD.data.gear.filter(it => it.rarity === tier), out = [];
+      const pool = DD.data.gear.filter(it => inCourse(it) && it.rarity === tier), out = [];
       while (out.length < n && pool.length) { const it = DD.u.weightedPick(r, pool, w); pool.splice(pool.indexOf(it), 1); out.push(it.id); }
       return out;
     };
@@ -140,7 +141,7 @@ DD.gear = (function () {
   };
   // The dendritic merchant's rare slot: one rare item, at the merchant's markup.
   gear.rareStock = function (r) {
-    const pool = DD.data.gear.filter(it => it.rarity === 'rare'), it = DD.u.pick(r, pool);
+    const pool = DD.data.gear.filter(it => inCourse(it) && it.rarity === 'rare'), it = DD.u.pick(r, pool);
     return { id: it.id, price: Math.round(G.price.rare * DD.S.merchant.priceMult), sold: false };
   };
   gear.buyRare = function (npc) {
