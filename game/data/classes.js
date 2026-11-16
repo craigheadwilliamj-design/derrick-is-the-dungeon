@@ -9,9 +9,10 @@ DD.data.classes = {
     effects: [
       { id: 'atp-trickle', src: 'class', trigger: 'onQuestionCorrect', result: { type: 'atp', amount: DD.S.atp.perCorrect } }
     ],
-    active: { id: 'antigen', name: 'Antigen Presentation', cost: 6, takesTurn: false,
-      desc: 'Removes 2 wrong options from the next question you see.',
-      effect: { id: 'antigen-armed', src: 'buff', trigger: 'onQuestionAsk', result: { type: 'removeWrong', n: 2 }, charges: 1 } },
+    active: { id: 'antigen', name: 'Antigen Presentation', cost: DD.S.abilities.antigen.cost, takesTurn: false,
+      desc: 'Removes ' + DD.S.abilities.antigen.removeWrong + ' wrong options from the next question, a heavy attack\'s or an enemy\'s. A question always keeps at least 1 wrong option.',
+      armedText: 'next question loses ' + DD.S.abilities.antigen.removeWrong + ' wrong options',
+      effect: { id: 'antigen-armed', src: 'buff', trigger: 'onQuestionAsk', result: { type: 'removeWrong', n: DD.S.abilities.antigen.removeWrong }, charges: 1 } },
     codex: 'Macrophages are large phagocytes that engulf pathogens and debris, then display pieces of them (antigens) to help activate T cells.'
   }
 };

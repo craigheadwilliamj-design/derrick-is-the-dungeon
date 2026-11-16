@@ -41,6 +41,7 @@ DD.S = {
     fastSeconds: 6
   },
   atp: { perCorrect: 2 },
+  abilities: { antigen: { cost: 6, removeWrong: 2 } },
   picker: { recentExclude: 8, unseen: 2, wrong: 1.5, right: 0.5, floor: 0.25, staleCap: 2, staleDays: 7, weakBias: 2 },
   mastery: { window: 20, minAnswers: 5, fadeDays: 14, fadeFloor: 0.25 },
   img: { minBoxFrac: 0.02, maxBytes: 20 * 1024 * 1024, labelMax: 60, panelMaxW: 1000, zoomMaxW: 2000 },
