@@ -56,10 +56,10 @@ DD.img = (function () {
     add(rec.boxes.filter((b, j) => j !== i).map(b => b.label));
     if (pool.length < 3) add(sameKind.filter(r => r.id !== rec.id).flatMap(r => r.boxes.map(b => b.label)));
     if (pool.length < 3) return null;
-    return { id: 'img-' + rec.id + '-' + i, system: rec.system, q: 'What is the label under the highlighted box?', answer,
+    return { id: 'img-' + rec.id + '-' + i, system: rec.system, q: rec.boxes[i].kind === 'arrow' ? 'What structure does the arrow point to?' : 'What is the label under the highlighted box?', answer,
       wrong: pool.slice(0, 3), source: 'image',
       explain: 'This is the ' + answer + '.' + (rec.title ? ' (' + rec.title + ')' : ''),
-      img: { assetId: rec.assetId, tag: rec.tag, title: rec.title || '', box: i, boxes: rec.boxes.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h })) } };
+      img: { assetId: rec.assetId, tag: rec.tag, title: rec.title || '', box: i, boxes: rec.boxes.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h, ...(b.kind === 'arrow' ? { kind: 'arrow', tipX: b.tipX, tipY: b.tipY, label: b.label } : {}) })) } };
   }
   // tag: null for every tag, else 'human-model' | 'fetal-pig'. Never mixes tags inside one question's options.
   out.questions = function (systems, tag) {
@@ -86,7 +86,20 @@ DD.img = (function () {
     const c = canvas.getContext('2d'), lw = Math.max(2, w / 260);
     c.drawImage(im, 0, 0, w, h);
     spec.boxes.forEach((b, i) => {
+      if (b.kind === 'arrow' && i !== spec.box) return; // Keep other structures and their answers unobscured by annotations.
       const x = b.x * w, y = b.y * h, bw = b.w * w, bh = b.h * h;
+      if (b.kind === 'arrow') {
+        const tx = b.tipX * w, ty = b.tipY * h, sx = x + bw / 2, sy = y + bh / 2;
+        const angle = Math.atan2(ty-sy, tx-sx), head = Math.max(9, w / 45);
+        c.strokeStyle = reveal ? tok('--ok') : tok('--accent'); c.lineWidth = lw * 2;
+        c.beginPath(); c.moveTo(sx,sy); c.lineTo(tx,ty);
+        c.moveTo(tx-head*Math.cos(angle-0.5),ty-head*Math.sin(angle-0.5)); c.lineTo(tx,ty); c.lineTo(tx-head*Math.cos(angle+0.5),ty-head*Math.sin(angle+0.5)); c.stroke();
+        c.fillStyle = tok('--map-bg'); c.fillRect(x,y,bw,bh);
+        c.fillStyle = reveal ? tok('--ok') : tok('--accent'); c.textAlign='center'; c.textBaseline='middle';
+        c.font = 'bold ' + Math.max(10, Math.min(18, bh * 0.65)) + 'px sans-serif';
+        c.fillText(reveal ? b.label : '?', sx,sy,Math.max(1,bw-4));
+        return;
+      }
       if (i !== spec.box) { c.fillStyle = tok('--floor'); c.fillRect(x, y, bw, bh); c.strokeStyle = tok('--line'); c.lineWidth = 1; c.strokeRect(x, y, bw, bh); return; }
       if (!reveal) { c.fillStyle = tok('--map-bg'); c.fillRect(x, y, bw, bh); }
       c.strokeStyle = reveal ? tok('--ok') : tok('--accent'); c.lineWidth = lw * 1.6; c.strokeRect(x, y, bw, bh);
@@ -108,7 +121,7 @@ DD.img = (function () {
   }
   // Question image for the combat panel. Tap to enlarge.
   out.view = function (spec, reveal) {
-    const canvas = el('canvas', { class: 'qimg', role: 'img', 'aria-label': 'Lab image. One label is hidden behind the highlighted box.' });
+    const canvas = el('canvas', { class: 'qimg', role: 'img', 'aria-label': spec.boxes[spec.box].kind === 'arrow' ? 'Lab image. Identify the structure at the arrow tip.' : 'Lab image. One label is hidden behind the highlighted box.' });
     paint(canvas, spec, reveal, S.panelMaxW);
     return el('button', { class: 'imgbtn', type: 'button', 'aria-label': 'Enlarge image', onclick: () => out.zoom(spec, reveal) }, canvas);
   };
