@@ -53,7 +53,7 @@ li{margin:.2em 0}
 <h2>The effect system (backbone)</h2>
 <p>Gear, class passives/actives, subclasses, items, buffs, set bonuses and legendaries are all <b>effects</b>: <code>{trigger, condition?, result}</code>. Combat and travel only read final stats and fire triggers.</p>
 <pre>triggers: fightStart, turnStart, onLight, onHeavyCorrect, onHeavyWrong,
-          onBlock, onHit, onBigHit, onKill, onQuestionCorrect, onQuestionWrong,
+          onBlock, onHit, onBigHit, onKill, onQuestionCorrect, onQuestionWrong, onQuestionAsk,
           travelSegment
 conditions: enemyType (bacteria|virus|fungus|protozoa|worm), isBoss,
             hpBelow, firstHeavyOfFight, answeredFast
@@ -244,7 +244,7 @@ Mid-dungeon run state (floor, map, entities, HP) is saved separately as <code>ru
 <li><b>Effect engine</b> (<code>js/effects.js</code>):
 <pre>effect = { id, src:"class|subclass|gear|item|buff|event|set",
   trigger:"static|fightStart|turnStart|onLight|onHeavyCorrect|onHeavyWrong|onBlock|
-           onHit|onBigHit|onKill|onQuestionCorrect|onQuestionWrong|travelSegment",
+           onHit|onBigHit|onKill|onQuestionCorrect|onQuestionWrong|onQuestionAsk|travelSegment",
   cond?:{ enemyType, isBoss, hpBelow, firstHeavyOfFight, answeredFast, region },
   result:{ type:"damageMult|damage|heal|stat|atp|poison|shield|removeWrong|
                  execute|summonAlly|repeatHit|travelSpeed|revealNPCs", …params },
