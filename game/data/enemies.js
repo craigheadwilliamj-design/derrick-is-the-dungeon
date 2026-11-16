@@ -64,4 +64,10 @@ DD.data.enemies = [
     codex: 'Methicillin-resistant Staphylococcus aureus, a skin and soft tissue pathogen that resists many common antibiotics.',
     legendary: { id: 'pbp2a-plate', name: 'PBP2a Plate', slot: 'armor', desc: 'MRSA resists methicillin and related antibiotics by making an altered penicillin-binding protein, PBP2a.' } }
 ];
+// Content can open any dungeon before its full pathogen roster is authored.
+// Use a generic tissue invader only where no regular regional enemy exists;
+// each dungeon retains its own boss and legendary reward.
+DD.data.enemies.push({ id: 'tissue-invader', name: 'Invading bacterium', type: 'bacteria', glyph: 'b', band: 'mild',
+  regions: DD.data.regions.filter(r => !r.noPlace && !DD.data.enemies.some(e => !e.boss && e.regions.includes(r.id))).map(r => r.id),
+  codex: 'White blood cells help defend tissues against invading bacteria.' });
 DD.data.enemy = id => DD.data.enemies.find(d => d.id === id);

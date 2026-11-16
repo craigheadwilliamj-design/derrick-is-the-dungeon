@@ -65,7 +65,7 @@
       el('h1', null, p.name),
       el('p', { class: 'lede' }, p.note || ''),
       el('p', { class: 'dim small' }, summary),
-      dungeon && !playable ? el('p', { class: 'warn small' }, 'No pathogens or questions live here yet. The dungeon opens once it has content.') : null,
+      dungeon && !playable ? el('p', { class: 'warn small' }, 'No usable study questions here yet. Add study material or save lab images with at least 4 different labels in the same system and source.') : null,
       fast,
       el('div', { class: 'stack' },
         playable ? el('button', { class: 'btn primary', onclick: () => ui.enter(dest, false) }, 'Enter the ' + region.name) : null,
