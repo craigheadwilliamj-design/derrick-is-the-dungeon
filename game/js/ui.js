@@ -20,6 +20,23 @@ DD.ui = (function () {
     const p = DD.save.profile;
     g.glu.replaceChildren('Glucose ', el('b', null, p.glucose), el('span', null, 'Tonics ' + (p.inventory.tonic || 0) + '/' + tonicCap));
   }
+  // Existing town bounties stay visible while exploring; rewards are claimed at the helper T.
+  function hudBounties() {
+    if (!g.bounties) return;
+    const active = DD.save.profile.bounties.active;
+    const signature = JSON.stringify(active);
+    if (signature === g.bountySignature) return;
+    g.bountySignature = signature;
+    const ready = active.filter(b => b.done).length;
+    g.bountySummary.textContent = 'Bounties · ' + (ready ? ready + ' ready to claim' : active.length + ' active');
+    g.bountyRows.replaceChildren(...(active.length ? active.map(b =>
+      el('div', { class: 'bountyrow' },
+        el('div', { class: 'rhead' }, el('b', null, DD.bounty.text(b)),
+          el('span', { class: 'chip' + (b.done ? ' ok' : '') }, b.done ? 'Ready to claim' : b.have + '/' + b.need)),
+        bar('xp', pct(b.have, b.need)),
+        el('div', { class: 'small dim' }, 'Reward: ' + DD.bounty.reward(b))))
+      : [el('p', { class: 'small dim' }, 'Visit the helper T cell in a lymph node town to pick up bounties.')]));
+  }
   // Called when leaving the map without ending the run (Lymph Drain to the town).
   ui.stopMap = function () { if (g.ro) g.ro.disconnect(); stopTimer(); g = {}; };
   ui.init = function (r) { root = r; };
@@ -106,6 +123,10 @@ DD.ui = (function () {
     g.leave = el('button', { class: 'btn small', onclick: ui.leave }, trip ? 'Pause' : 'Leave');
     g.chart = el('button', { class: 'btn small chartbtn', type: 'button', onclick: DD.derrickui.chart, title: 'Derrick’s vitals and what he has been up to' }, 'Chart');
     g.abort = trip ? el('button', { class: 'btn small', onclick: ui.abortTrip, title: 'Give up this trip and wash back up where you set out' }, 'Abort') : null;
+    g.bountySummary = el('summary');
+    g.bountyRows = el('div', { class: 'bountyrows' });
+    g.bounties = el('details', { class: 'bountytracker' }, g.bountySummary, g.bountyRows,
+      el('p', { class: 'small dim' }, 'Collect completed rewards from the helper T cell in any lymph node town.'));
     g.strip = trip ? el('div', { class: 'strip', 'aria-label': 'Route' }) : null;
     g.canvas = el('canvas', { 'aria-label': trip ? 'Vessel map' : 'Dungeon map' });
     g.banner = el('div', { class: 'banner', hidden: true, role: 'status' });
@@ -126,7 +147,7 @@ DD.ui = (function () {
       : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gg', '&', 'chest'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
       el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.leave, g.abort),
-      g.strip, g.mapbox, g.log,
+      g.bounties, g.strip, g.mapbox, g.log,
       el('div', { class: 'controls' }, dpad, legend),
       g.combat));
     if (window.ResizeObserver) { g.ro = new ResizeObserver(() => ui.refreshMap(true)); g.ro.observe(g.mapbox); }
@@ -174,7 +195,7 @@ DD.ui = (function () {
     const stat = (node, label, v, m, cls) => node.replaceChildren(label + ' ', el('b', null, Math.round(v) + (m ? '/' + m : '')), bar(cls, m ? pct(v, m) : 0));
     stat(g.hp, 'HP', run.hp, st.maxHP, 'hp'); stat(g.atp, 'ATP', run.atp, st.maxATP, 'atp');
     g.xp.replaceChildren('Lv ' + p.level + ' XP ', el('b', null, p.xp + '/' + st.xpToNext), bar('xp', pct(p.xp, st.xpToNext)));
-    hudGlucose();
+    hudGlucose(); hudBounties();
     g.log.replaceChildren(...DD.game.msgs.slice(-S.log.lines).reverse().map(t => el('div', null, t)));
   };
 
@@ -289,7 +310,7 @@ DD.ui = (function () {
     const st = DD.game.stats();
     g.hp.replaceChildren('HP ', el('b', null, Math.round(run.hp) + '/' + st.maxHP), bar('hp', pct(run.hp, st.maxHP)));
     g.atp.replaceChildren('ATP ', el('b', null, Math.round(run.atp) + '/' + st.maxATP), bar('atp', pct(run.atp, st.maxATP)));
-    hudGlucose();
+    hudGlucose(); hudBounties();
   };
 
   // ---------- end screens ----------
