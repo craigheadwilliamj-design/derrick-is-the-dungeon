@@ -57,6 +57,12 @@
       gr.addColorStop(0, rgba(accentOf(p.id), a)); gr.addColorStop(1, rgba(accentOf(p.id), 0));
       ctx.fillStyle = gr; ctx.fillRect((p.x + 0.5) * cw - r, (p.y + 0.5) * ch - r, r * 2, r * 2);
     }
+    const evd = DD.derrick.event(); // places today's event touches get a ring (amber = trouble, green = a good day)
+    if (evd) for (const p of places) if (DD.derrick.marked(p.id)) {
+      const col = evd.kind === 'positive' ? '#6fcf8a' : '#ffb347';
+      ctx.strokeStyle = rgba(col, 0.85); ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.arc((p.x + 0.5) * cw, (p.y + 0.5) * ch, cw * 1.9, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    }
     ctx.font = '800 ' + gf * 1.15 + 'px' + mono;
     for (const p of places) {
       const m = masteryOf(p.id).value, n = p.node, here = p.id === loc, acc = accentOf(p.id);
@@ -69,7 +75,7 @@
     }
     ctx.font = '500 ' + lf + 'px' + mono; ctx.lineJoin = 'round';
     for (const p of places) {
-      const r = p.side === 'r', t = labelOf(p.node) + (isCleared(p.id) ? ' ✓' : '') + (masteryOf(p.id).fading ? ' ↓' : '');
+      const r = p.side === 'r', t = labelOf(p.node) + (isCleared(p.id) ? ' ✓' : '') + (masteryOf(p.id).fading ? ' ↓' : '') + (DD.derrick.marked(p.id) ? ' !' : '');
       ctx.textAlign = r ? 'left' : 'right';
       const x = (p.x + 0.5) * cw + (r ? 1.2 : -1.2) * cw, y = (p.y + 0.55) * ch;
       ctx.lineWidth = 3.5; ctx.strokeStyle = v('--map-bg'); ctx.strokeText(t, x, y);
@@ -92,7 +98,7 @@
       const r = DD.data.region('bloodstream'), m = DD.q.mastery('bloodstream');
       return el('div', { class: 'card place', style: { '--accent': r.accent } },
         el('div', { class: 'rhead' }, el('h3', null, 'Bloodstream'), el('span', { class: 'chip' }, 'Mastery entry')),
-        el('p', { class: 'small' }, r.blurb), masteryBlock(m, true),
+        el('p', { class: 'small' }, r.blurb), masteryBlock(m, true), DD.derrickui.placeNote('bloodstream'),
         el('p', { class: 'dim small' }, 'This is not a place you can walk to. The vessels between places are the bloodstream.'));
     }
     const n = C.nodes[id], r = DD.data.region(id), acc = accentOf(id), m = masteryOf(id), here = id === loc;
@@ -133,6 +139,7 @@
       el('div', { class: 'rhead' }, el('h3', null, n.name), el('div', { class: 'chips' }, here ? el('span', { class: 'chip ok' }, '@ you are here') : null, isCleared(id) ? el('span', { class: 'chip ok' }, '✓ cleared') : null, el('span', { class: 'chip' }, kindText(n)))),
       r ? el('div', { class: 'dim small' }, r.system + (r.blurb ? ' · ' + r.blurb : '')) : null,
       el('p', { class: 'small' }, n.note),
+      DD.derrickui.placeNote(id),
       drains ? el('div', { class: 'dim small' }, 'Drains: ' + drains) : null,
       r && !r.noPlace ? masteryBlock(m, false, r.id) : null,
       filterNote,
@@ -151,10 +158,11 @@
   function chipBtn(id) {
     const n = id === 'bloodstream' ? null : C.nodes[id], loc = DD.save.profile.loc;
     return el('button', { class: 'btn small chipbtn' + (sel === id ? ' primary' : ''), type: 'button', style: { '--accent': id === 'bloodstream' ? DD.data.region(id).accent : accentOf(id) }, 'aria-pressed': String(sel === id),
-      onclick: () => ui.menu(id) }, (id === loc ? '@ ' : '') + (n ? labelOf(n) : 'Bloodstream') + (isCleared(id) ? ' ✓' : '') + (masteryOf(id).fading ? ' ↓' : ''));
+      onclick: () => ui.menu(id) }, (id === loc ? '@ ' : '') + (n ? labelOf(n) : 'Bloodstream') + (isCleared(id) ? ' ✓' : '') + (masteryOf(id).fading ? ' ↓' : '') + (DD.derrick.marked(id) ? ' !' : ''));
   }
   ui.menu = function (arg) {
     ui.mode = 'menu';
+    DD.derrick.ensure(); // today's event (5b)
     const p = DD.save.profile, run = DD.save.run;
     if (run && !run.kind && run.regionId === 'bloodstream') DD.game.abandon(); // the old temporary Bloodstream dungeon is gone
     if (typeof arg === 'string' && (C.nodes[arg] || arg === 'bloodstream')) sel = arg; else if (!sel || !(C.nodes[sel] || sel === 'bloodstream')) sel = p.loc;
@@ -169,6 +177,7 @@
       el('div', { class: 'tag' }, 'Body map'),
       el('h1', null, 'Derrick'),
       el('div', { class: 'dim small' }, 'You are in the ' + locNode.name + '.'),
+      DD.derrickui.card(),
       el('p', { class: 'dim small' }, 'Questions are starter placeholders until the real study-guide set arrives. Every place is open: pick one and travel. ◆ has a dungeon, ◇ is not built yet, ○ is a lymph node town, and brighter glow means higher mastery, and ↓ marks a place that is fading from lack of review.'),
       el('div', { class: 'worldgrid' },
         el('div', { class: 'bodybox' }, canvas),
@@ -192,6 +201,7 @@
           el('button', { class: 'btn small primary', type: 'button', disabled: !atMarrow || !!drun, onclick: ui.classes, title: atMarrow ? '' : 'Blood cells are made in the bone marrow. Travel there to change class.' }, 'Hematopoiesis: change class'),
           !atMarrow ? el('span', { class: 'dim small' }, 'Only at the Bone Marrow.') : drun ? el('span', { class: 'dim small' }, 'Locked while a run is in progress.') : null,
           el('button', { class: 'btn small primary', type: 'button', onclick: () => DD.gear.screen(() => ui.menu()) }, 'Gear'),
+          el('button', { class: 'btn small', type: 'button', onclick: DD.derrickui.chart }, 'Derrick’s chart'),
           el('button', { class: 'btn small', type: 'button', onclick: DD.review.screen }, 'Missed questions (' + Object.values(p.qstats).filter(s => s.wrong >= 1).length + ')'),
           DD.writer ? el('button', { class: 'btn small', type: 'button', onclick: DD.writer.open }, 'Add study material') : null,
           el('button', { class: 'btn small', type: 'button', onclick: DD.writer.flagged }, 'Flagged (' + Object.keys(p.flagged || {}).length + ')'))),

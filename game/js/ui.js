@@ -49,6 +49,7 @@ DD.ui = (function () {
       el('p', { class: 'dim small' }, DD.save.status())));
   };
   ui.continueGame = function () {
+    DD.derrick.ensure(); // roll today's event before anything resumes (5b)
     const run = DD.save.run, inTown = DD.town.saved(run);
     if (inTown) { ui.town({ resume: inTown }); return; } // reloaded inside a town (3c)
     if (run && run.kind === 'town') DD.save.saveRun(null);
@@ -103,6 +104,7 @@ DD.ui = (function () {
     const trip = !!(DD.game.run && DD.game.run.trip);
     g.trip = trip;
     g.leave = el('button', { class: 'btn small', onclick: ui.leave }, trip ? 'Pause' : 'Leave');
+    g.chart = el('button', { class: 'btn small chartbtn', type: 'button', onclick: DD.derrickui.chart, title: 'Derrick’s vitals and what he has been up to' }, 'Chart');
     g.abort = trip ? el('button', { class: 'btn small', onclick: ui.abortTrip, title: 'Give up this trip and wash back up where you set out' }, 'Abort') : null;
     g.strip = trip ? el('div', { class: 'strip', 'aria-label': 'Route' }) : null;
     g.canvas = el('canvas', { 'aria-label': trip ? 'Vessel map' : 'Dungeon map' });
@@ -123,7 +125,7 @@ DD.ui = (function () {
       ? [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gg', '$', 'glucose'), L('gg', '!', 'item'), L('gc', '%', 'clot'), L('gd', '=', 'plaque'), L('gv', '»', 'one-way valve'), L('gt', '^', 'trap'), L('gs', '>', 'onward')]
       : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gg', '&', 'chest'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
-      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.leave, g.abort),
+      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.leave, g.abort),
       g.strip, g.mapbox, g.log,
       el('div', { class: 'controls' }, dpad, legend),
       g.combat));

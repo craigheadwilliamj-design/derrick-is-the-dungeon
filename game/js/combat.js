@@ -9,7 +9,7 @@ DD.combat = (function () {
       round: C.round, poisoned: !!C.poison, allyActive: !!C.ally, blocked: false }, extra);
   }
   function gain(C, x) {
-    if (x.heal) C.run.hp = Math.min(C.st.maxHP, C.run.hp + Math.round(x.heal));
+    if (x.heal) C.run.hp = Math.min(C.st.maxHP, C.run.hp + Math.round(x.heal * (x.heal >= C.st.maxHP ? 1 : DD.derrick.healMult()))); // well rested +10%, diabetes -20% (5b); a full restore stays full
     if (x.atp) C.run.atp = Math.min(C.st.maxATP, C.run.atp + x.atp);
   }
   function rollIntent(C) {
@@ -55,7 +55,7 @@ DD.combat = (function () {
   }
   function win(C) {
     if (C.drill) { C.phase = 'end'; C.over = 'win'; return; }
-    C.drop = rollDrop(C.enemy); DD.save.profile.glucose += C.drop; C.run.glucose += C.drop;
+    C.drop = DD.derrick.loot(rollDrop(C.enemy), C.run.regionId); DD.save.profile.glucose += C.drop; C.run.glucose += C.drop;
     if (C.poison && DD.fx.rules(DD.save.profile, 'poisonSpread').length) C.run.carryPoison = { turns: C.poison.turns, pct: C.poison.pct, stacks: C.poison.stacks || 1 };
     const x = ctx(C); DD.fx.fire('onKill', x); gain(C, x);
     say(C, C.enemy.name + ' is destroyed.' + (x.heal ? ' ' + C.cls.passive.name + ' heals ' + Math.round(x.heal) + ' HP.' : '') + ' +' + C.drop + ' glucose.');
@@ -95,9 +95,14 @@ DD.combat = (function () {
       C.enemyBuffs.forEach(b => { mult *= b.mult; });
       const ward = C.buffs.findIndex(b => b.result && b.result.type === 'shield');
       if (ward >= 0) { // Mucus Ward: this hit does 0
-        const wardId = C.buffs[ward].id; C.buffs.splice(ward, 1); C.blocking = false;
+        const wardId = C.buffs[ward].id; C.buffs.splice(ward, 1);
+        const absorb = wardId === 'mucus-ward' ? DD.derrick.wardAbsorb() : 1; // smoking (5b): damaged mucus absorbs only part of the hit
+        if (absorb < 1) { mult *= 1 - absorb; say(C, 'Smoke has damaged the mucus: the Mucus Ward only absorbs ' + Math.round(absorb * 100) + '% of the hit.'); }
+        else {
+        C.blocking = false;
         say(C, e.name + (it === 'big' ? ' unleashes a big attack' : ' attacks') + ', but ' + (wardId === 'gear-ward' ? 'your gear absorbs it' : 'the Mucus Ward absorbs it') + '.');
         return endRound(C);
+        }
       }
       let d = Math.max(S.minHit, Math.round(e.atk * mult - C.st.defense * S.defenseWeight)), reflected = 0;
       const blocked = C.blocking;
@@ -259,7 +264,7 @@ DD.combat = (function () {
         const x = ctx(C); DD.fx.fire('onQuestionCorrect', x); x.atp *= DD.fx.ruleMax(DD.save.profile, 'atpMult', 1); gain(C, x);
         const rw = S.questionReward, k = DD.fx.ruleMax(DD.save.profile, 'questionBuff', 1), bonus = Math.round((rw.dmgMult - 1) * k * 100); // Polysaccharide Capsule doubles the buff
         if (R() < 0.5) { C.buffs.push({ id: 'q-focus', label: '+' + bonus + '% damage', src: 'buff', trigger: 'static', result: { type: 'damageMult', mult: 1 + bonus / 100 }, turns: rw.turns, fresh: true }); say(C, 'Correct! Your attacks hit +' + bonus + '% harder for ' + rw.turns + ' turns.'); }
-        else { const h = Math.round(rw.healPct * k * C.st.maxHP); C.run.hp = Math.min(C.st.maxHP, C.run.hp + h); say(C, 'Correct! You recover ' + h + ' HP.'); }
+        else { const h = Math.round(rw.healPct * k * C.st.maxHP * DD.derrick.healMult()); C.run.hp = Math.min(C.st.maxHP, C.run.hp + h); say(C, 'Correct! You recover ' + h + ' HP.'); }
       } else {
         const x = ctx(C); DD.fx.fire('onQuestionWrong', x);
         const eb = S.enemyBoost;

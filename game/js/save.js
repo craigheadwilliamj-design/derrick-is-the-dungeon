@@ -35,6 +35,10 @@ DD.save = (function () {
     o.glucose = Math.max(0, Math.floor(+o.glucose) || 0);
     if (!o.inventory || typeof o.inventory !== 'object' || Array.isArray(o.inventory)) o.inventory = {};
     Object.keys(o.inventory).forEach(k => { if (!(o.inventory[k] > 0)) delete o.inventory[k]; });
+    // 5b: Derrick's day and chronic conditions, and the Reinfection count (no version bump: the fields already existed)
+    o.ngPlus = Math.max(0, Math.floor(+o.ngPlus) || 0);
+    o.conditions = Array.isArray(o.conditions) ? o.conditions.filter((id, i, a) => DD.data.chronicIds.includes(id) && a.indexOf(id) === i) : [];
+    if (!o.event || typeof o.event !== 'object' || !DD.data.eventById[o.event.id] || DD.data.eventById[o.event.id].kind === 'chronic') o.event = null;
     o.settings = Object.assign({ sourceFilter: 'all' }, o.settings);
     if (!o.flagged || typeof o.flagged !== 'object' || Array.isArray(o.flagged)) o.flagged = {}; // v5 (4a): flagged question ids, out of rotation
     return o;

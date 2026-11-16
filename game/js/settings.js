@@ -158,6 +158,34 @@ DD.S = {
     tiers: ['common', 'uncommon', 'rare', 'legendary'],
     colors: { common: '#e8e4dc', uncommon: '#6fd18a', rare: '#6fa8ff', legendary: '#f2c14e' }
   },
+  // Derrick's life (phase 5b). Events roll once per calendar day; the odds lean toward regions whose memory has faded (mastery recency under mastery.fadingBelow).
+  events: {
+    fadedBoost: 3,          // weight = 1 + fadedBoost x how faded the event's most-faded region is (0..1)
+    positiveWeight: 0.6,    // good days are rarer than bad ones
+    repeatMult: 0.2,        // yesterday's event is unlikely to repeat
+    idleMult: 0.3,          // an event that only touches regions that are not open yet is unlikely
+    lootMult: 1.5,          // glucose in the event's regions
+    nightOut: { pushEvery: 4, kidneyLevels: 1 },       // arteries push you every 4th step instead of every 3rd
+    allNighter: { defenseMult: 0.8 },
+    noHandwash: { rosterChance: 0.75 },                // share of lung pathogens that are influenza
+    sunburn: { trapMult: 2 },
+    tenK: { extraEnemies: 2 },
+    brokenLeg: { damageMult: 1.25, killHealPct: 0.04 },   // Macrophage in the femur
+    takeout: { trapMult: 2 },
+    fluShot: { mult: 1.5 },
+    wellRested: { healMult: 1.1 },
+    hydrated: { ambushDelta: -0.05 }
+  },
+  // Chronic conditions (NG+): you get one at Reinfection 1 and another with every Reinfection, up to all three.
+  chronic: {
+    diabetes: { glucoseMult: 1.5, glycosuriaPct: 0.1, healMult: 0.8 },
+    hypertension: { hazardMult: 1.5 },
+    smoking: { lungLevels: 1, wardAbsorb: 0.5 }       // Mucus Ward absorbs half of the next hit instead of all of it
+  },
+  // Reinfection (NG+). Chest quality: Reinfection 1 makes common chests uncommon at least, Reinfection 2 and up make them rare at least.
+  ng: { baseAge: 44, levelsPerNg: 5, chestMinTier: [0, 1, 2] },
+  // Derrick's chart: baseline vitals (healthy adult) and their normal ranges. Events and conditions add deltas.
+  vitals: { hr: 72, sys: 116, dia: 74, rr: 14, spo2: 98, temp: 36.8, glu: 90, osm: 285 },
   save: { debounceMs: 1500, dbTimeoutMs: 10000 },
   log: { lines: 3 }
 };

@@ -30,7 +30,8 @@ DD.npc = (function () {
   // ---------- talking: native cells and the merchant ----------
   N.open = function (npc) {
     const G = DD.game, d = npc.kind === 'merchant' ? DD.data.npc('dendritic') : DD.data.npc(npc.id);
-    G.talk = { npc, def: d, phase: npc.kind === 'merchant' ? 'shop' : 'greet', greet: pick(d.lines.greet), joke: pick(d.lines.derrick), msg: '' };
+    const ev = DD.derrick.npcLine(d.id); // a line about what Derrick has been up to (5b) replaces the standing joke
+    G.talk = { npc, def: d, phase: npc.kind === 'merchant' ? 'shop' : 'greet', greet: pick(d.lines.greet), joke: ev ? ev.text : pick(d.lines.derrick), jokeFrom: ev ? ev.from : null, msg: '' };
     DD.ui.npc();
   };
   N.close = function () { DD.game.talk = null; DD.ui.closeNpc(); };
@@ -51,7 +52,7 @@ DD.npc = (function () {
     if (ok) {
       const pool = S.travel.lootItems.filter(id => inv(id) < cap(id));
       if (pool.length && Math.random() < L.lootItemChance) { const id = pick(pool); prof().inventory[id] = inv(id) + 1; T.loot = DD.data.items[id].name; }
-      else { const v = DD.u.int(Math.random, L.lootGlucose.min, L.lootGlucose.max); prof().glucose += v; rn.glucose += v; T.loot = v + ' glucose'; }
+      else { const v = DD.derrick.loot(DD.u.int(Math.random, L.lootGlucose.min, L.lootGlucose.max), rn.regionId); prof().glucose += v; rn.glucose += v; T.loot = v + ' glucose'; }
       T.msg = 'They hand you ' + T.loot + '.';
     } else {
       if (!rn.miss.includes(T.q.id)) rn.miss.push(T.q.id);

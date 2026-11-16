@@ -16,13 +16,16 @@ DD.data.enemies = [
   // Spleen
   { id: 'ebv', name: 'Epstein-Barr virus', type: 'virus', glyph: 'e', regions: ['spleen'], band: 'mild',
     codex: 'A herpesvirus that infects B cells and causes infectious mononucleosis.' },
-  { id: 'pneumo', name: 'Streptococcus pneumoniae', type: 'bacteria', glyph: 'p', regions: ['spleen'], band: 'mild',
+  { id: 'pneumo', name: 'Streptococcus pneumoniae', type: 'bacteria', glyph: 'p', regions: ['spleen', 'lungs'], band: 'mild',
     codex: 'An encapsulated bacterium that causes pneumonia; the spleen helps clear it from the blood.' },
   { id: 'typhi', name: 'Salmonella Typhi', type: 'bacteria', glyph: 't', regions: ['spleen'], band: 'moderate',
     codex: 'The bacterium behind typhoid fever, spread by contaminated food or water; it can enlarge the spleen.' },
   { id: 'ebvboss', name: 'Epstein-Barr Colossus', type: 'virus', glyph: 'E', regions: ['spleen'], band: 'boss', boss: true,
     codex: 'A giant Epstein-Barr virus. Mononucleosis can enlarge the spleen and make it fragile.',
     legendary: { id: 'latent-genome', name: 'Latent Genome', slot: 'acc', desc: 'After the first infection, Epstein-Barr virus stays in the body for life, hiding in memory B cells.' } },
+  // Lungs (phase 5b): influenza is what Derrick's hand-washing habits feed. Pneumococcus (above) also lives here.
+  { id: 'influenza', name: 'Influenza virus', type: 'virus', glyph: 'f', regions: ['lungs'], band: 'mild',
+    codex: 'A respiratory virus that infects cells lining the airways and causes seasonal flu.' },
   // Region bosses (phase 3b). The first kill drops a legendary stub {id, name, slot, desc} saved to profile.gearBag; 4b gives it stats.
   { id: 'rhinovirus', name: 'Rhinovirus', type: 'virus', glyph: 'R', regions: ['marrow'], band: 'boss', boss: true,
     codex: 'A virus behind most common colds. It infects the lining of the nose and upper airways.',

@@ -14,6 +14,7 @@
   const placeName = () => inTown() ? DD.data.town(townId()).name : DD.data.region(DD.game.run.regionId).name;
   const placeAccent = () => inTown() ? DD.data.town(townId()).accent : DD.data.region(DD.game.run.regionId).accent;
   const say = t => el('p', { class: 'small' }, '“' + t + '”');
+  const joke = T => el('div', null, say(T.joke), T.jokeFrom ? el('span', { class: 'chip' }, 'Derrick lately: ' + T.jokeFrom) : null);
 
   ui.npc = function () {
     const G = DD.game, T = G.talk; if (!T) return;
@@ -21,7 +22,7 @@
     const box = document.querySelector('.overlay'); if (!box) return;
     const NP = DD.npc, accent = placeAccent(), d = T.def, body = [];
     if (T.phase === 'greet') {
-      body.push(say(T.greet), say(T.joke), el('p', { class: 'small dim' }, d.codex),
+      body.push(say(T.greet), joke(T), el('p', { class: 'small dim' }, d.codex),
         T.npc.done ? el('p', { class: 'warn small' }, 'You have already talked to this cell on this floor. It only has one question for you per floor.') : null,
         el('div', { class: 'actions' },
           !T.npc.done ? el('button', { class: 'btn primary', onclick: NP.ask }, el('kbd', null, '↵'), 'Ask me something', el('small', null, 'one question, loot if you get it right')) : null,
@@ -40,7 +41,7 @@
         el('button', { class: 'btn primary', onclick: NP.close }, el('kbd', null, '↵'), 'Continue'));
     } else if (T.phase === 'shop') {
       const n = T.npc, p = prof(), why = NP.restWhy(), M = S.merchant;
-      body.push(say(T.greet), say(T.joke), el('div', { class: 'chips' }, el('span', { class: 'chip warn' }, 'Glucose ' + p.glucose)),
+      body.push(say(T.greet), joke(T), el('div', { class: 'chips' }, el('span', { class: 'chip warn' }, 'Glucose ' + p.glucose)),
         T.msg ? el('div', { class: 'fb good', role: 'status' }, T.msg) : null,
         el('h3', null, 'Stock'),
         n.stock.map((s, i) => { const it = DD.data.items[s.id], w = NP.canBuy(s);

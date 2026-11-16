@@ -10,7 +10,7 @@ DD.game = (function () {
   G.newRun = function (regionId) {
     const st = G.stats();
     G.run = { v: 1, regionId, seed: (Math.random() * 2147483647) >>> 0, floorIdx: 0, genLevel: prof().level, hp: st.maxHP, atp: st.maxATP,
-      killed: 0, glucose: 0, miss: [], px: 0, py: 0, floor: null };
+      killed: 0, glucose: 0, miss: [], px: 0, py: 0, floor: null, gm: DD.derrick.genMods(regionId) };
     G.msgs = [];
     G.loadFloor(0);
   };
@@ -18,7 +18,7 @@ DD.game = (function () {
     const run = G.run, boss = idx === S.floorsPerDungeon - 1;
     run.floorIdx = idx;
     if (!saved) run.genLevel = prof().level;
-    const f = DD.dungeon.generate({ regionId: run.regionId, floorIdx: idx, boss, seed: (run.seed + idx * 7919) >>> 0, playerLevel: run.genLevel });
+    const f = DD.dungeon.generate({ regionId: run.regionId, floorIdx: idx, boss, seed: (run.seed + idx * 7919) >>> 0, playerLevel: run.genLevel, gm: run.gm });
     run.floor = f;
     if (saved) {
       saved.explored.split('').forEach((c, i) => { f.explored[i] = c === '1' ? 1 : 0; });
@@ -42,13 +42,13 @@ DD.game = (function () {
     if (r.trip) return DD.travel.persist();
     const f = r.floor;
     DD.save.saveRun({ v: 1, regionId: r.regionId, seed: r.seed, floorIdx: r.floorIdx, genLevel: r.genLevel, hp: r.hp, atp: r.atp,
-      killed: r.killed, glucose: r.glucose, miss: r.miss, px: r.px, py: r.py, bossDead: f.bossDead,
+      killed: r.killed, glucose: r.glucose, miss: r.miss, px: r.px, py: r.py, bossDead: f.bossDead, gm: r.gm,
       explored: Array.from(f.explored).join(''), en: f.enemies.map(e => [e.x, e.y, e.alive ? 1 : 0]),
       taken: f.pickups.map((p, i) => p.taken ? i : -1).filter(i => i >= 0), traps: f.traps.map(t => t.state), chests: f.chests.map((c, i) => c.taken ? i : -1).filter(i => i >= 0), npcs: DD.npc.saveState(f) });
   };
   G.resume = function (saved) {
     G.run = { v: 1, regionId: saved.regionId, seed: saved.seed, floorIdx: saved.floorIdx, genLevel: saved.genLevel, hp: saved.hp, atp: saved.atp,
-      killed: saved.killed || 0, glucose: saved.glucose || 0, miss: saved.miss || [], px: 0, py: 0, floor: null };
+      killed: saved.killed || 0, glucose: saved.glucose || 0, miss: saved.miss || [], px: 0, py: 0, floor: null, gm: saved.gm || undefined };
     const st = G.stats(); G.run.hp = Math.min(G.run.hp, st.maxHP); G.run.atp = Math.min(G.run.atp, st.maxATP);
     G.msgs = []; G.loadFloor(saved.floorIdx, saved);
     G.say('You pick up where you left off.');
@@ -67,7 +67,7 @@ DD.game = (function () {
     run.px = nx; run.py = ny;
     const p = f.pickups.find(q => !q.taken && q.x === nx && q.y === ny);
     if (p) {
-      const E = S.economy.pickup, v = DD.u.int(Math.random, E.min, E.max);
+      const E = S.economy.pickup, v = DD.derrick.loot(DD.u.int(Math.random, E.min, E.max), run.regionId);
       p.taken = true; run.glucose += v; prof().glucose += v; G.say('You absorb ' + v + ' glucose.');
     }
     const chest = f.chests.find(c => !c.taken && c.x === nx && c.y === ny);
