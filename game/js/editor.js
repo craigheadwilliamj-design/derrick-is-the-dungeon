@@ -69,6 +69,8 @@ DD.editor = (function () {
     detach(); view = 'edit'; DD.ui.mode = 'editor';
     E = { rec, file: null, objUrl: null, boxes: rec ? rec.boxes.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h, label: b.label, ...(b.kind === 'arrow' ? { kind: 'arrow', tipX: b.tipX, tipY: b.tipY } : {}) })) : [],
       tool: rec ? 'box' : 'arrow', sel: -1, busy: false, drag: null, system: rec ? rec.system : last.system, tag: rec ? rec.tag : last.tag };
+    // Give existing arrow labels enough room for a directly editable name.
+    E.boxes.forEach(b => { if (b.kind === 'arrow') { b.w = Math.max(b.w, 0.30); b.h = Math.max(b.h, 0.12); b.x = clamp(b.x, 0, 1-b.w); b.y = clamp(b.y, 0, 1-b.h); } });
     const msg = el('p', { class: 'warn', role: 'status' });
     const say = t => { msg.textContent = t || ''; };
     const img = el('img', { class: 'edimg', alt: 'Image being labelled', draggable: 'false' });
@@ -115,7 +117,11 @@ DD.editor = (function () {
     function buildBoxes() {
       boxEls().forEach(n => n.remove());
       E.boxes.forEach((b, i) => {
-        const n = el('div', { class: 'bx', 'data-i': i }, el('span', { class: 'n' }, String(i + 1) + (b.kind === 'arrow' && b.label ? ': ' + b.label : '')),
+        const n = el('div', { class: 'bx' + (b.kind === 'arrow' ? ' arrow-label' : ''), 'data-i': i },
+          b.kind === 'arrow' ? el('textarea', { class: 'arrow-text', 'data-label': i, rows: 2, maxlength: S.labelMax,
+            placeholder: 'Structure name…', 'aria-label': 'Arrow ' + (i + 1) + ' structure name',
+            oninput: ev => { b.label = ev.target.value; const field = document.getElementById('ed-label-' + i); if (field) field.value = b.label; },
+            onfocus: () => { E.sel = i; syncSel(); } }, b.label) : el('span', { class: 'n' }, String(i + 1)),
           el('button', { class: 'x', type: 'button', 'data-del': true, 'aria-label': 'Delete box ' + (i + 1) }, '×'),
           el('i', { class: 'rz', 'data-h': true }));
         place(n, i); stage.append(n);
@@ -126,7 +132,7 @@ DD.editor = (function () {
       listEl.replaceChildren(...E.boxes.map((b, i) => el('div', { class: 'bx-row' },
         el('span', { class: 'bx-n' }, String(i + 1)),
         el('input', { type: 'text', id: 'ed-label-' + i, maxlength: S.labelMax, placeholder: b.kind === 'arrow' ? 'Name the structure at the arrow tip' : 'What does this label say?', value: b.label, 'aria-label': 'Label for box ' + (i + 1),
-          oninput: ev => { b.label = ev.target.value; const n = boxEls()[i].querySelector('.n'); n.textContent = (i + 1) + (b.kind === 'arrow' && b.label ? ': ' + b.label : ''); }, onfocus: () => { E.sel = i; syncSel(); } }),
+          oninput: ev => { b.label = ev.target.value; const n = boxEls()[i].querySelector('.arrow-text'); if (n) n.value = b.label; }, onfocus: () => { E.sel = i; syncSel(); } }),
         el('button', { class: 'btn small danger', type: 'button', 'aria-label': 'Delete box ' + (i + 1), onclick: () => removeBox(i) }, 'Delete'))));
       count.textContent = E.boxes.length + (E.boxes.length === 1 ? ' marker' : ' markers');
       syncSel();
@@ -136,6 +142,7 @@ DD.editor = (function () {
     // pointer drawing, moving and resizing (mouse and touch)
     stage.addEventListener('pointerdown', ev => {
       if (E.busy || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+      if (ev.target.closest('.arrow-text')) return;
       const r = stage.getBoundingClientRect(); if (!r.width) return;
       const pt = e => ({ x: clamp((e.clientX - r.left) / r.width, 0, 1), y: clamp((e.clientY - r.top) / r.height, 0, 1) });
       const n = ev.target.closest('[data-i]'), p0 = pt(ev);
@@ -175,8 +182,9 @@ DD.editor = (function () {
       const arrow = d.tool === 'arrow';
       if (arrow ? Math.hypot(b.w, b.h * stage.clientHeight / stage.clientWidth) >= d.minW : b.w >= d.minW && b.h >= d.minH) {
         const tip = { x: b.x + (d.x0 === b.x ? b.w : 0), y: b.y + (d.y0 === b.y ? b.h : 0) };
-        E.boxes.push(arrow ? { kind: 'arrow', x: clamp(d.x0 - 0.08, 0, 0.84), y: clamp(d.y0 - 0.025, 0, 0.95), w: 0.16, h: 0.05, tipX: tip.x, tipY: tip.y, label: '' } : { x: b.x, y: b.y, w: b.w, h: b.h, label: '' }); E.sel = E.boxes.length - 1; buildBoxes(); buildList();
-        say((arrow ? 'Arrow ' : 'Box ') + E.boxes.length + ' added. Type the structure name below.');
+        E.boxes.push(arrow ? { kind: 'arrow', x: clamp(d.x0 - 0.15, 0, 0.70), y: clamp(d.y0 - 0.06, 0, 0.88), w: 0.30, h: 0.12, tipX: tip.x, tipY: tip.y, label: '' } : { x: b.x, y: b.y, w: b.w, h: b.h, label: '' }); E.sel = E.boxes.length - 1; buildBoxes(); buildList();
+        say((arrow ? 'Arrow ' : 'Box ') + E.boxes.length + ' added. ' + (arrow ? 'Type its name in the text box on the image.' : 'Type the structure name below.'));
+        if (arrow) boxEls()[E.sel].querySelector('.arrow-text').focus();
       } else { E.sel = -1; syncSel(); }
     };
     stage.addEventListener('pointerup', end);
@@ -233,7 +241,7 @@ DD.editor = (function () {
         el('div', { class: 'field' }, el('label', { for: 'ed-tag' }, 'Source'), tag),
         el('div', { class: 'field wide' }, el('label', { for: 'ed-title' }, 'Title (optional)'), title)),
       el('div', { class: 'field' }, el('label', { for: 'ed-tool' }, 'Drawing tool'), tool),
-      el('p', { class: 'small dim' }, 'Arrow: drag from the label position to the structure. Move the label box or drag the round arrow tip to adjust it. Cover label: drag a box over existing text.'),
+      el('p', { class: 'small dim' }, 'Arrow: drag from the label position to the structure, then type in its text box on the image. Drag the box border to move it, its corner to resize, or the round tip to point elsewhere. Cover label: drag a box over existing text.'),
       stage, msg,
       el('div', { class: 'ed-boxes' }, el('div', { class: 'foot' }, el('h3', null, 'Labels'), count), listEl,
         el('p', { class: 'dim small' }, 'Name each marker below. Drag a label box to move it, or its corner to resize.')),
