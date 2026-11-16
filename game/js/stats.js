@@ -5,7 +5,8 @@ DD.stats = {
       maxHP: S.hp.base + S.hp.perRating * r.hp + S.hp.perLevel * L,
       power: S.power.base + S.power.perRating * r.pow + S.power.perLevel * L,
       defense: S.defense.perRating * r.def + S.defense.perLevel * L,
-      maxATP: S.atp.base + S.atp.perRating * r.atp
+      maxATP: S.atp.base + S.atp.perRating * r.atp,
+      blockCut: DD.S.combat.blockCut
     };
     for (const e of DD.fx.classEffects(profile)) {
       if (e.trigger === 'static' && e.result.type === 'stat') st[e.result.stat] += e.result.add;

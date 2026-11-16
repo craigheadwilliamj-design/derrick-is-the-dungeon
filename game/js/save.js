@@ -6,13 +6,16 @@ DD.save = (function () {
   let timer = null;
 
   function defaultProfile() {
-    return { v: 1, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: 0,
+    return { v: 2, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: 0,
       inventory: {}, equipment: {}, gearBag: [], qstats: {}, regions: {}, routes: {},
-      milestones: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' } };
+      milestones: [], beaten: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' } };
   }
   function migrate(p) {
     if (!p || typeof p !== 'object') return null;
-    const o = Object.assign(defaultProfile(), p); // v1 only; bump v and migrate here when the shape changes
+    const o = Object.assign(defaultProfile(), p); // bump v and migrate here when the shape changes
+    if (!Array.isArray(o.beaten)) o.beaten = []; // v2 (2a): enemy ids beaten, for B Cell Memory
+    if (!DD.data.classes[o.classId]) o.classId = 'macrophage';
+    o.v = 2;
     o.settings = Object.assign({ sourceFilter: 'all' }, o.settings);
     return o;
   }

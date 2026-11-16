@@ -45,6 +45,7 @@ DD.game = (function () {
   G.resume = function (saved) {
     G.run = { v: 1, regionId: saved.regionId, seed: saved.seed, floorIdx: saved.floorIdx, genLevel: saved.genLevel, hp: saved.hp, atp: saved.atp,
       killed: saved.killed || 0, glucose: saved.glucose || 0, miss: saved.miss || [], px: 0, py: 0, floor: null };
+    const st = G.stats(); G.run.hp = Math.min(G.run.hp, st.maxHP); G.run.atp = Math.min(G.run.atp, st.maxATP);
     G.msgs = []; G.loadFloor(saved.floorIdx, saved);
     G.say('You pick up where you left off.');
   };
@@ -93,6 +94,7 @@ DD.game = (function () {
     }
     const e = C.enemy, x = S.enemy.xp;
     e.alive = false; run.killed++;
+    if (!prof().beaten.includes(e.defId)) prof().beaten.push(e.defId); // B Cell Memory
     const gain = Math.round((x.base + x.perLevel * e.lvl) * (e.boss ? x.bossMult : 1));
     prof().xp += gain;
     G.say(e.name + ' destroyed. +' + gain + ' XP.');

@@ -41,7 +41,23 @@ DD.S = {
     fastSeconds: 6
   },
   atp: { perCorrect: 2 },
-  abilities: { antigen: { cost: 6, removeWrong: 2 } },
+  // Class passives and actives (phase 2a). Costs are ATP; every active is a free action.
+  passives: {
+    phagocytosis: { healPct: 0.12 },      // Macrophage: heal on kill
+    firstResponder: { mult: 2 },          // Neutrophil: first heavy of the fight
+    memory: { mult: 1.3 },                // B Cell: vs species already beaten
+    precision: { mult: 1.75 },            // Cytotoxic T: heavy answered within combat.fastSeconds
+    bigGame: { mult: 1.4 },               // Eosinophil: vs worms and bosses
+    heparin: { blockCutBonus: 0.2 }       // Basophil: block cuts 0.6 + 0.2 = 80%
+  },
+  abilities: {
+    antigen: { cost: 6, removeWrong: 2 },                       // Macrophage
+    netosis: { cost: 8, mult: 3, selfHpPct: 0.2 },              // Neutrophil: next heavy x3, pay 20% current HP now
+    opsonize: { cost: 8, mult: 1.35, turns: 3 },                // B Cell: enemy takes x1.35 for 3 turns
+    apoptosis: { cost: 10, threshold: 1 / 3 },                  // Cytotoxic T: next correct heavy executes under 1/3 HP
+    degranulate: { cost: 7, pct: 0.08, turns: 3 },              // Eosinophil: poison, % of enemy max HP per turn
+    inflammation: { cost: 9, turns: 3, allyMult: 0.6 }          // Basophil: ally light attack (x player power) per turn
+  },
   picker: { recentExclude: 8, unseen: 2, wrong: 1.5, right: 0.5, floor: 0.25, staleCap: 2, staleDays: 7, weakBias: 2 },
   mastery: { window: 20, minAnswers: 5, fadeDays: 14, fadeFloor: 0.25 },
   img: { minBoxFrac: 0.02, maxBytes: 20 * 1024 * 1024, labelMax: 60, panelMaxW: 1000, zoomMaxW: 2000 },

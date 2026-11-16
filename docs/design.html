@@ -56,7 +56,7 @@ li{margin:.2em 0}
           onBlock, onHit, onBigHit, onKill, onQuestionCorrect, onQuestionWrong, onQuestionAsk,
           travelSegment
 conditions: enemyType (bacteria|virus|fungus|protozoa|worm), isBoss,
-            hpBelow, firstHeavyOfFight, answeredFast
+            hpBelow, firstHeavyOfFight, answeredFast, beatenBefore, any:[…] (OR of conditions)
 results: damage, damageMult, heal, stat+, atp+, poison(n turns), shield,
          removeWrongOptions(n), execute(threshold), summonAlly, repeatHit,
          travelSpeed, revealNPCs</pre>
@@ -231,7 +231,7 @@ data/q-blood.js data/q-lymph.js …  one file per system: DD.data.questions.bloo
 // box coords are 0–1 fractions of image width/height</pre>
 Options are shuffled at display time. Answer by click, tap, or keys 1–4. Always show <code>explain</code> after answering, with a Continue button (Enter/Space).</li>
 <li><b>Profile (persistent) shape:</b>
-<pre>{ v:1, updatedAt, level, xp, classId, glucose, atp,
+<pre>{ v:2, updatedAt, level, xp, classId, glucose, atp, beaten:[enemyDefId…],
   inventory:{itemId:count}, equipment:{weapon,armor,acc1,acc2}, gearBag:[…],
   qstats:{ [qid]:{seen,right,wrong,last,streak} },
   regions:{ [regionId]:{ lastReviewed, cleared:bool, recent:[0|1,…last 20 answers] } },
@@ -245,7 +245,7 @@ Mid-dungeon run state (floor, map, entities, HP) is saved separately as <code>ru
 <pre>effect = { id, src:"class|subclass|gear|item|buff|event|set",
   trigger:"static|fightStart|turnStart|onLight|onHeavyCorrect|onHeavyWrong|onBlock|
            onHit|onBigHit|onKill|onQuestionCorrect|onQuestionWrong|onQuestionAsk|travelSegment",
-  cond?:{ enemyType, isBoss, hpBelow, firstHeavyOfFight, answeredFast, region },
+  cond?:{ enemyType, isBoss, hpBelow, firstHeavyOfFight, answeredFast, beatenBefore, any:[cond…], region },
   result:{ type:"damageMult|damage|heal|stat|atp|poison|shield|removeWrong|
                  execute|summonAlly|repeatHit|travelSpeed|revealNPCs", …params },
   turns?:n, charges?:n }
@@ -298,6 +298,7 @@ Static stat effects are read by <code>DD.stats.compute()</code>. Fire order: cla
 <ul>
 <li><code>data/classes.js</code>: <code>{id, name, role, weapon, ratings:{hp,pow,def,atp}, matchups:[types], passive:effect, active:{name, cost, effect, desc}, codex}</code>, with ratings from the class table.</li>
 <li><b>Abilities (defaults):</b> Neutrophil, First Responder: <code>onHeavyCorrect + firstHeavyOfFight → damageMult 2</code>. NETosis (8 ATP): the next heavy is ×3 and costs 20% current HP right away, right or wrong. B Cell, Memory: <code>static</code> ×1.3 damage against species in <code>profile.beaten</code>. Opsonize (8 ATP): the enemy takes ×1.35 from everything for 3 turns. T Cell, Precision: <code>answeredFast</code> (≤6 s) on heavy-correct → ×1.75. Apoptosis (10 ATP): arms the next correct heavy to execute if the target is under ⅓ HP afterward. Macrophage: unchanged from 1a. Eosinophil, Big Game: ×1.4 against worms and bosses. Degranulate (7 ATP): poison of 8% enemy maxHP per turn for 3 turns. Basophil, Heparin: blocks cut 80% instead of 60%. Inflammation (9 ATP): a neutrophil ally does a light attack (0.6 × player power) at the end of each player turn for 3 turns.</li>
+<li><i>Built (2a):</i> profile <code>v</code> is now 2 (adds <code>beaten</code>, migrated on load). <code>damage</code> takes <code>target:"self"</code> + <code>pct</code> of current HP (NETosis). Actives are <code>{effect?, cast?}</code>: <code>effect</code> is a buff pushed on use (<code>turns</code>, <code>charges</code>, or <code>expires:"heavy"</code>), <code>cast</code> is a result applied immediately (poison, summonAlly, self-damage). Effects may carry a <code>msg</code> that is logged when they fire. Switching class is locked while a run is in progress. All class numbers live in <code>DD.S.passives</code> and <code>DD.S.abilities</code>.</li>
 <li>Track <code>profile.beaten</code> as a set of enemy ids. Add the timer needed for <code>answeredFast</code> (show a thin bar, but never fail on timeout).</li>
 <li><b>Class select</b> at the marrow ("Hematopoiesis"): 6 cards with name and role, a stat bar for each rating, passive and active text, matchups, and a 2–3 sentence codex on the real cell. Switching is free at the marrow only.</li>
 <li><b>Done when:</b> every class's passive and active is exercised in a fight, and the settings file holds every number.</li>
