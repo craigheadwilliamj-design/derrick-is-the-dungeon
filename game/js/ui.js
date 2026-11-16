@@ -161,7 +161,7 @@ DD.ui = (function () {
       el('div', { class: 'stat' }, 'You HP ', el('b', null, Math.round(run.hp) + '/' + C.st.maxHP), bar('hp', pct(run.hp, C.st.maxHP))),
       el('div', { class: 'stat' }, 'ATP ', el('b', null, Math.round(run.atp) + '/' + C.st.maxATP), bar('atp', pct(run.atp, C.st.maxATP))),
       C.buffs.length || C.enemyBuffs.length ? el('div', { class: 'chips' },
-        C.buffs.map(b => el('span', { class: 'chip ok' }, b.id === 'antigen-armed' ? 'Antigen armed' : b.id === 'q-focus' ? '+25% damage (' + b.turns + ')' : b.id)),
+        C.buffs.map(b => el('span', { class: 'chip ok' }, b.id === C.cls.active.effect.id ? C.cls.active.name + ': ' + C.cls.active.armedText : b.id === 'q-focus' ? '+25% damage (' + b.turns + ')' : b.id)),
         C.enemyBuffs.map(b => el('span', { class: 'chip danger' }, 'Enemy +25% (' + b.turns + ')'))) : null);
     const body = el('div', { class: 'cbody' });
     if (C.phase === 'choose') {
@@ -170,7 +170,8 @@ DD.ui = (function () {
         el('button', { class: 'btn', onclick: () => act('light') }, el('kbd', null, 'L'), 'Light', el('small', null, 'small hit, always lands')),
         el('button', { class: 'btn primary', onclick: () => act('heavy') }, el('kbd', null, 'H'), 'Heavy', el('small', null, 'answer a question for a big hit')),
         el('button', { class: 'btn', onclick: () => act('block') }, el('kbd', null, 'B'), 'Block', el('small', null, 'cut the next hit by 60%')),
-        el('button', { class: 'btn', disabled: !can, onclick: () => act('ability') }, el('kbd', null, 'A'), a.name, el('small', null, a.cost + ' ATP · free action')),
+        el('button', { class: 'btn ability', disabled: !can, title: a.name + ' (' + a.cost + ' ATP, free action): ' + a.desc, 'aria-label': a.name + ', ' + a.cost + ' ATP, free action. ' + a.desc, onclick: () => act('ability') },
+          el('kbd', null, 'A'), a.name, el('small', { class: 'adesc' }, a.desc), el('small', { class: 'acost' }, a.cost + ' ATP · free action')),
         el('button', { class: 'btn', disabled: true, title: 'Fleeing arrives with the economy update' }, 'Flee', el('small', null, 'not yet'))));
     } else if (C.phase === 'question' || C.phase === 'explain') {
       const q = C.q, ans = C.answer;
@@ -179,6 +180,7 @@ DD.ui = (function () {
           q.img ? el('span', { class: 'chip ok' }, DD.img.TAGS[q.img.tag]) : null),
         el('p', { class: 'q' }, q.q),
         q.img ? DD.img.view(q.img, !!ans) : null,
+        C.removed > 0 ? el('div', { class: 'rmnote' }, C.removed + ' wrong option' + (C.removed > 1 ? 's' : '') + ' removed (' + C.cls.active.name + ')') : null,
         el('div', { class: 'opts' }, C.opts.map((o, i) => {
           let cls = 'opt';
           if (ans) cls += o.correct ? ' right' : (i === ans.i ? ' wrong' : '');

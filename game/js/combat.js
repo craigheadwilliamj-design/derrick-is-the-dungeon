@@ -81,6 +81,7 @@ DD.combat = (function () {
     C.q = DD.q.pick(sys);
     const x = ctx(C); DD.fx.fire('onQuestionAsk', x);
     C.opts = DD.q.options(C.q, x.removeWrong);
+    C.removed = C.q.wrong.length + 1 - C.opts.length; // wrong options actually taken away
     C.qKind = kind; C.qStart = Date.now(); C.answer = null; C.phase = 'question';
   }
 
@@ -102,7 +103,7 @@ DD.combat = (function () {
       const a = C.cls.active;
       if (C.phase !== 'choose' || C.run.atp < a.cost || C.buffs.some(b => b.id === a.effect.id)) return;
       C.run.atp -= a.cost; C.buffs.push(Object.assign({}, a.effect));
-      say(C, a.name + ': the next question loses 2 wrong options.');
+      say(C, a.name + ': ' + a.armedText + '.');
       if (a.takesTurn) afterPlayer(C);
     },
     canAbility(C) { const a = C.cls.active; return C.phase === 'choose' && C.run.atp >= a.cost && !C.buffs.some(b => b.id === a.effect.id); },
