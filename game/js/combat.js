@@ -19,7 +19,7 @@ DD.combat = (function () {
     return DD.u.weightedPick(R, Object.keys(w), k => w[k]);
   }
   function create(run, enemy, opts) {
-    const prof = DD.save.profile, cls = DD.data.classes[prof.classId];
+    const prof = DD.save.profile, cls = DD.thymus.cls(prof);
     const C = { run, enemy, cls, st: DD.stats.compute(prof), buffs: [], enemyBuffs: [], round: 1, phase: 'choose', log: [], intent: null,
       firstHeavy: true, wrongBonus: false, blocking: false, q: null, opts: null, qKind: null, qStart: 0, answer: null, over: null,
       enemyQUsed: false, enemyQRound: DD.u.int(R, S.enemyQuestionRound.min, S.enemyQuestionRound.max),

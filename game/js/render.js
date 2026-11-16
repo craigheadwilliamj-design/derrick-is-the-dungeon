@@ -3,7 +3,7 @@ DD.render = (function () {
   let colors = null;
   function loadColors() {
     const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
-    colors = { floor: v('--floor'), door: v('--bile'), player: '#ffffff', mon: v('--art'), item: v('--bile'), stairs: v('--bone'), ok: v('--ok'), bg: v('--map-bg'), clot: '#ff9ea6', trap: '#ff7a59' };
+    colors = { floor: v('--floor'), door: v('--bile'), player: '#ffffff', mon: v('--art'), item: v('--bile'), stairs: v('--bone'), ok: v('--ok'), bg: v('--map-bg'), clot: '#ff9ea6', trap: '#ff7a59', npc: '#7fd6c2', merchant: '#e0c060' };
   }
   function fit(canvas) {
     const box = canvas.parentElement, dpr = window.devicePixelRatio || 1;
@@ -52,6 +52,10 @@ DD.render = (function () {
       if (p.taken) continue;
       const idx = p.y * f.W + p.x; if (!f.explored[idx]) continue;
       put(p.glyph || '$', p.x - x0, p.y - y0, colors.item, f.vis[idx] ? 1 : 0.45);
+    }
+    for (const n of f.npcs || []) {
+      const idx = n.y * f.W + n.x; if (!f.explored[idx] || !f.vis[idx]) continue;
+      put(n.glyph, n.x - x0, n.y - y0, n.kind === 'merchant' ? colors.merchant : colors.npc, 1, n.done ? null : colors.npc);
     }
     for (const e of f.enemies) {
       if (!e.alive || !f.vis[e.y * f.W + e.x]) continue;

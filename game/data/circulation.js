@@ -106,7 +106,7 @@ DD.data.circ = (function () {
   // ---- places: dungeons, thymus, lymph node towns ----
   const P = (id, name, sub, note, o) => add(id, name, 'place', Object.assign({ sub, note, region: sub === 'town' ? null : id }, o));
   P('marrow', 'Bone Marrow', 'dungeon', 'Red marrow of the ilium, reached by the internal iliac artery. New blood cells leave through venous sinusoids, so there is no lymph route out.');
-  P('thymus', 'Thymus', 'thymus', 'Where T cells mature. It is supplied by thymic branches of the internal thoracic artery. The training hall opens in a later update.');
+  P('thymus', 'Thymus', 'thymus', 'Where T cells mature. It is supplied by thymic branches of the internal thoracic artery. Claim milestone upgrades for your class here.');
   P('brain', 'Brain', 'dungeon', 'Reached by the internal carotid artery. Veins drain through the dural venous sinuses to the internal jugular vein.');
   P('eyesears', 'Eyes & Ears', 'dungeon', 'The eye is reached by the ophthalmic artery. The inner ear is really fed by the labyrinthine artery from the basilar system, which this map simplifies.');
   P('glands', 'Glands', 'dungeon', 'The thyroid stands in for the glands here. The adrenals are supplied from the aorta and renal arteries, and the pituitary from the internal carotid.');

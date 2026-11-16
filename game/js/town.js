@@ -3,7 +3,7 @@
 // they explain themselves instead.
 DD.town = (function () {
   const { el } = DD.u, E = DD.S.economy;
-  const T = { msg: '' };
+  const T = { msg: '', lines: {} };
   const prof = () => DD.save.profile;
   const run = () => { const r = DD.save.run; return r && !r.kind ? r : null; }; // dungeon runs only, never a trip
   const inv = id => prof().inventory[id] || 0;
@@ -54,11 +54,32 @@ DD.town = (function () {
     done('Respiration: +' + Math.round(r.atp - before) + ' ATP.');
   };
 
+  // One greeting and one Derrick joke per NPC per visit (rolled when you arrive, not on every redraw).
+  const talk = id => {
+    if (!T.lines[id]) { const l = DD.data.npc(id).lines; T.lines[id] = [DD.u.pick(Math.random, l.greet), DD.u.pick(Math.random, l.derrick)]; }
+    return T.lines[id].map(t => el('div', { class: 'small dim' }, '“' + t + '”'));
+  };
+  T.claim = function (id) {
+    const b = DD.bounty.claim(id);
+    done(b ? 'Bounty done: ' + DD.bounty.text(b) + '. +' + b.glucose + ' glucose and ' + DD.data.items[b.item].name + '.' : '');
+  };
+  function bountyCard() {
+    const B = DD.S.bounty, bs = DD.save.profile.bounties;
+    return el('div', { class: 'card' }, el('div', { class: 'rhead' }, el('h3', null, 'Helper T cell · bounties'), el('span', { class: 'chip' }, bs.active.length + '/' + B.active + ' active · ' + bs.done + ' done')),
+      talk('helper-t'),
+      bs.active.length ? bs.active.map(b => el('div', { class: 'shoprow' },
+        el('div', { class: 'shopinfo' }, el('b', null, DD.bounty.text(b)), el('span', { class: 'chip' + (b.done ? ' ok' : '') }, b.have + '/' + b.need),
+          el('div', { class: 'small dim' }, 'Reward: ' + DD.bounty.reward(b))),
+        el('button', { class: 'btn small' + (b.done ? ' primary' : ''), type: 'button', disabled: !b.done, onclick: () => T.claim(b.id) }, b.done ? 'Turn in' : 'In progress')))
+        : el('div', { class: 'small dim' }, 'No bounties right now.'));
+  }
   DD.ui.town = function (opts) {
     const ui = DD.ui; ui.mode = 'town';
     if (opts && opts.id) T.id = opts.id; else if (!T.id) T.id = DD.world.isTown(prof().loc) ? prof().loc : 'cervical';
     const town = DD.data.town(T.id);
     if (opts) T.msg = opts.fled ? 'You flowed into a lymphatic vessel and out into the ' + town.name + '. The pathogen is still back there.' : '';
+    if (opts) T.lines = {};
+    if (DD.bounty.fill()) DD.save.save();
     const p = prof(), r = run(), st = maxes();
     const note = (txt, cls) => el('div', { class: 'small ' + (cls || 'dim') }, txt);
     const shop = DD.data.itemOrder.map(id => {
@@ -83,12 +104,13 @@ DD.town = (function () {
         r ? el('span', { class: 'chip' }, 'HP ' + Math.round(r.hp) + '/' + st.maxHP + ' · ATP ' + Math.round(r.atp) + '/' + st.maxATP) : el('span', { class: 'chip' }, 'no run in progress')),
       T.msg ? el('div', { class: 'fb good', role: 'status' }, T.msg) : null,
       el('div', { class: 'card' }, el('h3', null, 'Plasma cell · shop'),
-        note('“Plasma cells are antibody factories. Between batches, I sell supplies.”'),
+        talk('plasma'),
         shop, el('h3', null, 'Sell (' + Math.round(E.sellPct * 100) + '% of price)'), sell),
       el('div', { class: 'card' }, el('h3', null, 'Mast cell · inn'),
-        note('“My granules hold histamine and heparin. Rooms are quiet, so take a bed.”'),
+        talk('mast'),
         el('button', { class: 'btn', type: 'button', disabled: !!iw, onclick: T.rest }, 'Rest: full HP and ATP · ' + innCost() + ' g'),
         iw ? note(iw, 'warn') : null),
+      bountyCard(),
       el('div', { class: 'card' }, el('h3', null, 'Respiration counter'),
         note('“Aerobic respiration yields roughly 30–32 ATP per glucose. Here, the rate is simpler.”'),
         el('button', { class: 'btn', type: 'button', disabled: !!cw, onclick: T.convert }, E.respiration.glucose + ' glucose → +' + E.respiration.atp + ' ATP'),

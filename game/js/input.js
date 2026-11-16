@@ -11,6 +11,14 @@ DD.input = {
         const Q = DD.game.quiz; if (!Q) return;
         if (!Q.answer && /^[1-4]$/.test(k) && +k <= Q.opts.length) { e.preventDefault(); DD.game.answerTrap(+k - 1); }
         else if (Q.answer && (k === 'enter' || k === ' ')) { e.preventDefault(); DD.game.endTrap(); }
+      } else if (ui.mode === 'npc') {
+        const T = DD.game.talk; if (!T) return;
+        if (k === 'escape' && T.phase !== 'ask') { e.preventDefault(); DD.npc.close(); }
+        else if (T.phase === 'ask' && !T.answer && /^[1-4]$/.test(k) && +k <= T.opts.length) { e.preventDefault(); DD.npc.answer(+k - 1); }
+        else if (k === 'enter' || k === ' ') {
+          if (T.phase === 'greet' && !T.npc.done) { e.preventDefault(); DD.npc.ask(); }
+          else if (T.phase === 'result' || T.phase === 'noq') { e.preventDefault(); DD.npc.close(); }
+        }
       } else if (ui.mode === 'dia') {
         if ((k === 'enter' || k === ' ') && ui.diaSkip) { e.preventDefault(); ui.diaSkip(); }
       } else if (ui.mode === 'combat') {

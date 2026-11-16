@@ -101,6 +101,15 @@ DD.S = {
     bannerMs: 2800, diapedesisMs: 650,
     accent: { artery: '#e0474f', vein: '#6c8fe0', lymph: '#6fcfb8', capillary: '#e08fc0', chamber: '#ff7a59', valve: '#d9b44a', nodeRoom: '#6fcfb8' }
   },
+  // NPCs, merchant, bounties, thymus (phase 3b).
+  npc: { lootGlucose: { min: 8, max: 15 }, lootItemChance: 0.35 },   // native cell reward for a right answer: glucose, or a consumable
+  merchant: { chance: 0.2, stockMin: 3, stockMax: 4, qtyMax: 2, priceMult: 1.5, restMult: 2, tipCost: 5, fadedCount: 2 },  // chance is per non-boss floor
+  bounty: {
+    active: 3, kill: { min: 2, max: 4 }, answer: { min: 5, max: 10 },
+    glucose: { kill: 8, answer: 3, clear: 40 },                      // per unit (kill, answer) or flat (clear)
+    items: ['complement', 'mucusWard', 'fever', 'interferon', 'antibiotic', 'atpReserve']
+  },
+  thymus: { levels: [5, 10, 15], costCut: 0.25, extraTurns: 1, effectPct: 0.25, extraCharges: 1 },   // milestone upgrades for the class active
   save: { debounceMs: 1500, dbTimeoutMs: 10000 },
   log: { lines: 3 }
 };
