@@ -184,6 +184,12 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 .gslots{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .diff{font-family:var(--mono);font-size:12px;display:flex;flex-direction:column;gap:1px;border-top:1px solid var(--line);padding-top:6px}
 .diff .up{color:var(--ok)} .diff .down{color:var(--art)}
+.bountytracker{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-width:0}
+.bountytracker summary{cursor:pointer;font-family:var(--disp);color:var(--bile)}
+.bountyrows{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px;margin-top:10px}
+.bountyrow{min-width:0;overflow-wrap:anywhere}
+.bountyrow .rhead{flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.bountytracker p{margin:8px 0 0}
 </style>
 <div id="app"></div>
 <script src="js/util.js"></script>
