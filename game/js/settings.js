@@ -113,6 +113,20 @@ DD.S = {
     items: ['complement', 'mucusWard', 'fever', 'interferon', 'antibiotic', 'atpReserve']
   },
   thymus: { levels: [5, 10, 15], costCut: 0.25, extraTurns: 1, effectPct: 0.25, extraCharges: 1 },   // milestone upgrades for the class active
+  // Gear (phase 4b). A "point" is one stat-rating-equivalent: perPoint says what one point buys. budget = points a rarity may carry
+  // (rare: 3 stat points, or 2 plus one conditional; legendary: 3 plus a strong conditional worth 2).
+  gear: {
+    perPoint: { maxHP: 8, power: 1.2, defense: 0.8, maxATP: 4, blockCut: 0.05 },
+    blockCutMax: 0.9,
+    budget: { common: 1, uncommon: 2, rare: 3, legendary: 5 },
+    weaponTypeMult: 1.15,                                   // own class weapon type
+    price: { common: 20, uncommon: 50, rare: 100 },          // legendaries are never sold or bought
+    veinPushEvery: 6,                                       // Selectin Boots: veins nudge you along this often (arteries use travel.pushEvery minus the boots)
+    chest: { min: 1, max: 2, odds: { common: 60, uncommon: 30, rare: 10 }, bossShift: 1, regionWeight: 3, genericWeight: 1 },
+    shop: { commons: 6, uncommons: 3, regionWeight: 3 },    // per visit; items from regions that drain to the town are favored
+    tiers: ['common', 'uncommon', 'rare', 'legendary'],
+    colors: { common: '#e8e4dc', uncommon: '#6fd18a', rare: '#6fa8ff', legendary: '#f2c14e' }
+  },
   save: { debounceMs: 1500, dbTimeoutMs: 10000 },
   log: { lines: 3 }
 };

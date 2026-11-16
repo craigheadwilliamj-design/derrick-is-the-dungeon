@@ -4,10 +4,24 @@ DD.fx = (function () {
     const c = DD.data.classes[profile.classId];
     return c ? [c.passive].concat(c.effects || []) : [];
   }
-  // Every effect from class, (later: subclass, gear, set), buffs, event. Fire order = this order.
-  function active(ctx) {
-    return classEffects(ctx.profile).concat(ctx.buffs || []);
+  // Equipped gear (4b) as effects, plus the soft weapon-type bonus (own class weapon type: x1.15 damage). Gear is data; equipping just changes this list.
+  function gearEffects(profile) {
+    const eq = profile.equipment || {}, out = [], cls = DD.data.classes[profile.classId];
+    for (const slot of DD.data.gearSlots || []) {
+      const it = DD.data.gearById && DD.data.gearById[eq[slot]]; if (!it) continue;
+      for (const e of it.effects) out.push(e);
+      if (slot === 'weapon' && cls && it.wtype && it.wtype === cls.weaponType) {
+        out.push({ id: 'wtype-' + it.id, src: 'gear', trigger: 'static', result: { type: 'damageMult', mult: DD.S.gear.weaponTypeMult } });
+      }
+    }
+    return out;
   }
+  // Every effect from class, (later: subclass), gear, (set), buffs, event. Fire order = this order.
+  function active(ctx) {
+    return classEffects(ctx.profile).concat(gearEffects(ctx.profile), ctx.buffs || []);
+  }
+  // Total of one utility result across equipped gear (travelSpeed adds up).
+  const gearSum = (profile, type) => gearEffects(profile).reduce((a, e) => a + (e.result.type === type ? (e.result.add || 1) : 0), 0);
   function condOk(c, ctx) {
     if (!c) return true;
     const e = ctx.enemy;
@@ -35,7 +49,7 @@ DD.fx = (function () {
       case 'poison': ctx.poison = { turns: r.turns, pct: r.pct }; break;
       case 'execute': ctx.execute = Math.max(ctx.execute || 0, r.threshold); break;
       case 'summonAlly': ctx.ally = { turns: r.turns, mult: r.mult }; break;
-      default: break; // stat is read by DD.stats; later phases add repeatHit, travelSpeed, revealNPCs
+      default: break; // stat is read by DD.stats; travelSpeed and revealNPCs are read by travel and the map; a later phase adds repeatHit
     }
   }
   function fire(trigger, ctx) {
@@ -59,5 +73,5 @@ DD.fx = (function () {
       if (--b.turns <= 0) buffs.splice(i, 1);
     }
   }
-  return { classEffects, active, fire, apply, tick };
+  return { classEffects, gearEffects, gearSum, active, fire, apply, tick };
 })();

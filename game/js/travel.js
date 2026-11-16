@@ -238,13 +238,15 @@ DD.travel = (function () {
     if (f.g[run.py][run.px] === '»') f.g[run.py][run.px] = '|'; // it closes behind you
     run.px = nx; run.py = ny; t.steps++;
     if (land(f, run, nx, ny)) return;
-    if (X.segs(run)[t.idx].flow === 'artery' && t.steps % T.pushEvery === 0) {
+    const flow = X.segs(run)[t.idx].flow, boots = DD.fx.gearSum(prof(), 'travelSpeed'); // Selectin Boots: arteries push more often, veins get a nudge
+    const every = flow === 'artery' ? Math.max(1, T.pushEvery - boots) : flow === 'vein' && boots ? DD.S.gear.veinPushEvery : 0;
+    if (every && t.steps % every === 0) {
       const px = run.px + 1;
       if (walkable(f, px, run.py) && !DD.dungeon.enemyAt(f, px, run.py)) {
         if (f.g[run.py][run.px] === '»') f.g[run.py][run.px] = '|';
         run.px = px;
         if (land(f, run, px, run.py)) return;
-        if (!t.pushNote) { t.pushNote = true; g.say('The arterial pressure carries you along.'); }
+        if (!t.pushNote) { t.pushNote = true; g.say(flow === 'artery' ? 'The arterial pressure carries you along.' : 'You roll along the vessel wall.'); }
       }
     }
     DD.dungeon.computeFov(f, run.px, run.py);

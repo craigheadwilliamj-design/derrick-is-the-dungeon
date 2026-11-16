@@ -54,9 +54,16 @@ DD.render = (function () {
       const idx = p.y * f.W + p.x; if (!f.explored[idx]) continue;
       put(p.glyph || '$', p.x - x0, p.y - y0, colors.item, f.vis[idx] ? 1 : 0.45);
     }
+    for (const c of f.chests || []) { // gear chests (4b)
+      if (c.taken) continue;
+      const idx = c.y * f.W + c.x; if (!f.explored[idx]) continue;
+      put('&', c.x - x0, c.y - y0, '#f2c14e', f.vis[idx] ? 1 : 0.45, f.vis[idx] ? '#f2c14e' : null);
+    }
+    const reveal = DD.fx.gearSum(DD.save.profile, 'revealNPCs') > 0 && !f.tiles; // Chemokine Compass: cells show through walls (dungeon floors only)
     for (const n of f.npcs || []) {
-      const idx = n.y * f.W + n.x; if (!f.explored[idx] || !f.vis[idx]) continue;
-      put(n.glyph, n.x - x0, n.y - y0, n.col || (n.kind === 'merchant' ? colors.merchant : colors.npc), 1, n.done || n.kind === 'ambient' ? null : colors.npc);
+      const idx = n.y * f.W + n.x, seen = f.explored[idx] && f.vis[idx];
+      if (!seen && !reveal) continue;
+      put(n.glyph, n.x - x0, n.y - y0, n.col || (n.kind === 'merchant' ? colors.merchant : colors.npc), seen ? 1 : 0.55, seen && !n.done && n.kind !== 'ambient' ? colors.npc : null);
     }
     for (const e of f.enemies) {
       if (!e.alive || !f.vis[e.y * f.W + e.x]) continue;
