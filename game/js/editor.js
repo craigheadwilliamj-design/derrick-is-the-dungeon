@@ -30,10 +30,10 @@ DD.editor = (function () {
       I.ready.then(() => { if (view === 'list') list(); });
       return;
     }
-    if (!I.available()) return mountScreen(head('Lab images', leave), el('p', { class: 'lede' }, 'Image questions need the claude.ai viewer.'));
+    if (!I.available()) return mountScreen(head('Lab images', leave), el('p', { class: 'lede' }, 'Image storage is unavailable. Allow this site to store data, then reload.'));
     const groups = I.SYSTEMS.map(([id, name]) => ({ id, name, recs: I.records.filter(r => r.system === id) })).filter(g => g.recs.length);
     mountScreen(head('Lab images', leave),
-      el('p', { class: 'dim small' }, 'Add arrows to an unlabeled image, or cover existing labels with boxes. Each named marker becomes a study question.'),
+      el('p', { class: 'dim small' }, 'Add arrows to an unlabeled image, or cover existing labels with boxes. Each named marker becomes a study question. ' + (I.local ? 'Images stay in this browser. Export a backup to keep a copy.' : '')),
       el('div', null, el('button', { class: 'btn primary', type: 'button', onclick: () => edit(null) }, 'Add image')),
       listMsg ? el('p', { class: 'warn', role: 'status' }, listMsg) : null,
       groups.length ? groups.map(g => el('section', { class: 'ed-group' },
@@ -213,7 +213,7 @@ DD.editor = (function () {
           title: title.value.trim(), boxes: E.boxes.map(b => ({ x: r4(b.x), y: r4(b.y), w: r4(b.w), h: r4(b.h), label: b.label.trim(), ...(b.kind === 'arrow' ? { kind: 'arrow', tipX: r4(b.tipX), tipY: r4(b.tipY) } : {}) })),
           createdAt: E.rec ? E.rec.createdAt : Date.now() };
         try { await I.put(rec); }
-        catch (e) { if (uploaded) { try { await I.assets.delete(uploaded.id); } catch (e2) { /* ignore */ } } throw e; }
+        catch (e) { if (uploaded) { try { await I.deleteAsset(uploaded.id); } catch (e2) { /* ignore */ } } throw e; }
         last = { system: rec.system, tag: rec.tag };
         const n = I.countFor(rec);
         listMsg = 'Saved. ' + (n ? n + ' of ' + rec.boxes.length + ' markers became questions' + (playable(rec.system) ? ' in the ' + I.SYSTEMS.find(s => s[0] === rec.system)[1] + ' dungeon.' : '; that system’s dungeon opens in a later update.')

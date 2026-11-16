@@ -6,3 +6,11 @@ A roguelike for studying anatomy & physiology. You're one of Derrick's white blo
 - Look-and-feel mockup: [`docs/mockup.html`](docs/mockup.html)
 - Game code: [`game/`](game/)
 - Play: https://claude.ai/artifact/B7Nx6amjAdQ2v5mfQz8PRM (private)
+
+## Standalone browser version
+
+The game runs as a static site without Claude. GitHub Pages publishes `game/` when changes are merged to `main` using `.github/workflows/pages.yml` (Pages source: GitHub Actions). Local preview: serve the repository with any static HTTP server and open `/game/`.
+
+Progress and custom questions use browser storage; images and arrow annotations use IndexedDB on that device and origin. Lab images and study material are never uploaded to GitHub. Use **Backups** on the body map to export a JSON file or restore one on another browser. Restoring replaces that browser’s progress, custom questions, and image library. Keep backups outside this public repository. Clearing site data deletes the local copy.
+
+**Add study material** accepts a JSON array of `{q, answer, wrong:[three options], explain}` outside Claude, followed by the normal Keep/Edit/Discard review. In the Claude viewer, the existing question generator and account storage remain available. Existing Claude saves and images do not transfer automatically; an old published artifact must first receive the backup feature before it can export its account data.

@@ -10,7 +10,8 @@ DD.img = (function () {
   const sysName = id => (SYSTEMS.find(s => s[0] === id) || [id, id])[1];
   const norm = t => String(t).trim().toLowerCase();
   const withTimeout = p => Promise.race([Promise.resolve(p), new Promise(r => setTimeout(() => r(null), DD.S.save.dbTimeoutMs))]);
-  const cache = {};
+  const cache = {}, localUrls = {};
+  out.local = !window.claude || !window.claude.use;
 
   function valid(r) {
     return r && typeof r.id === 'string' && typeof r.assetId === 'string' && TAGS[r.tag] && Array.isArray(r.boxes) &&
@@ -18,6 +19,12 @@ DD.img = (function () {
   }
   async function load() {
     try {
+      if (out.local) {
+        const rows = await DD.local.entries();
+        for (const [key, value] of rows) if (key.startsWith('blob_')) localUrls[key.slice(5)] = URL.createObjectURL(value);
+        out.records = rows.filter(([key]) => key.startsWith('img_')).map(([, value]) => value).filter(valid);
+        out.state = 'ready'; return;
+      }
       out.assets = await withTimeout(claude.use('assets'));
       const col = DD.save.col;
       if (!col) { out.state = 'unavailable'; return; }
@@ -27,24 +34,39 @@ DD.img = (function () {
       out.state = out.assets && snap ? 'ready' : 'unavailable';
     } catch (e) { out.state = 'unavailable'; }
   }
+  out.valid = valid;
   out.init = function () { out.ready = load(); return out.ready; };
   out.available = () => out.state === 'ready';
-  out.url = id => '/_blob/' + id;
+  out.url = id => out.local ? localUrls[id] || '' : '/_blob/' + id;
 
-  out.upload = (blob) => out.assets.upload(blob, { type: blob.type });
+  out.upload = async blob => {
+    if (!out.local) return out.assets.upload(blob, { type: blob.type });
+    const id = 'local-' + crypto.randomUUID();
+    await DD.local.put('blob_' + id, blob); localUrls[id] = URL.createObjectURL(blob); return { id };
+  };
+  out.deleteAsset = async id => {
+    if (!out.local) return out.assets.delete(id);
+    await DD.local.remove('blob_' + id); if (localUrls[id]) URL.revokeObjectURL(localUrls[id]); delete localUrls[id]; delete cache[id];
+  };
+  out.blob = async id => {
+    if (out.local) { const blob = await DD.local.get('blob_' + id); if (!blob) throw new Error('An image is missing.'); return blob; }
+    const r = await fetch(out.url(id)); if (!r.ok) throw new Error('Could not read an image.'); return r.blob();
+  };
   out.put = async function (rec) {
-    await DD.save.col.doc('img_' + rec.id).set(rec);
+    if (out.local) await DD.local.put('img_' + rec.id, rec);
+    else await DD.save.col.doc('img_' + rec.id).set(rec);
     const i = out.records.findIndex(r => r.id === rec.id);
     if (i >= 0) out.records[i] = rec; else out.records.push(rec);
   };
   // Record first, then the asset: a leftover asset is harmless, a record without its asset is not.
   out.remove = async function (rec) {
-    await DD.save.col.doc('img_' + rec.id).delete();
+    if (out.local) await DD.local.remove('img_' + rec.id);
+    else await DD.save.col.doc('img_' + rec.id).delete();
     out.records = out.records.filter(r => r.id !== rec.id);
     const qs = DD.save.profile.qstats, pre = 'img-' + rec.id + '-';
     Object.keys(qs).forEach(k => { if (k.startsWith(pre)) delete qs[k]; });
     DD.save.save();
-    try { await out.assets.delete(rec.assetId); } catch (e) { return false; }
+    try { await out.deleteAsset(rec.assetId); } catch (e) { return false; }
     return true;
   };
 
