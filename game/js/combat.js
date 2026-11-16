@@ -4,8 +4,8 @@ DD.combat = (function () {
   const say = (C, t) => C.log.push(t);
 
   function ctx(C, extra) {
-    return Object.assign({ C, enemy: C.enemy, buffs: C.buffs, profile: DD.save.profile, maxHP: C.st.maxHP, mult: 1, dmg: 0, heal: 0, atp: 0,
-      removeWrong: 0, firstHeavy: C.firstHeavy, answeredFast: false, region: C.run.regionId }, extra);
+    return Object.assign({ C, enemy: C.enemy, buffs: C.buffs, profile: DD.save.profile, maxHP: C.st.maxHP, hp: C.run.hp, log: C.log, mult: 1, dmg: 0, heal: 0, atp: 0,
+      removeWrong: 0, execute: 0, firstHeavy: C.firstHeavy, answeredFast: false, region: C.run.regionId }, extra);
   }
   function gain(C, x) {
     if (x.heal) C.run.hp = Math.min(C.st.maxHP, C.run.hp + Math.round(x.heal));
@@ -22,7 +22,7 @@ DD.combat = (function () {
     const C = { run, enemy, cls, st: DD.stats.compute(prof), buffs: [], enemyBuffs: [], round: 1, phase: 'choose', log: [], intent: null,
       firstHeavy: true, wrongBonus: false, blocking: false, q: null, opts: null, qKind: null, qStart: 0, answer: null, over: null,
       enemyQUsed: false, enemyQRound: DD.u.int(R, S.enemyQuestionRound.min, S.enemyQuestionRound.max),
-      matchup: cls.matchups.includes(enemy.type) ? S.strongMatchup : 1, xpGain: 0 };
+      matchup: cls.matchups.includes(enemy.type) ? S.strongMatchup : 1, xpGain: 0, poison: null, ally: null };
     C.intent = rollIntent(C);
     say(C, enemy.name + ' (Lv ' + enemy.lvl + ') attacks!' + (C.matchup > 1 ? ' You are strong against ' + enemy.type + '.' : ''));
     return C;
@@ -40,12 +40,30 @@ DD.combat = (function () {
   }
   function win(C) {
     const x = ctx(C); DD.fx.fire('onKill', x); gain(C, x);
-    say(C, C.enemy.name + ' is destroyed.' + (x.heal ? ' Phagocytosis heals ' + Math.round(x.heal) + ' HP.' : ''));
+    say(C, C.enemy.name + ' is destroyed.' + (x.heal ? ' ' + C.cls.passive.name + ' heals ' + Math.round(x.heal) + ' HP.' : ''));
     C.phase = 'end'; C.over = 'win';
   }
   function lose(C) { say(C, 'Your cell has been destroyed.'); C.phase = 'end'; C.over = 'lose'; }
 
-  function afterPlayer(C) { if (C.enemy.hp <= 0) return win(C); enemyTurn(C); }
+  // End of the player's turn: the Basophil's ally strikes, then poison ticks. Either can finish the enemy.
+  function endOfPlayerTurn(C) {
+    const e = C.enemy;
+    if (C.ally && e.hp > 0) {
+      hit(C, playerDamage(C, ctx(C, { mult: C.ally.mult })), 'Your neutrophil ally strikes');
+      if (--C.ally.turns <= 0) { C.ally = null; say(C, 'Your neutrophil ally fades away.'); }
+    }
+    if (C.poison && e.hp > 0) {
+      const d = Math.max(1, Math.round(C.poison.pct * e.maxHP));
+      e.hp = Math.max(0, e.hp - d); say(C, 'Poison eats at ' + e.name + ' for ' + d + '.');
+      if (--C.poison.turns <= 0) { C.poison = null; say(C, 'The poison wears off.'); }
+    }
+  }
+  function afterPlayer(C) {
+    if (C.enemy.hp <= 0) return win(C);
+    endOfPlayerTurn(C);
+    if (C.enemy.hp <= 0) return win(C);
+    enemyTurn(C);
+  }
 
   function enemyTurn(C) {
     const e = C.enemy, it = C.intent;
@@ -55,7 +73,7 @@ DD.combat = (function () {
       C.enemyBuffs.forEach(b => { mult *= b.mult; });
       let d = Math.max(S.minHit, Math.round(e.atk * mult - C.st.defense * S.defenseWeight));
       if (C.blocking) {
-        d = Math.max(1, Math.round(d * (1 - S.blockCut)));
+        d = Math.max(1, Math.round(d * (1 - C.st.blockCut)));
         const x = ctx(C); DD.fx.fire('onBlock', x); gain(C, x);
       }
       C.run.hp = Math.max(0, C.run.hp - d);
@@ -100,13 +118,28 @@ DD.combat = (function () {
       afterPlayer(C);
     },
     ability(C) {
+      if (!A.canAbility(C)) return;
       const a = C.cls.active;
-      if (C.phase !== 'choose' || C.run.atp < a.cost || C.buffs.some(b => b.id === a.effect.id)) return;
-      C.run.atp -= a.cost; C.buffs.push(Object.assign({}, a.effect));
+      C.run.atp -= a.cost;
+      if (a.effect) C.buffs.push(Object.assign({}, a.effect));
+      if (a.cast) { // immediate results go through the effect engine too
+        const x = ctx(C); DD.fx.apply(a.cast, x);
+        if (x.poison) C.poison = x.poison;
+        if (x.ally) C.ally = x.ally;
+        if (x.selfDmg) {
+          const d = Math.min(C.run.hp - 1, Math.max(1, Math.round(x.selfDmg))); // never kills you
+          C.run.hp -= d; say(C, a.name + ' costs you ' + d + ' HP.');
+        }
+      }
       say(C, a.name + ': ' + a.armedText + '.');
       if (a.takesTurn) afterPlayer(C);
     },
-    canAbility(C) { const a = C.cls.active; return C.phase === 'choose' && C.run.atp >= a.cost && !C.buffs.some(b => b.id === a.effect.id); },
+    // Already running (armed buff, poison or ally): can't be stacked.
+    abilityActive(C) {
+      const a = C.cls.active;
+      return !!((a.effect && C.buffs.some(b => b.id === a.effect.id)) || (a.cast && ((a.cast.type === 'poison' && C.poison) || (a.cast.type === 'summonAlly' && C.ally))));
+    },
+    canAbility(C) { const a = C.cls.active; return C.phase === 'choose' && C.run.atp >= a.cost && !A.abilityActive(C); },
     answer(C, i) {
       if (C.phase !== 'question') return;
       const o = C.opts[i]; if (!o) return;
@@ -120,6 +153,9 @@ DD.combat = (function () {
           DD.fx.fire('onHeavyCorrect', x); DD.fx.fire('onQuestionCorrect', x); gain(C, x);
           C.firstHeavy = false;
           hit(C, playerDamage(C, x), 'Your heavy blow lands');
+          if (x.execute && C.enemy.hp > 0 && C.enemy.hp / C.enemy.maxHP < x.execute) {
+            C.enemy.hp = 0; say(C, 'Executed: ' + C.enemy.name + ' fell below ' + Math.round(x.execute * 100) + '% HP.');
+          }
         } else {
           const x = ctx(C); DD.fx.fire('onHeavyWrong', x); DD.fx.fire('onQuestionWrong', x);
           C.firstHeavy = false; C.wrongBonus = true;
@@ -128,7 +164,7 @@ DD.combat = (function () {
       } else if (ok) {
         const x = ctx(C); DD.fx.fire('onQuestionCorrect', x); gain(C, x);
         const rw = S.questionReward;
-        if (R() < 0.5) { C.buffs.push({ id: 'q-focus', src: 'buff', trigger: 'static', result: { type: 'damageMult', mult: rw.dmgMult }, turns: rw.turns, fresh: true }); say(C, 'Correct! Your attacks hit +25% harder for ' + rw.turns + ' turns.'); }
+        if (R() < 0.5) { C.buffs.push({ id: 'q-focus', label: '+25% damage', src: 'buff', trigger: 'static', result: { type: 'damageMult', mult: rw.dmgMult }, turns: rw.turns, fresh: true }); say(C, 'Correct! Your attacks hit +25% harder for ' + rw.turns + ' turns.'); }
         else { const h = Math.round(rw.healPct * C.st.maxHP); C.run.hp = Math.min(C.st.maxHP, C.run.hp + h); say(C, 'Correct! You recover ' + h + ' HP.'); }
       } else {
         const x = ctx(C); DD.fx.fire('onQuestionWrong', x);
@@ -136,13 +172,14 @@ DD.combat = (function () {
         if (R() < 0.5) { C.enemyBuffs.push({ mult: eb.dmgMult, turns: eb.turns, fresh: true }); say(C, 'Wrong. ' + C.enemy.name + ' hits +25% harder for ' + eb.turns + ' turns.'); }
         else { const h = Math.round(eb.healPct * C.enemy.maxHP); C.enemy.hp = Math.min(C.enemy.maxHP, C.enemy.hp + h); say(C, 'Wrong. ' + C.enemy.name + ' recovers ' + h + ' HP.'); }
       }
+      if (C.qKind === 'heavy') for (let i = C.buffs.length - 1; i >= 0; i--) if (C.buffs[i].expires === 'heavy') C.buffs.splice(i, 1); // one-heavy buffs, hit or miss
       C.phase = 'explain';
     },
     // Continue after an explanation (or after the final summary).
     cont(C) {
       if (C.phase !== 'explain') return;
       if (C.enemy.hp <= 0) return win(C);
-      if (C.qKind === 'heavy') return enemyTurn(C);
+      if (C.qKind === 'heavy') return afterPlayer(C);
       endRound(C);
     }
   };

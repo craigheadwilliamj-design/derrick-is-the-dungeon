@@ -74,7 +74,10 @@ DD.ui = (function () {
         el('div', { class: 'stats small dim' }, 'HP ' + st.maxHP + ' · Power ' + st.power.toFixed(1) + ' · Defense ' + st.defense.toFixed(1) + ' · ATP ' + st.maxATP),
         bar('xp', pct(p.xp, st.xpToNext)), el('div', { class: 'small dim' }, p.xp + ' / ' + st.xpToNext + ' XP'),
         el('div', { class: 'small' }, el('b', null, cls.passive.name + ': '), cls.passive.desc),
-        el('div', { class: 'small' }, el('b', null, cls.active.name + ' (' + cls.active.cost + ' ATP): '), cls.active.desc)),
+        el('div', { class: 'small' }, el('b', null, cls.active.name + ' (' + cls.active.cost + ' ATP): '), cls.active.desc),
+        el('div', { class: 'toolrow2' },
+          el('button', { class: 'btn small primary', type: 'button', onclick: ui.classes }, 'Hematopoiesis: change class'),
+          run ? el('span', { class: 'dim small' }, 'Locked while a run is in progress. Resume or abandon it first.') : null)),
       el('div', { class: 'card toolrow' },
         el('div', { class: 'filter', role: 'group', 'aria-label': 'Question source' }, el('span', { class: 'tag' }, 'Source'),
           FILTERS.map(([v, l]) => el('button', { class: 'btn small' + (p.settings.sourceFilter === v ? ' primary' : ''), type: 'button', 'aria-pressed': String(p.settings.sourceFilter === v),
@@ -89,6 +92,34 @@ DD.ui = (function () {
           ? el('span', null, el('button', { class: 'btn danger', onclick: () => { menuConfirm = false; DD.save.reset(); DD.game.abandon(); ui.menu(); } }, 'Yes, erase everything'),
             el('button', { class: 'btn', onclick: () => { menuConfirm = false; ui.menu(); } }, 'Cancel'))
           : el('button', { class: 'btn', onclick: () => { menuConfirm = true; ui.menu(); } }, 'Erase save'))));
+  };
+  // ---------- class select (Hematopoiesis) ----------
+  const RATINGS = [['hp', 'HP', 'maxHP'], ['pow', 'Power', 'power'], ['def', 'Defense', 'defense'], ['atp', 'ATP', 'maxATP']];
+  ui.classes = function () {
+    ui.mode = 'classes';
+    const p = DD.save.profile, locked = !!DD.save.run;
+    const back = el('button', { class: 'btn', type: 'button', onclick: ui.menu }, 'Back to the marrow');
+    const cards = DD.data.classOrder.map(id => {
+      const c = DD.data.classes[id], st = DD.stats.compute(Object.assign({}, p, { classId: id })), cur = p.classId === id;
+      const rows = RATINGS.map(([k, label, sk]) => el('div', { class: 'rate' }, el('span', null, label), bar('rt', c.ratings[k] * 20),
+        el('b', null, c.ratings[k] + '/5'), el('small', { class: 'dim' }, (sk === 'power' || sk === 'defense' ? st[sk].toFixed(1) : st[sk]))));
+      return el('div', { class: 'card cls' + (cur ? ' current' : '') },
+        el('div', { class: 'rhead' }, el('h3', null, c.name), el('span', { class: 'chip ' + (cur ? 'ok' : '') }, cur ? 'Current · ' + c.role : c.role)),
+        el('div', { class: 'ratings' }, rows),
+        el('div', { class: 'small' }, el('b', null, 'Weapon: '), c.weapon + ' (own type gets a bonus once gear arrives)'),
+        el('div', { class: 'small' }, el('b', null, 'Strong against: '), c.matchups.length ? c.matchups.join(', ') + ' (+50% damage)' : 'no one in particular. This is a support class.'),
+        el('div', { class: 'small' }, el('b', null, c.passive.name + ' (passive): '), c.passive.desc),
+        el('div', { class: 'small' }, el('b', null, c.active.name + ' (' + c.active.cost + ' ATP): '), c.active.desc),
+        el('p', { class: 'codex small dim' }, c.codex),
+        el('button', { class: 'btn' + (cur ? '' : ' primary'), type: 'button', disabled: cur || locked,
+          onclick: () => { p.classId = id; DD.save.save(); ui.classes(); } }, cur ? 'Your current class' : 'Become a ' + c.name));
+    });
+    mount(el('div', { class: 'screen menu' },
+      el('div', { class: 'tag' }, 'Bone Marrow'),
+      el('h1', null, 'Hematopoiesis'),
+      el('p', { class: 'dim small' }, 'Blood cells are made in the red bone marrow from hematopoietic stem cells. Pick which white blood cell you are. Your level carries over to every class, and you can only switch here at the marrow.'),
+      locked ? el('p', { class: 'warn small' }, 'A run is in progress, so switching is locked. Resume or abandon it first.') : null,
+      back, el('div', { class: 'grid' }, cards)));
   };
   ui.enter = function (regionId, resume) {
     if (resume) DD.game.resume(DD.save.run); else DD.game.newRun(regionId);
@@ -143,10 +174,21 @@ DD.ui = (function () {
 
   // ---------- combat ----------
   ui.openCombat = function () { ui.mode = 'combat'; g.combat.hidden = false; ui.renderCombat(); };
-  ui.closeCombat = function () { ui.mode = 'map'; g.combat.hidden = true; g.combat.replaceChildren(); ui.refreshMap(); };
+  ui.closeCombat = function () { stopTimer(); ui.mode = 'map'; g.combat.hidden = true; g.combat.replaceChildren(); ui.refreshMap(); };
   const INTENT = { attack: ['Attack', ''], big: ['Big attack !!', 'danger'], defend: ['Bracing (damage halved)', 'guard'], question: ['Question', 'ask'] };
 
+  // Thin bar for answeredFast classes (Cytotoxic T). It only decides the crit; running out never fails the answer.
+  let timerId = null;
+  const stopTimer = () => { if (timerId) { clearInterval(timerId); timerId = null; } };
+  const hasFast = C => DD.fx.classEffects(DD.save.profile).some(e => e.cond && e.cond.answeredFast);
+  function fastTimer(C) {
+    const fill = el('i'), box = el('div', { class: 'timer', 'aria-hidden': 'true' }, fill), secs = DD.S.combat.fastSeconds;
+    const tick = () => { const left = Math.max(0, 1 - (Date.now() - C.qStart) / 1000 / secs); fill.style.width = Math.round(left * 100) + '%'; box.classList.toggle('spent', left <= 0); };
+    tick(); stopTimer(); timerId = setInterval(tick, 100);
+    return [box, el('div', { class: 'rmnote' }, C.cls.passive.name + ': answer within ' + secs + ' s for a crit (no penalty if you take longer)')];
+  }
   ui.renderCombat = function () {
+    stopTimer();
     const C = DD.game.combat; if (!C) return;
     const e = C.enemy, run = C.run, [iname, icls] = INTENT[C.intent];
     const foe = el('div', { class: 'foe' },
@@ -160,8 +202,10 @@ DD.ui = (function () {
     const me = el('div', { class: 'me' },
       el('div', { class: 'stat' }, 'You HP ', el('b', null, Math.round(run.hp) + '/' + C.st.maxHP), bar('hp', pct(run.hp, C.st.maxHP))),
       el('div', { class: 'stat' }, 'ATP ', el('b', null, Math.round(run.atp) + '/' + C.st.maxATP), bar('atp', pct(run.atp, C.st.maxATP))),
-      C.buffs.length || C.enemyBuffs.length ? el('div', { class: 'chips' },
-        C.buffs.map(b => el('span', { class: 'chip ok' }, b.id === C.cls.active.effect.id ? C.cls.active.name + ': ' + C.cls.active.armedText : b.id === 'q-focus' ? '+25% damage (' + b.turns + ')' : b.id)),
+      C.buffs.length || C.enemyBuffs.length || C.ally || C.poison ? el('div', { class: 'chips' },
+        C.buffs.map(b => el('span', { class: 'chip ok' }, (b.label || b.id) + (b.turns != null ? ' (' + b.turns + ')' : ''))),
+        C.ally ? el('span', { class: 'chip ok' }, 'Neutrophil ally (' + C.ally.turns + ')') : null,
+        C.poison ? el('span', { class: 'chip ok' }, 'Enemy poisoned (' + C.poison.turns + ')') : null,
         C.enemyBuffs.map(b => el('span', { class: 'chip danger' }, 'Enemy +25% (' + b.turns + ')'))) : null);
     const body = el('div', { class: 'cbody' });
     if (C.phase === 'choose') {
@@ -169,15 +213,16 @@ DD.ui = (function () {
       body.append(el('div', { class: 'actions' },
         el('button', { class: 'btn', onclick: () => act('light') }, el('kbd', null, 'L'), 'Light', el('small', null, 'small hit, always lands')),
         el('button', { class: 'btn primary', onclick: () => act('heavy') }, el('kbd', null, 'H'), 'Heavy', el('small', null, 'answer a question for a big hit')),
-        el('button', { class: 'btn', onclick: () => act('block') }, el('kbd', null, 'B'), 'Block', el('small', null, 'cut the next hit by 60%')),
+        el('button', { class: 'btn', onclick: () => act('block') }, el('kbd', null, 'B'), 'Block', el('small', null, 'cut the next hit by ' + Math.round(C.st.blockCut * 100) + '%')),
         el('button', { class: 'btn ability', disabled: !can, title: a.name + ' (' + a.cost + ' ATP, free action): ' + a.desc, 'aria-label': a.name + ', ' + a.cost + ' ATP, free action. ' + a.desc, onclick: () => act('ability') },
           el('kbd', null, 'A'), a.name, el('small', { class: 'adesc' }, a.desc), el('small', { class: 'acost' }, a.cost + ' ATP · free action')),
         el('button', { class: 'btn', disabled: true, title: 'Fleeing arrives with the economy update' }, 'Flee', el('small', null, 'not yet'))));
     } else if (C.phase === 'question' || C.phase === 'explain') {
       const q = C.q, ans = C.answer;
-      body.append(
+      body.append(...[
         el('div', { class: 'qtag' }, C.qKind === 'enemy' ? e.name + ' asks:' : 'Heavy attack: answer to land it', q.placeholder ? el('span', { class: 'chip' }, 'placeholder') : null,
           q.img ? el('span', { class: 'chip ok' }, DD.img.TAGS[q.img.tag]) : null),
+        !ans && C.qKind === 'heavy' && hasFast(C) ? fastTimer(C) : null,
         el('p', { class: 'q' }, q.q),
         q.img ? DD.img.view(q.img, !!ans) : null,
         C.removed > 0 ? el('div', { class: 'rmnote' }, C.removed + ' wrong option' + (C.removed > 1 ? 's' : '') + ' removed (' + C.cls.active.name + ')') : null,
@@ -185,7 +230,7 @@ DD.ui = (function () {
           let cls = 'opt';
           if (ans) cls += o.correct ? ' right' : (i === ans.i ? ' wrong' : '');
           return el('button', { class: cls, disabled: !!ans, onclick: () => act('answer', i) }, el('kbd', null, String(i + 1)), o.text);
-        })));
+        }))].flat().filter(Boolean));
       if (ans) body.append(el('div', { class: 'fb ' + (ans.ok ? 'good' : 'bad') }, el('b', null, ans.ok ? 'Correct. ' : 'Not quite. The answer is ' + q.answer + '. '), q.explain),
         el('button', { class: 'btn primary', onclick: () => act('cont') }, el('kbd', null, '↵'), 'Continue'));
     } else if (C.phase === 'end') {
