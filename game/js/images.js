@@ -2,10 +2,10 @@
 DD.img = (function () {
   const { el } = DD.u, S = DD.S.img;
   const TAGS = { 'human-model': 'Human model', 'fetal-pig': 'Fetal pig' };
-  const SYSTEMS = [['found', 'Foundations'], ['cells', 'Cells & tissues'], ['integ', 'Integumentary'], ['skeletal', 'Skeletal'],
-    ['muscular', 'Muscular'], ['nervous', 'Nervous'], ['senses', 'Special senses'], ['endo', 'Endocrine'], ['blood', 'Blood'],
-    ['cardio', 'Cardiovascular'], ['lymph', 'Lymphatic & immune'], ['resp', 'Respiratory'], ['digest', 'Digestive'],
-    ['urinary', 'Urinary, fluid & acid-base'], ['repro', 'Reproductive']];
+  const SYSTEMS = [['found', 'Fundamentals'], ['integ', 'Integumentary'], ['skeletal', 'Skeletal'],
+    ['muscular', 'Muscular'], ['nervous', 'Nervous'], ['blood', 'Blood'],
+    ['cardio', 'Circulatory'], ['lymph', 'Lymphatic'], ['resp', 'Respiratory'], ['digest', 'Digestive'],
+    ['urinary', 'Urinary'], ['repro', 'Reproductive']];
   const out = { TAGS, SYSTEMS, records: [], assets: null, state: 'loading', ready: null };
   const sysName = id => (SYSTEMS.find(s => s[0] === id) || [id, id])[1];
   const norm = t => String(t).trim().toLowerCase();
@@ -14,6 +14,7 @@ DD.img = (function () {
   out.local = !window.claude || !window.claude.use;
 
   function valid(r) {
+    if (r && r.system === 'cells') r.system = 'found'; // Legacy cells/tissues now belong to Fundamentals.
     return r && typeof r.id === 'string' && typeof r.assetId === 'string' && TAGS[r.tag] && Array.isArray(r.boxes) &&
       SYSTEMS.some(s => s[0] === r.system);
   }

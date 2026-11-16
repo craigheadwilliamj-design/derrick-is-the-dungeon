@@ -4,7 +4,7 @@ DD.q = (function () {
   const recent = [];
   // Source filter: all | human-model | fetal-pig | text. A tag filter keeps only image questions with that tag.
   const filter = () => (DD.save.profile.settings || {}).sourceFilter || 'all';
-  const text = systems => systems.flatMap(s => DD.data.questions[s] || []);
+  const text = systems => [...new Set(systems.map(s => s === 'cells' ? 'found' : s))].flatMap(s => DD.data.questions[s] || []);
   const imgs = (systems, tag) => (DD.img ? DD.img.questions(systems, tag) : []);
   function pool(systems, ignoreFilter) {
     const f = ignoreFilter ? 'all' : filter();

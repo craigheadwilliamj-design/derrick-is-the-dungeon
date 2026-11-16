@@ -5,8 +5,8 @@ DD.cq = (function () {
   const withTimeout = p => Promise.race([Promise.resolve(p), new Promise(r => setTimeout(() => r(null), DD.S.save.dbTimeoutMs))]);
   const lsGet = () => { try { const a = JSON.parse(localStorage.getItem(LS) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
   const lsSet = a => { try { localStorage.setItem(LS, JSON.stringify(a)); } catch (e) { /* blocked */ } };
-  const valid = r => r && typeof r.id === 'string' && typeof r.q === 'string' && typeof r.answer === 'string' && Array.isArray(r.wrong) && r.wrong.length === 3 &&
-    r.wrong.every(w => typeof w === 'string') && typeof r.explain === 'string' && DD.img.SYSTEMS.some(s => s[0] === r.system);
+  const valid = r => { if (r && r.system === 'cells') r.system = 'found'; return r && typeof r.id === 'string' && typeof r.q === 'string' && typeof r.answer === 'string' && Array.isArray(r.wrong) && r.wrong.length === 3 &&
+    r.wrong.every(w => typeof w === 'string') && typeof r.explain === 'string' && DD.img.SYSTEMS.some(s => s[0] === r.system); };
   const clean = r => ({ id: r.id, system: r.system, q: r.q, answer: r.answer, wrong: r.wrong.slice(0, 3), explain: r.explain, source: 'generated', createdAt: r.createdAt || Date.now() });
 
   // Put a record into the live pool (replaces one with the same id).

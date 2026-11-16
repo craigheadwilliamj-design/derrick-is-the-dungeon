@@ -38,14 +38,8 @@ DD.data.circ = (function () {
   A('arch', 'Aortic arch', 'Curves over the heart and gives off the arteries to the head and arms.', { lenMul: 0.8, trap: 'Aortic turbulence' });
   A('lCarotid', 'Left common carotid artery', 'Runs up the neck and splits into the internal and external carotid arteries.', { lenMul: 0.9 });
   A('intCarotid', 'Internal carotid artery', 'Supplies the brain and the eye.', { lenMul: 0.9 });
-  A('extCarotid', 'External carotid artery', 'Supplies the face, scalp and neck, including the thyroid.', { lenMul: 0.6 });
-  A('supThyroidA', 'Superior thyroid artery', 'The first branch of the external carotid. It supplies the thyroid gland.', { lenMul: 0.5 });
-  A('ophthalmicA', 'Ophthalmic artery', 'A branch of the internal carotid artery that supplies the eye.', { lenMul: 0.5 });
   V('cerebralV', 'Cerebral veins', 'They drain the brain into the dural venous sinuses.', { lenMul: 0.7 });
   V('dural', 'Dural venous sinuses', 'Channels between layers of the dura mater that collect blood from the brain and drain into the internal jugular veins.', { lenMul: 0.9, trap: 'Sinus eddy' });
-  V('ophthalmicV', 'Ophthalmic veins', 'They drain the eye and orbit into the cavernous sinus.', { lenMul: 0.5 });
-  V('cavSinus', 'Cavernous sinus', 'Receives the ophthalmic veins and drains toward the internal jugular vein through the petrosal sinuses.', { lenMul: 0.6 });
-  V('thyroidV', 'Superior and middle thyroid veins', 'They drain the thyroid into the internal jugular vein.', { lenMul: 0.5 });
   V('ijv', 'Internal jugular vein', 'The main vein draining the brain and much of the head and neck.', { lenMul: 0.9 });
   V('lAngle', 'Left venous angle', 'Where the left internal jugular and left subclavian veins meet. The thoracic duct empties here.', { lenMul: 0.4 });
   V('lBrach', 'Left brachiocephalic vein', 'Formed by the left internal jugular and subclavian veins. It crosses to join the right brachiocephalic vein.', { lenMul: 0.7 });
@@ -53,8 +47,6 @@ DD.data.circ = (function () {
   V('rBrach', 'Right brachiocephalic vein', 'Joins the left brachiocephalic vein to form the superior vena cava.', { lenMul: 0.5 });
   V('svc', 'Superior vena cava', 'Returns blood from the head, neck, arms and chest wall to the right atrium.', { lenMul: 0.9 });
   chain('ascAorta', 'arch', 'lCarotid', 'intCarotid', 'brain', 'cerebralV', 'dural', 'ijv', 'lAngle', 'lBrach', 'svc', 'ra');
-  chain('intCarotid', 'ophthalmicA', 'eyesears', 'ophthalmicV', 'cavSinus', 'dural');
-  chain('lCarotid', 'extCarotid', 'supThyroidA', 'glands', 'thyroidV', 'ijv');
 
   // ---- arm (skin) and thymus, both off the left subclavian artery ----
   A('lSubclavian', 'Left subclavian artery', 'Supplies the left arm and gives off the internal thoracic artery.', { lenMul: 0.8 });
@@ -108,8 +100,6 @@ DD.data.circ = (function () {
   P('marrow', 'Bone Marrow', 'dungeon', 'Red marrow of the ilium, reached by the internal iliac artery. New blood cells leave through venous sinusoids, so there is no lymph route out.');
   P('thymus', 'Thymus', 'thymus', 'Where T cells mature. It is supplied by thymic branches of the internal thoracic artery. Claim milestone upgrades for your class here.');
   P('brain', 'Brain', 'dungeon', 'Reached by the internal carotid artery. Veins drain through the dural venous sinuses to the internal jugular vein.');
-  P('eyesears', 'Eyes & Ears', 'dungeon', 'The eye is reached by the ophthalmic artery. The inner ear is really fed by the labyrinthine artery from the basilar system, which this map simplifies.');
-  P('glands', 'Glands', 'dungeon', 'The thyroid stands in for the glands here. The adrenals are supplied from the aorta and renal arteries, and the pituitary from the internal carotid.');
   P('heart', 'Heart', 'dungeon', 'Supplied by the coronary arteries. Cardiac veins drain to the coronary sinus and then the right atrium.');
   P('lungs', 'Lungs', 'dungeon', 'Reached through the pulmonary capillaries, where gas exchange happens.');
   P('spleen', 'Spleen', 'dungeon', 'Supplied by the splenic artery. Its blood drains to the liver by the portal vein.');
@@ -122,7 +112,7 @@ DD.data.circ = (function () {
 
   // Lymph node towns. regions = the dungeons that really drain there.
   const towns = [
-    { id: 'cervical', accent: '#7fb8e0', name: 'Cervical Nodes', short: 'Cervical', regions: ['brain', 'eyesears', 'glands'], exit: 'thoracicDuct',
+    { id: 'cervical', accent: '#7fb8e0', name: 'Cervical Nodes', short: 'Cervical', regions: ['brain'], exit: 'thoracicDuct',
       blurb: 'Lymph nodes filter lymph before it returns to the blood, and they are packed with lymphocytes. The cervical nodes drain the head and neck.' },
     { id: 'axillary', accent: '#9fd67f', name: 'Axillary Nodes', short: 'Axillary', regions: ['skin'], exit: 'thoracicDuct',
       blurb: 'The axillary nodes in the armpit drain the arm, the chest wall and the breast.' },
@@ -147,8 +137,6 @@ DD.data.circ = (function () {
   LY('cisterna', 'Cisterna chyli', 'A lymph sac in the abdomen where the lumbar and intestinal lymph trunks meet and the thoracic duct begins.', { lenMul: 0.5 });
   LY('rDuct', 'Right lymphatic duct', 'Drains lymph from the right arm and the right side of the head and chest into the right venous angle.', { lenMul: 0.6 });
   LV('lvBrain', 'Meningeal lymphatic vessels', 'Recently recognized lymphatic vessels in the dura carry fluid from around the brain to the deep cervical nodes. Older textbooks say the brain has none.', 'cervical', ['brain']);
-  LV('lvHead', 'Lymphatic vessels of the head and face', 'They drain toward the deep cervical nodes.', 'cervical', ['eyesears']);
-  LV('lvThyroid', 'Thyroid lymphatic vessels', 'They drain the thyroid to nodes in the neck.', 'cervical', ['glands']);
   LV('lvArm', 'Lymphatic vessels of the arm', 'They drain the arm toward the axillary nodes.', 'axillary', ['skin']);
   LV('lvHeart', 'Cardiac lymphatic vessels', 'They drain the heart toward the mediastinal nodes.', 'mediastinal', ['heart']);
   LV('lvLung', 'Pulmonary lymphatic vessels', 'They drain the lungs toward the mediastinal nodes.', 'mediastinal', ['lungs']);
@@ -171,7 +159,7 @@ DD.data.circ = (function () {
 
   // Where each place sits on the body map: column, row on a 40 x 44 grid, and which side its label goes (l|r).
   const map = {
-    brain: [20, 2, 'r'], eyesears: [20, 5, 'r'], glands: [21, 9, 'r'], cervical: [19, 10, 'l'], thymus: [20, 12, 'l'],
+    brain: [20, 2, 'r'], cervical: [19, 10, 'l'], thymus: [20, 12, 'l'],
     axillary: [29, 13, 'r'], mediastinal: [19, 14, 'l'], heart: [23, 15, 'r'], lungs: [13, 16, 'l'], skin: [35, 21, 'r'],
     spleen: [27, 19, 'r'], lumbar: [17, 20, 'l'], kidneys: [23, 21, 'r'], gut: [20, 23, 'r'], mesenteric: [16, 25, 'l'],
     marrow: [28, 27, 'r'], gonads: [19, 28, 'l'], inguinal: [24, 30, 'r'], quads: [25, 34, 'r'], femur: [24, 39, 'r']
