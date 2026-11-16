@@ -106,7 +106,7 @@
     } else if (here) {
       if (W.isDungeon(id)) actions.push(r.playable ? el('button', { class: 'btn primary', onclick: () => ui.enter(id, false) }, 'Enter the ' + r.name)
         : el('p', { class: 'dim small' }, 'No pathogens or questions here yet. The dungeon opens once it has content.'));
-      if (n.sub === 'town') actions.push(el('button', { class: 'btn primary', onclick: () => ui.town({ id }) }, 'Visit the ' + n.name));
+      if (n.sub === 'town') actions.push(el('button', { class: 'btn primary', onclick: () => ui.town({ id, via: 'hev' }) }, 'Visit the ' + n.name));
       if (n.sub === 'thymus') actions.push(el('button', { class: 'btn primary', onclick: ui.thymus }, 'Enter the thymus' + (DD.thymus.pending(p.classId) ? ' (upgrade ready)' : '')));
       const tn = W.townFor(id);
       if (tn) actions.push(el('button', { class: 'btn', onclick: () => DD.travel.start(W.plan(id, tn)) }, 'Take the lymphatic vessel to the ' + DD.data.town(tn).name));

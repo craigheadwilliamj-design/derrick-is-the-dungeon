@@ -42,6 +42,7 @@ DD.render = (function () {
       else if (t === '=') put('=', i, j, colors.door, a);                                 // plaque
       else if (t === '»') put('»', i, j, colors.ok, a, seen ? colors.ok : null);          // one-way valve
       else if (t === '|') put('|', i, j, colors.floor, a);                                // closed valve
+      else if (f.tiles && f.tiles[t]) { const d = f.tiles[t], c = colors[d.col] || d.col; put(d.ch, i, j, c, a, d.glow && seen ? c : null); } // town features (3c)
     }
     for (const tr of f.traps || []) {
       if (!tr.state) continue; // hidden until stepped on; revealed traps stay visible
@@ -55,7 +56,7 @@ DD.render = (function () {
     }
     for (const n of f.npcs || []) {
       const idx = n.y * f.W + n.x; if (!f.explored[idx] || !f.vis[idx]) continue;
-      put(n.glyph, n.x - x0, n.y - y0, n.kind === 'merchant' ? colors.merchant : colors.npc, 1, n.done ? null : colors.npc);
+      put(n.glyph, n.x - x0, n.y - y0, n.col || (n.kind === 'merchant' ? colors.merchant : colors.npc), 1, n.done || n.kind === 'ambient' ? null : colors.npc);
     }
     for (const e of f.enemies) {
       if (!e.alive || !f.vis[e.y * f.W + e.x]) continue;

@@ -105,6 +105,8 @@ DD.S = {
   // NPCs, merchant, bounties, thymus (phase 3b).
   npc: { lootGlucose: { min: 8, max: 15 }, lootItemChance: 0.35 },   // native cell reward for a right answer: glucose, or a consumable
   merchant: { chance: 0.2, stockMin: 3, stockMax: 4, qtyMax: 2, priceMult: 1.5, restMult: 2, tipCost: 5, fadedCount: 2 },  // chance is per non-boss floor
+  // Walkable towns (3c). ambientStep: an ambient cell moves once every min-max of your steps. gossipChance: a line about a region that drains here.
+  town: { ambient: { min: 4, max: 6 }, ambientStep: { min: 2, max: 3 }, gossipChance: 0.4, holdMs: 140 },
   bounty: {
     active: 3, kill: { min: 2, max: 4 }, answer: { min: 5, max: 10 },
     glucose: { kill: 8, answer: 3, clear: 40 },                      // per unit (kill, answer) or flat (clear)

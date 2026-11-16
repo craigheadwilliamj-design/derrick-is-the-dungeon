@@ -1,4 +1,4 @@
-// NPCs as data (phase 3b). {id, name, kind:"native|town|merchant", regions:[…], lines:{greet:[…], derrick:[…]}, codex}.
+// NPCs as data (phase 3b). {id, name, kind:"native|town|merchant|ambient", regions:[…], lines:{greet:[…], derrick:[…]}, codex}.
 // greet lines teach a true fact in first person; derrick lines are affectionate, accurate jokes about Derrick.
 // Event-reactive lines come in 5b. Natives are the one-per-floor cells in each dungeon (glyph ☺).
 (function () {
@@ -145,7 +145,47 @@
       ['Derrick asked if I am named after a tree. I am named for my branching projections, and I am not a neuron, thanks.', 'I carry samples of everything Derrick picks up to the lymph nodes. Everything. Please wash your hands, Derrick.'],
       'Dendritic cells are antigen-presenting cells that link innate and adaptive immunity.')
   ];
-  DD.data.npcs = natives.concat(folks);
+  // Ambient town cells (3c): one-liners on bump, never a question. zones = the town map zones they wander.
+  const A = (id, name, glyph, zones, lines) => ({ id, name, kind: 'ambient', glyph, zones, regions: [], lines: { greet: lines } });
+  const ambient = [
+    A('naive-b', 'Naive B cell', 'b', ['c', 'g'], [
+      'I am a naive B cell. I have never met my antigen, so I wait in a follicle in case it shows up.',
+      'My receptor is a membrane-bound antibody. If my antigen binds it and a helper T cell agrees, I can become a plasma cell.',
+      'Derrick thinks one antibody fits everything. Each of us has a receptor for one specific antigen.']),
+    A('naive-t', 'Naive T cell', 't', ['p'], [
+      'I am a naive T cell. I drift through lymph nodes looking for a dendritic cell that shows my antigen.',
+      'I came in from the blood through a high endothelial venule. Most lymphocytes enter nodes that way.',
+      'Derrick says he is waiting for the right one too. Mine is one antigen out of millions.']),
+    A('macrophage-res', 'Resident macrophage', 'o', ['n'], [
+      'I am a resident macrophage. I sit in the medullary sinus and eat whatever drifts past.',
+      'I engulf pathogens by phagocytosis and show pieces of them to T cells on MHC class II.',
+      'Derrick’s last cold sent a lot of debris through here. I am still chewing.']),
+    A('fdc', 'Follicular dendritic cell', 'f', ['c', 'g'], [
+      'I am a follicular dendritic cell. I hold whole antigens on my surface so B cells can test their receptors against them.',
+      'Despite the name, I am not the dendritic cell that presents antigen to T cells. I am part of the follicle’s framework.',
+      'Derrick asked if I am related to the dendritic merchant. Only by name.']),
+    A('reticular', 'Reticular cell', 'r', ['s', 'p', 'm'], [
+      'I am a reticular cell. My reticular fibers build the mesh that holds this whole node together.',
+      'Our fiber network works like a road system that lymphocytes crawl along.',
+      'Derrick calls the lymph node a gland. It is a filter, and I am the frame it hangs on.'])
+  ];
+  // What ambient cells gossip about: the regions that really drain to their town (keys are region ids).
+  DD.data.townGossip = {
+    brain: ['Fluid from around Derrick’s brain reaches the deep cervical nodes through the meningeal lymphatic vessels. He still thinks it is empty up there.'],
+    eyesears: ['Derrick rubbed his eyes with gym hands again. Lymph from the eyelids and face drains to nodes of the head and neck, so we heard about it.'],
+    glands: ['The thyroid needs iodine to make T3 and T4. Derrick switched to fancy salt with no iodine in it.'],
+    skin: ['A scratch on Derrick’s arm sent bacteria our way. Busy axillary nodes swell, so his armpit is tender.'],
+    heart: ['The heart works nonstop, so its muscle has its own lymphatic vessels draining to the mediastinal nodes. Derrick thinks his heart only works at the gym.'],
+    lungs: ['Dust Derrick breathes in gets carried to the nodes around the lungs, which can turn black with it over the years.'],
+    thymus: ['The thymus shrinks after puberty and is mostly fat in older adults. Derrick’s is not growing back either.'],
+    gut: ['After Derrick’s cheeseburger, the lacteals sent milky lymph down here. Fat-rich lymph is called chyle.'],
+    spleen: ['The spleen filters blood, not lymph, and has no afferent lymphatic vessels. It sends gossip out, never in.'],
+    kidneys: ['The kidneys filter about 180 liters of plasma a day. Derrick drinks one liter of water and calls himself hydrated.'],
+    gonads: ['Testicular lymph drains to the lumbar nodes, not the groin, because the testes develop near the kidneys and descend later.'],
+    femur: ['In adults, most red marrow is in flat bones and the ends of long bones like Derrick’s femur. The shaft fills with yellow, fatty marrow.'],
+    quads: ['Derrick skipped leg day again. Lymph has no central pump like the heart, and contracting skeletal muscles help squeeze it along.']
+  };
+  DD.data.npcs = natives.concat(folks, ambient);
   DD.data.npc = id => DD.data.npcs.find(n => n.id === id);
   DD.data.npcFriendly = [
     'No worries. Even cells get that one wrong now and then.',

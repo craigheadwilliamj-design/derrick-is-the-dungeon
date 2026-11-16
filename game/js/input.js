@@ -7,6 +7,11 @@ DD.input = {
       if (ui.mode === 'map') {
         const m = { arrowup: [0, -1], w: [0, -1], arrowdown: [0, 1], s: [0, 1], arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0] }[k];
         if (m) { e.preventDefault(); DD.game.move(m[0], m[1]); }
+      } else if (ui.mode === 'town') {
+        const m = { arrowup: [0, -1], w: [0, -1], arrowdown: [0, 1], s: [0, 1], arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0] }[k];
+        if (m) { e.preventDefault(); DD.town.move(m[0], m[1]); }
+      } else if (ui.mode === 'townpanel') {
+        if (k === 'escape') { e.preventDefault(); DD.town.close(); }
       } else if (ui.mode === 'popquiz') {
         const Q = DD.game.quiz; if (!Q) return;
         if (!Q.answer && /^[1-4]$/.test(k) && +k <= Q.opts.length) { e.preventDefault(); DD.game.answerTrap(+k - 1); }
