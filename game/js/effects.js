@@ -2,9 +2,8 @@
 DD.fx = (function () {
   // Class passive (a subclass may replace it), the class's other effects, then the subclass's own effects (5a).
   function classEffects(profile) {
-    const c = DD.data.classes[profile.classId], sub = DD.sub && DD.sub.get(profile);
-    if (!c) return [];
-    return [sub && sub.passive ? sub.passive : c.passive].concat(c.effects || [], sub && sub.effects || []);
+    const c = DD.data.classes[profile.classId];
+    return c ? [c.passive].concat(c.effects || []) : [];
   }
   // 3-piece set bonuses (5a): a set's bonus is active while 3 different pieces of it are equipped.
   function setCounts(profile) {

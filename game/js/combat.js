@@ -1,288 +1,280 @@
-// Combat state machine. UI-agnostic: ui.js reads the state object and calls these actions.
+// Turn-based group combat. Plain serializable state supports reloads during questions and battles.
 DD.combat = (function () {
-  const S = DD.S.combat, R = Math.random;
+  const S = DD.S.rpg, p = () => DD.save.profile;
   const say = (C, t) => C.log.push(t);
-
-  function ctx(C, extra) {
-    return Object.assign({ C, enemy: C.enemy, buffs: C.buffs, profile: DD.save.profile, maxHP: C.st.maxHP, maxATP: C.st.maxATP, hp: C.run.hp, log: C.log, mult: 1, dmg: 0, heal: 0, atp: 0,
-      removeWrong: 0, execute: 0, firstHeavy: C.firstHeavy, answeredFast: false, region: C.run.regionId,
-      round: C.round, poisoned: !!C.poison, allyActive: !!C.ally, blocked: false }, extra);
+  const living = C => C.enemies.filter(e => e.hp > 0);
+  const armorDamage = (raw, armor) => Math.max(1, Math.round(raw * S.armorScale / (S.armorScale + Math.max(0, armor))));
+  function context(C, e, extra) {
+    return Object.assign({ profile: p(), enemy: e, C, buffs: C.buffs, maxHP: C.st.maxHP, maxATP: C.st.maxATP,
+      hp: C.run.hp, region: C.run.regionId, round: C.round, firstHeavy: C.firstHeavy,
+      poisoned: !!e.status.poison, allyActive: !!(C.ally && C.ally.hp > 0), log: C.log,
+      mult: 1, dmg: 0, heal: 0, atp: 0, removeWrong: 0 }, extra);
   }
   function gain(C, x) {
-    if (x.heal) C.run.hp = Math.min(C.st.maxHP, C.run.hp + Math.round(x.heal * (x.heal >= C.st.maxHP ? 1 : DD.derrick.healMult()))); // well rested +10%, diabetes -20% (5b); a full restore stays full
-    if (x.atp) C.run.atp = Math.min(C.st.maxATP, C.run.atp + x.atp);
-  }
-  function rollIntent(C) {
-    if (C.drill) return 'idle'; // the training dummy never acts
-    if (C.enemy.boss) { if (C.round % S.bossQuestionEvery === 0) return 'question'; }
-    else if (!C.enemyQUsed && C.round === C.enemyQRound) return 'question';
-    const w = C.enemy.boss ? S.bossIntentWeights : S.intentWeights;
-    const it = DD.u.weightedPick(R, Object.keys(w), k => w[k]);
-    return it === 'big' && DD.fx.rules(DD.save.profile, 'tameBig').length ? 'attack' : it; // Regulatory T: big attacks become normal attacks
+    C.run.hp = Math.min(C.st.maxHP, C.run.hp + Math.round((x.heal || 0) * DD.derrick.healMult()));
+    C.run.atp = Math.min(C.st.maxATP, C.run.atp + (x.atp || 0));
   }
   function create(run, enemy, opts) {
-    const prof = DD.save.profile, cls = DD.thymus.cls(prof);
-    const C = { run, enemy, cls, st: DD.stats.compute(prof), buffs: [], enemyBuffs: [], round: 1, phase: 'choose', log: [], intent: null,
-      firstHeavy: true, wrongBonus: false, blocking: false, q: null, opts: null, qKind: null, qStart: 0, answer: null, over: null,
-      enemyQUsed: false, enemyQRound: DD.u.int(R, S.enemyQuestionRound.min, S.enemyQuestionRound.max),
-      matchup: cls.matchups.includes(enemy.type) ? S.strongMatchup : 1, xpGain: 0, poison: null, ally: null, suppress: 0, forgiven: false,
-      drill: opts && opts.drill ? { left: new Set(opts.drill), total: opts.drill.length, qs: new Map(DD.q.all().map(q => [q.id, q])) } : null, drop: 0 };
-    C.intent = rollIntent(C);
-    if (!C.drill) { // gear that triggers at the start of a fight (4b): ATP, a shield for the first hit
-      const fs = ctx(C); DD.fx.fire('fightStart', fs); gain(C, fs);
-      if (fs.ally) C.ally = fs.ally; // set bonuses can bring an ally in at the start
-      if (run.carryPoison) { C.poison = run.carryPoison; delete run.carryPoison; say(C, 'The poison spreads to ' + enemy.name + '.'); } // Fimbria Lash
-      if (fs.shield) C.buffs.push({ id: 'gear-ward', src: 'gear', label: 'Gear ward: first hit does 0', trigger: 'static', result: { type: 'shield' }, expires: 'hit' });
+    if (opts && opts.saved) {
+      const C = JSON.parse(JSON.stringify(opts.saved)); C.run = run; C.st = DD.stats.compute(p());
+      C.cls = DD.data.classes[p().classId]; C.enemy = C.enemies[0]; return C;
     }
-    say(C, C.drill ? 'Training dummy. No damage either way: answer every question right once.' : enemy.name + ' (Lv ' + enemy.lvl + ') attacks!' + (C.matchup > 1 ? ' You are strong against ' + enemy.type + '.' : ''));
+    let enemies = Array.isArray(enemy) ? enemy : [enemy];
+    if (!(opts && opts.drill) && !Array.isArray(enemy)) {
+      const rng = DD.rng((run.seed + (run.floorIdx || 0) * 7919 + (+enemy.uid || 0) * 997) >>> 0);
+      const count = enemy.boss ? 2 : DD.u.int(rng, 1, 3);
+      enemies = [JSON.parse(JSON.stringify(enemy))];
+      for (let i = 1; i < count; i++) {
+        const def = DD.dungeon.pickDef(run.regionId, enemy.lvl, false, rng);
+        if (def) enemies.push(DD.dungeon.makeEnemy(def, 'add-' + i, enemy.x, enemy.y, enemy.lvl, false));
+      }
+    }
+    enemies = enemies.map(e => Object.assign({}, e, { status: {}, intent: 'attack', stunGuard: false }));
+    const C = { run, enemies, enemy: enemies[0], anchorUid: enemies[0].uid, cls: DD.data.classes[p().classId],
+      st: DD.stats.compute(p()), phase: 'choose', round: 1, target: 0, selection: [], pending: null,
+      buffs: [], log: [], status: {}, shield: false, rage: 0, coating: 0, wind: false, mark: null,
+      ally: null, firstHeavy: true, drop: 0, over: null, answer: null, q: null, opts: null, menu: 'commands',
+      drill: opts && opts.drill ? { left: [...opts.drill], total: opts.drill.length } : null };
+    if (!C.drill) {
+      const x = context(C, C.enemy); DD.fx.fire('fightStart', x); gain(C, x); C.shield = !!x.shield;
+      rollIntents(C); say(C, enemies.length + ' pathogen' + (enemies.length === 1 ? '' : 's') + ' approach.');
+    }
     return C;
   }
-  function playerDamage(C, x) {
-    x.mult *= C.matchup;
-    DD.fx.fire('static', x);
-    let d = Math.round(C.st.power * x.mult - C.enemy.def) + x.dmg;
-    if (C.intent === 'defend') d = Math.round(d * S.defendHalf);
-    return Math.max(1, d);
+  function snapshot(C) {
+    const { run, cls, st, enemy, ...state } = C;
+    return JSON.parse(JSON.stringify(state));
   }
-  function hit(C, d, text) {
-    C.enemy.hp = Math.max(0, C.enemy.hp - d);
-    say(C, text + ' for ' + d + '.' + (C.intent === 'defend' ? ' (It braced.)' : ''));
-  }
-  // Glucose dropped by a kill: regular = roll(min..max) x (1 + perLevel x level), boss = flat.
-  function rollDrop(e) {
-    const D = DD.S.economy.drop;
-    return e.boss ? D.boss : Math.max(1, Math.round(DD.u.int(R, D.min, D.max) * (1 + D.perLevel * e.lvl)));
-  }
-  function win(C) {
-    if (C.drill) { C.phase = 'end'; C.over = 'win'; return; }
-    C.drop = DD.derrick.loot(rollDrop(C.enemy), C.run.regionId); DD.save.profile.glucose += C.drop; C.run.glucose += C.drop;
-    if (C.poison && DD.fx.rules(DD.save.profile, 'poisonSpread').length) C.run.carryPoison = { turns: C.poison.turns, pct: C.poison.pct, stacks: C.poison.stacks || 1 };
-    const x = ctx(C); DD.fx.fire('onKill', x); gain(C, x);
-    say(C, C.enemy.name + ' is destroyed.' + (x.heal ? ' ' + C.cls.passive.name + ' heals ' + Math.round(x.heal) + ' HP.' : '') + ' +' + C.drop + ' glucose.');
-    C.phase = 'end'; C.over = 'win';
-  }
-  function lose(C) { say(C, 'Your cell has been destroyed.'); C.phase = 'end'; C.over = 'lose'; }
-
-  // End of the player's turn: the Basophil's ally strikes, then poison ticks. Either can finish the enemy.
-  function endOfPlayerTurn(C) {
-    const e = C.enemy;
-    if (C.ally && e.hp > 0) {
-      hit(C, playerDamage(C, ctx(C, { mult: C.ally.mult })), 'Your neutrophil ally strikes');
-      if (--C.ally.turns <= 0) { C.ally = null; say(C, 'Your neutrophil ally fades away.'); }
+  function rollIntents(C) {
+    for (const e of living(C)) {
+      // Status-bearing strikes are visible in advance. These matchups are game abstractions.
+      e.intent = C.round % (e.boss ? 3 : 4) === 0 ? 'big' : Math.random() < .15 ? 'defend' : 'attack';
+      e.applies = e.intent === 'big' ? ({ physical: 'bleed', acid: 'corrode', oxidative: 'weaken', electrical: 'stun', toxin: 'poison' }[e.damageType] || 'bleed') : null;
     }
-    if (C.poison && e.hp > 0) {
-      const d = Math.max(1, Math.round(C.poison.pct * e.maxHP * (C.poison.stacks || 1)));
-      e.hp = Math.max(0, e.hp - d); say(C, 'Poison eats at ' + e.name + ' for ' + d + '.' + (C.poison.stacks > 1 ? ' (' + C.poison.stacks + ' stacks)' : ''));
-      if (--C.poison.turns <= 0) { C.poison = null; say(C, 'The poison wears off.'); }
+  }
+  function applyStatus(C, target, kind, sourcePower, turns = 3, stacks = 1, chance = 1) {
+    if (!kind || Math.random() >= chance) return;
+    const st = target.status;
+    if (kind === 'stun') {
+      if (target.stunGuard || st.stun || (target.boss && Math.random() >= S.stunBossChance)) { say(C, 'Stun resisted.'); return; }
+      st.stun = { turns: 1 }; return;
     }
+    if (kind === 'poison') {
+      const old = st.poison || { stacks: 0, damage: 0 };
+      old.stacks += stacks; old.damage = Math.max(old.damage, Math.max(1, Math.round(sourcePower * S.poisonPower)));
+      st.poison = old; return;
+    }
+    const old = st[kind];
+    st[kind] = { turns: Math.max(old ? old.turns : 0, turns), damage: Math.max(old ? old.damage || 0 : 0, Math.round(sourcePower * S.bleedPower)) };
+  }
+  function tickDamage(C, target, player) {
+    for (const kind of ['bleed', 'poison']) {
+      const s = target.status[kind]; if (!s) continue;
+      const d = Math.max(1, s.damage * (s.stacks || 1));
+      if (player) C.run.hp = Math.max(0, C.run.hp - d); else target.hp = Math.max(0, target.hp - d);
+      say(C, (player ? 'You take ' : target.name + ' takes ') + d + ' ' + kind + ' damage.');
+      if (s.turns && --s.turns <= 0) delete target.status[kind];
+    }
+  }
+  function durationTick(st) {
+    for (const key of ['corrode', 'weaken']) if (st[key] && --st[key].turns <= 0) delete st[key];
+  }
+  function processDeaths(C) {
+    for (const e of C.enemies) if (e.hp <= 0 && !e.killTriggered) {
+      e.killTriggered = true;
+      const x = context(C, e); DD.fx.fire('onKill', x); gain(C, x);
+    }
+  }
+  function finish(C) {
+    if (C.run.hp <= 0) { C.over = 'lose'; C.phase = 'end'; return true; }
+    processDeaths(C);
+    if (!living(C).length) {
+      C.over = 'win'; C.phase = 'end';
+      say(C, 'The infection is defeated.'); return true;
+    }
+    return false;
+  }
+  function strike(C, e, skill, basic = false) {
+    if (!e || e.hp <= 0) return;
+    const x = context(C, e, { mult: skill.mult || 1 });
+    DD.fx.fire('static', x); DD.fx.fire(basic ? 'onLight' : 'onHeavyCorrect', x);
+    let raw = C.st.power * x.mult + (x.dmg || 0);
+    if (C.rage) raw *= S.rageDamage;
+    if (C.status.weaken) raw *= 1 - S.weaken;
+    if (C.mark === C.enemies.indexOf(e)) raw *= 1.25;
+    if (skill.finisher && e.hp < e.maxHP * .5) raw *= skill.finisher;
+    if (basic && C.wind) { raw *= 1.5; C.wind = false; }
+    if (e.intent === 'defend') raw *= .5;
+    const type = skill.type || 'physical', armor = type === 'physical' ? e.def * (e.status.corrode ? 1 - S.corrode : 1) : 0;
+    const resistance = (e.resistances || {})[type] || 0;
+    const d = armorDamage(raw * (1 - resistance), armor);
+    e.hp = Math.max(0, e.hp - d); say(C, skill.name + ' hits ' + e.name + ' for ' + d + ' (' + type + ').');
+    applyStatus(C, e, skill.status, C.st.power, skill.turns, skill.stacks, skill.chance == null ? 1 : skill.chance);
+    if (C.coating && (basic || skill.id === 'chain')) applyStatus(C, e, 'poison', C.st.power);
+    if (x.poison) applyStatus(C, e, 'poison', C.st.power);
+    if (x.execute && e.hp / e.maxHP < x.execute) e.hp = 0;
+    for (let i = 0; i < (x.repeat || 0) && e.hp > 0; i++) e.hp = Math.max(0, e.hp - d);
+    if (skill.healKill && e.hp <= 0) gain(C, { heal: C.st.maxHP * skill.healKill });
+    gain(C, x); C.firstHeavy = false;
+  }
+  function companion(C) {
+    if (!C.ally || C.ally.hp <= 0) return;
+    const e = C.enemies[C.mark] && C.enemies[C.mark].hp > 0 ? C.enemies[C.mark] : C.enemies[C.target] && C.enemies[C.target].hp > 0 ? C.enemies[C.target] : living(C)[0];
+    if (!e) return;
+    const d = Math.max(1, Math.round(C.st.power * S.companion.power * (C.mark === C.enemies.indexOf(e) ? 1.25 : 1)));
+    e.hp = Math.max(0, e.hp - d); say(C, 'Basophil hits ' + e.name + ' for ' + d + ' (Toxin).');
+  }
+  function enemyAttack(C, e) {
+    if (C.shield) { C.shield = false; say(C, 'One-hit Shield negates ' + e.name + "'s attack and effect."); return; }
+    let raw = e.atk * (e.intent === 'big' ? 1.8 : 1) * (e.status.weaken ? 1 - S.weaken : 1);
+    const type = e.damageType || 'physical';
+    let d = armorDamage(raw, type === 'physical' ? C.st.defense * (C.status.corrode ? 1 - S.corrode : 1) : 0);
+    if (C.blocking) d = Math.max(1, Math.round(d * (1 - C.st.blockCut)));
+    if (C.rage) d = Math.max(1, Math.round(d * (1 - S.rageCut)));
+    if (C.ally && C.ally.hp > 0) {
+      const shared = Math.min(C.ally.hp, Math.round(d * S.companion.share)); C.ally.hp -= shared; d -= shared;
+      if (shared) say(C, 'Basophil takes ' + shared + ' damage for you.');
+    }
+    C.run.hp = Math.max(0, C.run.hp - d); say(C, e.name + ' hits you for ' + d + ' (' + type + ').');
+    if (e.applies) applyStatus(C, C, e.applies, e.atk, e.applies === 'bleed' ? 2 : 3, 1, e.applies === 'stun' ? .15 : 1);
+    const x = context(C, e, { blocked: !!C.blocking });
+    if (C.blocking) DD.fx.fire('onBlock', x);
+    DD.fx.fire(e.intent === 'big' ? 'onBigHit' : 'onHit', x); gain(C, x);
   }
   function afterPlayer(C) {
-    if (C.enemy.hp <= 0) return win(C);
-    endOfPlayerTurn(C);
-    if (C.enemy.hp <= 0) return win(C);
-    enemyTurn(C);
-  }
-
-  function enemyTurn(C) {
-    const e = C.enemy, it = C.intent;
-    if (C.suppress > 0) { // Regulatory T: Suppress
-      C.suppress--; say(C, e.name + ' is suppressed and loses its move.');
-      return endRound(C);
+    companion(C);
+    for (const e of living(C)) tickDamage(C, e, false);
+    if (finish(C)) return;
+    for (const e of living(C)) {
+      if (e.status.stun) { delete e.status.stun; e.stunGuard = true; say(C, e.name + ' loses its turn to Stun.'); }
+      else { e.stunGuard = false; if (e.intent !== 'defend') enemyAttack(C, e); }
+      durationTick(e.status);
+      if (C.run.hp <= 0) break;
     }
-    if (it === 'attack' || it === 'big') {
-      let mult = it === 'big' ? S.big : 1;
-      if (C.wrongBonus) { mult *= S.wrongBonus; C.wrongBonus = false; }
-      C.enemyBuffs.forEach(b => { mult *= b.mult; });
-      const ward = C.buffs.findIndex(b => b.result && b.result.type === 'shield');
-      if (ward >= 0) { // Mucus Ward: this hit does 0
-        const wardId = C.buffs[ward].id; C.buffs.splice(ward, 1);
-        const absorb = wardId === 'mucus-ward' ? DD.derrick.wardAbsorb() : 1; // smoking (5b): damaged mucus absorbs only part of the hit
-        if (absorb < 1) { mult *= 1 - absorb; say(C, 'Smoke has damaged the mucus: the Mucus Ward only absorbs ' + Math.round(absorb * 100) + '% of the hit.'); }
-        else {
-        C.blocking = false;
-        say(C, e.name + (it === 'big' ? ' unleashes a big attack' : ' attacks') + ', but ' + (wardId === 'gear-ward' ? 'your gear absorbs it' : 'the Mucus Ward absorbs it') + '.');
-        return endRound(C);
-        }
+    tickDamage(C, C, true);
+    if (finish(C)) return;
+    durationTick(C.status); C.blocking = false;
+    if (C.rage) C.rage--; if (C.coating) C.coating--;
+    DD.fx.tick(C.buffs);
+    const ts = context(C, living(C)[0]); DD.fx.fire('turnStart', ts); gain(C, ts);
+    if (ts.selfDmg) C.run.hp = Math.max(1, C.run.hp - Math.round(ts.selfDmg));
+    C.round++; C.phase = 'choose'; C.menu = 'commands'; C.selection = []; C.pending = null; C.answer = null;
+    if (C.status.stun) {
+      delete C.status.stun; C.stunGuard = true; say(C, 'Stunned: you lose this turn.');
+      rollIntents(C); return afterPlayer(C);
+    }
+    C.stunGuard = false; rollIntents(C);
+  }
+  function ask(C) {
+    const systems = C.run.systems || DD.data.region(C.run.regionId).systems;
+    const qs = C.drill ? DD.q.all().filter(q => C.drill.left.includes(q.id)) : null;
+    if (!C.drill && !DD.q.pool(systems, true).length) { C.phase = 'choose'; C.pending = null; say(C, 'No usable questions. Add study material first.'); return; }
+    C.q = C.drill ? DD.u.pick(Math.random, qs) : DD.q.pick(systems);
+    if (!C.q) { C.phase = 'choose'; C.pending = null; say(C, 'No usable questions are available. Add study material first.'); return; }
+    const x = context(C, C.enemies[C.target] || C.enemies[0]); DD.fx.fire('onQuestionAsk', x);
+    C.opts = DD.q.options(C.q, x.removeWrong); C.removed = x.removeWrong; C.answer = null; C.phase = 'question';
+  }
+  function resolve(C, s) {
+    if (s.id === 'rage') C.rage = s.turns + 1;
+    else if (s.id === 'wind') { gain(C, { heal: C.st.maxHP * s.heal }); C.wind = true; }
+    else if (s.id === 'barrier' || s.id === 'aegis') C.shield = true;
+    else if (s.id === 'coating') C.coating = s.turns + 1;
+    else if (s.id === 'companion') {
+      const maxHP = Math.round(C.st.maxHP * S.companion.hp);
+      if (!C.ally || C.ally.hp <= 0) C.ally = { hp: maxHP, maxHP };
+      else C.ally.hp = Math.min(maxHP, C.ally.hp + Math.round(maxHP * S.companion.heal));
+    } else {
+      const targets = s.target === 'all' ? living(C).map(e => C.enemies.indexOf(e)) : C.selection;
+      for (const i of targets) {
+        const e = C.enemies[i];
+        if (e && e.hp > 0) strike(C, e, s);
       }
-      let d = Math.max(S.minHit, Math.round(e.atk * mult - C.st.defense * S.defenseWeight)), reflected = 0;
-      const blocked = C.blocking;
-      if (blocked) {
-        reflected = Math.round(d * DD.fx.ruleMax(DD.save.profile, 'reflect', 0)); // Heparin Keeper: a block throws part of the hit back
-        d = Math.max(1, Math.round(d * (1 - C.st.blockCut)));
-        const x = ctx(C); DD.fx.fire('onBlock', x); gain(C, x);
-      }
-      C.run.hp = Math.max(0, C.run.hp - d);
-      const x2 = ctx(C, { blocked }); DD.fx.fire(it === 'big' ? 'onBigHit' : 'onHit', x2); gain(C, x2);
-      say(C, e.name + (it === 'big' ? ' unleashes a big attack' : ' attacks') + (blocked ? ' (blocked)' : '') + ' for ' + d + '.' + (blocked && it === 'big' && x2.heal ? ' You are fully restored.' : ''));
-      if (C.run.hp <= 0) return lose(C);
-      if (reflected > 0) { hit(C, reflected, 'Your block reflects the blow'); if (e.hp <= 0) return win(C); }
-    } else if (it === 'defend') {
-      say(C, e.name + ' held its guard this turn.');
-    } else if (it === 'question') {
-      C.enemyQUsed = true; say(C, e.name + ' demands an answer!');
-      return ask(C, 'enemy');
+      if (s.id === 'mark') C.mark = C.selection[0];
+      if (s.block) C.blocking = true;
     }
-    endRound(C);
+    for (let i = C.buffs.length - 1; i >= 0; i--) if (s.type && C.buffs[i].expires === 'heavy') C.buffs.splice(i, 1);
+    say(C, s.name + ' activated.');
   }
-  function endRound(C) {
-    C.blocking = false; C.round++;
-    const ts = ctx(C); DD.fx.fire('turnStart', ts);
-    if (ts.selfDmg) { // Fever: burns HP each turn, never kills
-      const d = Math.min(C.run.hp - 1, Math.max(1, Math.round(ts.selfDmg)));
-      if (d > 0) { C.run.hp -= d; say(C, 'Fever burns you for ' + d + '.'); }
-    }
-    gain(C, ts); // gear that heals or restores ATP each turn
-    DD.fx.tick(C.buffs); DD.fx.tick(C.enemyBuffs);
-    C.intent = rollIntent(C); C.phase = 'choose'; C.q = null; C.opts = null; C.answer = null;
-  }
-  function ask(C, kind) {
-    const sys = C.run.systems || DD.data.region(C.run.regionId).systems;
-    C.q = C.drill ? drillPick(C) : DD.q.pick(sys);
-    const x = ctx(C); DD.fx.fire('onQuestionAsk', x);
-    C.opts = DD.q.options(C.q, x.removeWrong);
-    C.removed = C.q.wrong.length + 1 - C.opts.length; // wrong options actually taken away
-    C.qKind = kind; C.qStart = Date.now(); C.answer = null; C.phase = 'question';
-  }
-
-  function drillPick(C) {
-    const left = [...C.drill.left].map(id => C.drill.qs.get(id)).filter(Boolean);
-    const cand = left.filter(q => !C.q || q.id !== C.q.id);
-    return DD.u.pick(R, cand.length ? cand : left);
-  }
-
-  // The first wrong answer each fight carries no penalty (PBP2a Plate). Stats still record it as wrong.
-  function forgive(C) {
-    if (C.forgiven || !DD.fx.rules(DD.save.profile, 'forgive').length) return false;
-    C.forgiven = true; return true;
-  }
-
   const A = {
-    create, rollDrop,
-    light(C) {
-      if (C.phase !== 'choose' || C.drill) return;
-      const x = ctx(C, { mult: S.light }); DD.fx.fire('onLight', x);
-      hit(C, playerDamage(C, x), 'You strike');
-      afterPlayer(C);
+    create, snapshot, living, armorDamage,
+    statusText(st) { return Object.entries(st).map(([k, v]) => k === 'poison' ? 'Poison ×' + v.stacks : k[0].toUpperCase() + k.slice(1) + ': ' + v.turns).join(' · '); },
+    skills: () => DD.skills.list(p()),
+    skillWhy(C, s) {
+      if (C.phase !== 'choose') return 'Not now';
+      if (C.rage) return 'Protein Rage locks ATP abilities';
+      if (C.run.atp < s.cost) return 'Not enough ATP';
+      if ((s.id === 'aegis' || s.id === 'barrier') && C.shield) return 'One-hit Shield already active';
+      if (s.id === 'companion' && C.ally && C.ally.hp === C.ally.maxHP) return 'Basophil is at full HP';
+      return '';
     },
-    heavy(C) { if (C.phase === 'choose') ask(C, 'heavy'); },
+    attack(C) {
+      if (C.phase !== 'choose' || C.drill) return;
+      C.pending = { id: 'attack', name: 'Attack' }; C.selection = []; C.phase = 'target';
+    },
+    light(C) { A.attack(C); },
+    heavy(C) { if (C.drill && C.phase === 'choose') ask(C); },
     block(C) {
       if (C.phase !== 'choose' || C.drill) return;
-      C.blocking = true; say(C, 'You raise your shield.');
+      C.blocking = true; say(C, 'You Block: all direct attacks this round are reduced.'); afterPlayer(C);
+    },
+    ability(C, id) {
+      const s = A.skills().find(s => s.id === id); if (!s || A.skillWhy(C, s)) return;
+      C.pending = s; C.selection = [];
+      if (s.target === 'self' || s.target === 'all') ask(C); else C.phase = 'target';
+    },
+    target(C, i) {
+      if (C.phase !== 'target' || !C.enemies[i] || C.enemies[i].hp <= 0) return;
+      C.target = i; C.selection.push(i);
+      if (C.pending.id === 'attack') {
+        strike(C, C.enemies[i], { name: 'Attack', type: 'physical', mult: 1 }, true); afterPlayer(C);
+      } else if (C.selection.length >= (C.pending.hits || 1)) ask(C);
+    },
+    cancel(C) { if (C.phase === 'target' || C.phase === 'choose') { C.phase = 'choose'; C.pending = null; C.selection = []; C.menu = 'commands'; } },
+    answer(C, i) {
+      if (C.phase !== 'question' || !C.opts[i]) return;
+      const ok = C.opts[i].correct;
+      DD.q.record(C.q, ok, C.run.trip ? DD.q.regionOf(C.q) : C.run.regionId);
+      if (!ok && !C.run.miss.includes(C.q.id)) C.run.miss.push(C.q.id);
+      C.answer = { i, ok };
+      if (C.drill) {
+        if (ok) C.drill.left = C.drill.left.filter(id => id !== C.q.id);
+        C.enemies[0].hp = C.drill.left.length;
+      } else if (ok) {
+        C.run.atp -= C.pending.cost; resolve(C, C.pending);
+        const x = context(C, C.enemies[C.target] || C.enemies[0]); DD.fx.fire('onQuestionCorrect', x); x.atp *= DD.fx.ruleMax(p(), 'atpMult', 1); gain(C, x);
+      } else say(C, 'The ability fails. ATP is preserved, but your turn is spent.');
+      C.phase = 'explain';
+    },
+    cont(C) {
+      if (C.phase !== 'explain') return;
+      if (C.drill) { if (!C.drill.left.length) { C.phase = 'end'; C.over = 'win'; } else C.phase = 'choose'; return; }
       afterPlayer(C);
     },
-    ability(C) {
-      if (!A.canAbility(C)) return;
-      const a = C.cls.active;
-      C.run.atp -= a.cost;
-      if (a.effect) C.buffs.push(Object.assign({}, a.effect));
-      (a.extra || []).forEach(b => C.buffs.push(Object.assign({}, b))); // extra buffs a subclass adds to the cast
-      if (a.cast) { // immediate results go through the effect engine too
-        const x = ctx(C); DD.fx.apply(a.cast, x);
-        if (x.poison) {
-          const max = DD.fx.ruleMax(DD.save.profile, 'poisonStacks', 1);
-          if (C.poison && max > 1) { C.poison.stacks = Math.min(max, (C.poison.stacks || 1) + 1); C.poison.turns = Math.max(C.poison.turns, x.poison.turns); say(C, 'The poison stacks (' + C.poison.stacks + ').'); }
-          else C.poison = x.poison;
-        }
-        if (x.ally) C.ally = x.ally;
-        if (x.suppress) C.suppress = x.suppress;
-        if (x.heal) gain(C, x);
-        if (x.selfDmg) {
-          const d = Math.min(C.run.hp - 1, Math.max(1, Math.round(x.selfDmg))); // never kills you
-          C.run.hp -= d; say(C, a.name + ' costs you ' + d + ' HP.');
-        }
-      }
-      say(C, a.name + ': ' + a.armedText + '.');
-      if (a.takesTurn) afterPlayer(C);
-    },
-    // Already running (armed buff, poison or ally): can't be stacked.
-    abilityActive(C) {
-      const a = C.cls.active;
-      const stackMax = DD.fx.ruleMax(DD.save.profile, 'poisonStacks', 1); // Toxin Trapper: poison can be cast again until it holds 3 stacks
-      return !!((a.effect && C.buffs.some(b => b.id === a.effect.id)) || (a.cast && ((a.cast.type === 'poison' && C.poison && (C.poison.stacks || 1) >= stackMax) || (a.cast.type === 'summonAlly' && C.ally) || (a.cast.type === 'suppress' && C.suppress > 0))));
-    },
-    canAbility(C) { const a = C.cls.active; return C.phase === 'choose' && !C.drill && C.run.atp >= a.cost && !A.abilityActive(C); },
-    // Items (phase 2b). Using one takes the turn. Lymph Drain is also what Flee uses.
-    count: id => DD.save.profile.inventory[id] || 0,
-    itemWhy(C, id) { // '' when usable, else why not
-      const d = DD.data.items[id];
-      if (!d) return 'Unknown item';
-      if (C.drill) return 'Not in practice';
-      if (C.phase !== 'choose') return 'Not now';
+    count: id => (p().inventory[id] || 0) + ((DD.game.run && DD.game.run.earned && DD.game.run.earned.items[id]) || 0),
+    itemWhy(C, id) {
+      if (!DD.data.items[id]) return 'Unknown item';
+      if (C.phase !== 'choose' || C.drill) return 'Not now';
+      if (C.rage) return 'Protein Rage locks consumables';
       if (!A.count(id)) return 'None left';
       if (id === 'tonic' && C.run.hp >= C.st.maxHP) return 'Already at full HP';
       if (id === 'atpReserve' && C.run.atp >= C.st.maxATP) return 'Already at full ATP';
-      if (d.use.flee) return C.run.trip ? 'Not inside a vessel' : C.enemy.boss ? 'Cannot escape a boss' : '';
+      if (id === 'mucusWard' && C.shield) return 'One-hit Shield already active';
+      const d = DD.data.items[id];
       if (d.use.effect && C.buffs.some(b => b.id === d.use.effect.id)) return 'Already active';
       return '';
     },
     useItem(C, id) {
       if (A.itemWhy(C, id)) return;
-      const d = DD.data.items[id], inv = DD.save.profile.inventory;
-      if (--inv[id] <= 0) delete inv[id];
-      if (d.use.flee) { say(C, d.use.msg); C.phase = 'end'; C.over = 'flee'; return; }
-      const hp0 = C.run.hp, atp0 = C.run.atp;
-      if (d.use.cast) { const x = ctx(C); DD.fx.apply(d.use.cast, x); gain(C, x); }
-      if (d.use.effect) { C.buffs.push(Object.assign({}, d.use.effect)); if (d.tick) C.buffs.push(Object.assign({}, d.tick)); }
-      const dh = Math.round(C.run.hp - hp0), da = Math.round(C.run.atp - atp0);
-      say(C, d.use.msg + (dh > 0 ? ' +' + dh + ' HP.' : '') + (da > 0 ? ' +' + da + ' ATP.' : '') + (d.use.effect ? ' ' + d.use.effect.label + '.' : ''));
-      afterPlayer(C);
+      DD.game.consumeItem(id);
+      const d = DD.data.items[id];
+      if (id === 'lymphDrain') { C.over = 'return'; C.phase = 'end'; return; }
+      const x = context(C, C.enemies[C.target] || C.enemies[0]);
+      if (d.use.cast) DD.fx.apply(d.use.cast, x); gain(C, x);
+      if (id === 'mucusWard') C.shield = true;
+      else if (d.use.effect) { C.buffs.push(Object.assign({}, d.use.effect)); if (d.tick) C.buffs.push(Object.assign({}, d.tick)); }
+      say(C, d.use.msg); afterPlayer(C);
     },
-    answer(C, i) {
-      if (C.phase !== 'question') return;
-      const o = C.opts[i]; if (!o) return;
-      const ok = o.correct, fast = (Date.now() - C.qStart) / 1000 <= S.fastSeconds;
-      C.answer = { i, ok };
-      if (C.drill) { // practice: stats update, nothing else does
-        DD.q.record(C.q, ok, DD.q.regionOf(C.q));
-        if (ok) { C.drill.left.delete(C.q.id); C.enemy.hp = C.drill.left.size; say(C, 'Correct. ' + C.drill.left.size + ' left.'); }
-        else say(C, 'Not yet. It goes back in the pile.');
-        C.phase = 'explain'; return;
-      }
-      DD.q.record(C.q, ok, C.run.trip ? DD.q.regionOf(C.q) : C.run.regionId);
-      if (!ok && !C.run.miss.includes(C.q.id)) C.run.miss.push(C.q.id);
-      if (C.qKind === 'heavy') {
-        if (ok) {
-          const x = ctx(C, { mult: S.heavyRight, answeredFast: fast });
-          DD.fx.fire('onHeavyCorrect', x); DD.fx.fire('onQuestionCorrect', x); x.atp *= DD.fx.ruleMax(DD.save.profile, 'atpMult', 1); gain(C, x);
-          C.firstHeavy = false;
-          if (x.poison && !C.poison) { C.poison = x.poison; say(C, 'Your gear poisons ' + C.enemy.name + '.'); }
-          const d = playerDamage(C, x);
-          hit(C, d, 'Your heavy blow lands');
-          for (let k = 0; k < (x.repeat || 0) && C.enemy.hp > 0; k++) hit(C, d, 'It strikes again'); // heavy attacks that hit twice
-          if (x.execute && C.enemy.hp > 0 && C.enemy.hp / C.enemy.maxHP < x.execute) {
-            C.enemy.hp = 0; say(C, 'Executed: ' + C.enemy.name + ' fell below ' + Math.round(x.execute * 100) + '% HP.');
-          }
-        } else {
-          const x = ctx(C); DD.fx.fire('onHeavyWrong', x); DD.fx.fire('onQuestionWrong', x);
-          C.firstHeavy = false;
-          const chip = DD.fx.ruleMax(DD.save.profile, 'wrongHeavy', 0), pardon = forgive(C);
-          if (!pardon) C.wrongBonus = true;
-          if (chip > 0) { hit(C, playerDamage(C, ctx(C, { mult: S.heavyRight * chip })), 'Your heavy attack glances off'); say(C, pardon ? 'Forgiven: no penalty.' : 'Its next attack hits harder.'); }
-          else say(C, pardon ? 'Your heavy attack whiffs, but the slip is forgiven.' : 'Your heavy attack whiffs. Its next attack hits harder.');
-        }
-      } else if (ok) {
-        const x = ctx(C); DD.fx.fire('onQuestionCorrect', x); x.atp *= DD.fx.ruleMax(DD.save.profile, 'atpMult', 1); gain(C, x);
-        const rw = S.questionReward, k = DD.fx.ruleMax(DD.save.profile, 'questionBuff', 1), bonus = Math.round((rw.dmgMult - 1) * k * 100); // Polysaccharide Capsule doubles the buff
-        if (R() < 0.5) { C.buffs.push({ id: 'q-focus', label: '+' + bonus + '% damage', src: 'buff', trigger: 'static', result: { type: 'damageMult', mult: 1 + bonus / 100 }, turns: rw.turns, fresh: true }); say(C, 'Correct! Your attacks hit +' + bonus + '% harder for ' + rw.turns + ' turns.'); }
-        else { const h = Math.round(rw.healPct * k * C.st.maxHP * DD.derrick.healMult()); C.run.hp = Math.min(C.st.maxHP, C.run.hp + h); say(C, 'Correct! You recover ' + h + ' HP.'); }
-      } else {
-        const x = ctx(C); DD.fx.fire('onQuestionWrong', x);
-        const eb = S.enemyBoost;
-        if (forgive(C)) say(C, 'Wrong, but the slip is forgiven: ' + C.enemy.name + ' gets nothing.');
-        else if (R() < 0.5) { C.enemyBuffs.push({ mult: eb.dmgMult, turns: eb.turns, fresh: true }); say(C, 'Wrong. ' + C.enemy.name + ' hits +25% harder for ' + eb.turns + ' turns.'); }
-        else { const h = Math.round(eb.healPct * C.enemy.maxHP); C.enemy.hp = Math.min(C.enemy.maxHP, C.enemy.hp + h); say(C, 'Wrong. ' + C.enemy.name + ' recovers ' + h + ' HP.'); }
-      }
-      if (C.qKind === 'heavy') for (let i = C.buffs.length - 1; i >= 0; i--) if (C.buffs[i].expires === 'heavy') C.buffs.splice(i, 1); // one-heavy buffs, hit or miss
-      C.phase = 'explain';
-    },
-    // Continue after an explanation (or after the final summary).
-    cont(C) {
-      if (C.phase !== 'explain') return;
-      if (C.enemy.hp <= 0) return win(C);
-      if (C.drill) return endRound(C);
-      if (C.qKind === 'heavy') return afterPlayer(C);
-      endRound(C);
-    }
+    flee(C) { if (C.phase === 'choose' && !C.drill) { C.over = 'flee'; C.phase = 'end'; } }
   };
   return A;
 })();

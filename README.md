@@ -14,3 +14,11 @@ The game runs as a static site without Claude. GitHub Pages publishes `game/` wh
 Progress and custom questions use browser storage; images and arrow annotations use IndexedDB on that device and origin. Lab images and study material are never uploaded to GitHub. Use **Backups** on the body map to export a JSON file or restore one on another browser. Restoring replaces that browser’s progress, custom questions, and image library. Keep backups outside this public repository. Clearing site data deletes the local copy.
 
 **Add study material** accepts a JSON array of `{q, answer, wrong:[three options], explain}` outside Claude, followed by the normal Keep/Edit/Discard review. In the Claude viewer, the existing question generator and account storage remain available. Existing Claude saves and images do not transfer automatically; an old published artifact must first receive the backup feature before it can export its account data.
+
+## Combat rework
+
+Five solo kits now have free Attack/Block and three question-gated ATP abilities. Group encounters use a left/right battlefield with bottom commands. HP/ATP persist between expeditions; inns restore them. Flee forfeits escrowed run rewards, while Lymph Drain banks them and returns to town. See the current combat sections of [the design bible](docs/design.html) for starting stats, status rules, skills, and migration behavior.
+
+Legacy Bard saves become Ranger. Existing equipment and saved subclass/milestone selections remain owned; old subclass upgrades and heavy/enemy-quiz-specific legendary rules are suspended pending the next equipment/progression review. Poison currently ends with combat. Wrong ability answers use the turn and preserve ATP. These are initial balance settings and need playtesting.
+
+Checks: run `node tests/content-unlocks.cjs` and `node tests/combat-rework.cjs`.

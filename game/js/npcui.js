@@ -72,43 +72,12 @@
     ui.refreshMap();
   };
 
-  const timedOrNot = a => (a.effect && a.effect.turns != null) || (a.cast && a.cast.turns != null);
-  // ---------- the thymus ----------
+  // Legacy milestones remain in saves but cannot alter the new kits.
   ui.thymus = function () {
     ui.mode = 'thymus';
-    const p = prof(), cls = DD.data.classes[p.classId], TH = DD.thymus, a = TH.base(p.classId), cur = TH.active(p);
-    const rows = TH.levels.map(L => {
-      const got = TH.claimed(p.classId, L), ok = TH.available(p.classId, L);
-      let inner;
-      if (got) inner = el('div', { class: 'small' }, el('span', { class: 'chip ok' }, 'claimed'), ' ' + ({ cost: 'Cheaper: −' + Math.round(S.thymus.costCut * 100) + '% ATP cost', boost: timedOrNot(a) ? 'Longer: +' + S.thymus.extraTurns + ' turn' : 'Stronger: +' + Math.round(S.thymus.effectPct * 100) + '% effect', charge: 'Extra charge: +' + S.thymus.extraCharges + ' use' })[got.pick]);
-      else if (ok) inner = el('div', { class: 'stack', style: { alignItems: 'stretch' } }, el('div', { class: 'small' }, 'Choose one:'),
-        TH.options(a).map(([k, label]) => el('button', { class: 'btn', type: 'button', onclick: () => { if (TH.claim(p.classId, L, k)) ui.thymus(); } }, label, el('small', null, TH.describe(p.classId, k)))));
-      else inner = el('div', { class: 'dim small' }, 'Locked until level ' + L + '.');
-      return el('div', { class: 'card' }, el('div', { class: 'rhead' }, el('h3', null, 'Level ' + L + ' milestone'), el('span', { class: 'chip' + (got ? ' ok' : '') }, got ? 'claimed' : ok ? 'ready' : 'locked')), inner);
-    });
-    const sub = DD.sub.get(p), SB = S.subclass;
-    const subCard = s => {
-      const mine = sub && sub.id === s.id, cost = DD.sub.switchCost(p.classId);
-      return el('div', { class: 'card' + (mine ? ' sel' : '') },
-        el('div', { class: 'rhead' }, el('h3', null, s.name), el('span', { class: 'chip' + (mine ? ' ok' : '') }, mine ? 'yours' : s.role)),
-        el('div', { class: 'small' }, el('b', null, 'Passive: '), s.passiveText),
-        el('div', { class: 'small' }, el('b', null, 'Active: '), s.activeText),
-        el('div', { class: 'dim small' }, s.codex),
-        mine ? null : el('button', { class: 'btn' + (sub ? '' : ' primary'), type: 'button', disabled: !!(cost && p.glucose < cost),
-          onclick: () => { if (!DD.sub.choose(p.classId, s.id)) ui.thymus(); } }, sub ? 'Switch for ' + cost + ' glucose' : 'Choose ' + s.name));
-    };
-    const subs = DD.sub.unlocked()
-      ? [el('h2', null, 'Subclass'), el('p', { class: 'dim small' }, 'Pick one for ' + cls.name + '. The first pick is free; switching later costs ' + SB.switchCost + ' glucose. Each is a passive tweak plus an active upgrade.'), ].concat(DD.sub.list(p.classId).map(subCard))
-      : [el('div', { class: 'card' }, el('div', { class: 'rhead' }, el('h3', null, 'Subclass'), el('span', { class: 'chip' }, 'locked')), el('div', { class: 'dim small' }, 'Two paths for ' + cls.name + ' open at level ' + SB.level + '.'))];
-    ui.mount(el('div', { class: 'screen menu' },
-      el('div', { class: 'tag' }, 'Thymus'),
-      el('h1', null, 'Training hall'),
-      el('p', { class: 'dim small' }, 'T cell precursors made in the bone marrow mature in the thymus. Developing T cells that cannot recognize your own MHC molecules are discarded, and so are those that react too strongly to your own tissues. Milestone upgrades are kept per class, and your level is shared by all of them.'),
-      el('div', { class: 'card' },
-        el('div', { class: 'rhead' }, el('h3', null, cls.name + ': ' + a.name), el('span', { class: 'chip' }, 'Level ' + p.level)),
-        el('div', { class: 'small' }, el('b', null, cur.cost + ' ATP: '), cur.desc)),
-      rows,
-      subs,
-      el('div', { class: 'toolrow2' }, el('button', { class: 'btn primary', type: 'button', onclick: () => ui.menu('thymus') }, 'Open the body map'))));
+    ui.mount(el('div', { class: 'screen menu' }, el('h1', null, 'Training hall'),
+      el('p', null, 'Your three class abilities are available now. Legacy subclasses and milestones are preserved in your save, but suspended while the new combat kits are balanced.'),
+      ...DD.skills.list(prof()).map(s => el('div', { class: 'card' }, el('h3', null, s.name + ' · ' + s.cost + ' ATP'), s.tip)),
+      el('button', { class: 'btn', onclick: () => ui.menu('thymus') }, 'Back')));
   };
 })();

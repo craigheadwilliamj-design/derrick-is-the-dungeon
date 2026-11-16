@@ -93,7 +93,7 @@
   const modeText = plan => plan.mode === 'blood' ? 'Blood route' : plan.mode === 'lymph' ? 'Lymphatic vessel' : plan.mode === 'chain' ? 'Lymph node chain (B and T cells only)' : 'Blood and lymph';
   const kindText = n => n.sub === 'town' ? 'Lymph node town' : n.sub === 'thymus' ? 'Training' : 'Dungeon';
   function panel(id) {
-    const p = DD.save.profile, loc = p.loc, run = dungeonRun();
+    const p = DD.game.resources(), loc = p.loc, run = dungeonRun();
     if (id === 'bloodstream') {
       const r = DD.data.region('bloodstream'), m = DD.q.mastery('bloodstream');
       return el('div', { class: 'card place', style: { '--accent': r.accent } },
@@ -113,7 +113,7 @@
       if (W.isDungeon(id)) actions.push(r.playable ? el('button', { class: 'btn primary', onclick: () => ui.enter(id, false) }, 'Enter the ' + r.name)
         : el('p', { class: 'dim small' }, 'No usable study questions here yet. Add study material or save lab images with at least 4 different labels in the same system and source.'));
       if (n.sub === 'town') actions.push(el('button', { class: 'btn primary', onclick: () => ui.town({ id, via: 'hev' }) }, 'Visit the ' + n.name));
-      if (n.sub === 'thymus') actions.push(el('button', { class: 'btn primary', onclick: ui.thymus }, 'Enter the thymus' + (DD.thymus.pending(p.classId) ? ' (upgrade ready)' : '')));
+      if (n.sub === 'thymus') actions.push(el('button', { class: 'btn primary', onclick: ui.thymus }, 'Enter the thymus'));
       const tn = W.townFor(id);
       if (tn) actions.push(el('button', { class: 'btn', onclick: () => DD.travel.start(W.plan(id, tn)) }, 'Take the lymphatic vessel to the ' + DD.data.town(tn).name));
     } else {
@@ -191,8 +191,8 @@
         el('div', { class: 'small' }, el('b', null, 'Glucose ' + p.glucose), el('span', { class: 'dim' }, '  ' + (ui.invText(p) || 'no items'))),
         ui.pctBar('xp', ui.pct(p.xp, st.xpToNext)), el('div', { class: 'small dim' }, p.xp + ' / ' + st.xpToNext + ' XP'),
         DD.sub.get(p) ? el('div', { class: 'small' }, el('b', null, 'Subclass: '), DD.sub.get(p).name) : null,
-        el('div', { class: 'small' }, el('b', null, DD.thymus.cls(p).passive.name + ': '), DD.thymus.cls(p).passive.desc),
-        el('div', { class: 'small' }, el('b', null, DD.thymus.active(p).name + ' (' + DD.thymus.active(p).cost + ' ATP): '), DD.thymus.active(p).desc),
+        el('div', { class: 'small' }, el('b', null, DD.data.classes[p.classId].passive.name + ': '), DD.data.classes[p.classId].passive.desc),
+        el('div', { class: 'small' }, el('b', null, 'HP ' + Math.round(p.hp) + '/' + DD.stats.compute(p).maxHP + ' · ATP ' + Math.round(p.atp) + '/' + DD.stats.compute(p).maxATP + ' · Skills: '), DD.skills.list(p).map(s => s.name).join(' · ')),
         el('div', { class: 'small' }, el('b', null, 'Equipped: '), DD.gear.summary(), el('span', { class: 'dim' }, '  ·  ' + p.gearBag.length + ' in the bag')),
         W.isLymphocyte() ? el('div', { class: 'small' }, el('b', null, 'Lymphocyte shortcut: '), 'you can travel town to town along the lymph node chain.') : null,
         el('div', { class: 'toolrow2' },

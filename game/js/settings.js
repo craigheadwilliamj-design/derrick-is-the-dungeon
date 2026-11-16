@@ -189,3 +189,20 @@ DD.S = {
   save: { debounceMs: 1500, dbTimeoutMs: 10000 },
   log: { lines: 3 }
 };
+
+// Combat rework: starting values, then modest shared level growth.
+DD.S.rpg = {
+  bases: {
+    neutrophil: { maxHP: 120, maxATP: 24, power: 24, defense: 20 },
+    bcell: { maxHP: 80, maxATP: 40, power: 18, defense: 10 },
+    tcell: { maxHP: 95, maxATP: 28, power: 23, defense: 15 },
+    macrophage: { maxHP: 130, maxATP: 28, power: 18, defense: 40 },
+    eosinophil: { maxHP: 100, maxATP: 30, power: 21, defense: 20 }
+  },
+  growth: { maxHP: 8, maxATP: 1, power: 2, defense: 2 },
+  blockCut: .5, armorScale: 100, corrode: .5, weaken: .25,
+  bleedPower: .3, poisonPower: .05, rageDamage: 1.5, rageCut: .3,
+  companion: { hp: .5, power: .4, share: .25, heal: .5 },
+  enemy: { hp: 34, hpLevel: 6, attack: 10, attackLevel: 2, armor: 15, armorLevel: 3, bossHP: 4, bossAttack: 1.7 },
+  stunBossChance: .25
+};

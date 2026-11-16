@@ -200,6 +200,22 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere}
 .arrow-label .arrow-text{display:block;box-sizing:border-box;width:100%;height:100%;min-width:0;min-height:0;margin:0;padding:2px;border:0;border-radius:0;resize:none;background:var(--panel);color:var(--bone);font:14px/1.2 var(--body);touch-action:auto;user-select:text;-webkit-user-select:text}
 .arrow-label.sel .x{top:-24px}
 .arrow-label .rz{right:-2px;bottom:-2px;width:14px;height:14px}
+
+/* Classic RPG battlefield; command panels remain below the combatants. */
+.battle-box{width:min(1100px,100%);padding:18px;gap:16px;max-height:calc(100dvh - 24px)}
+.battlefield{display:grid;grid-template-columns:minmax(160px,1fr) 2fr;gap:32px;min-height:240px;padding:20px 8px;background:var(--map-bg);border-radius:6px}
+.battle-player{display:flex;flex-direction:column;gap:10px;max-width:260px;align-self:center}
+.player-glyph{color:var(--bone);align-self:center;font-size:64px}
+.battle-enemies{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;align-items:center}
+.enemy-card{display:flex;flex-direction:column;gap:8px;background:transparent;border:1px solid transparent;border-radius:6px;padding:12px;min-width:0;text-align:center;color:var(--bone)}
+.enemy-card:disabled{opacity:1;cursor:default}.enemy-card.defeated{opacity:.3}
+.enemy-card:not(:disabled){border-color:var(--bile);cursor:pointer}.enemy-card:not(:disabled):hover,.enemy-card.selected{background:#d9b44a18;border-color:var(--bone)}
+.enemy-card .glyph{width:auto}.enemy-card .stat{width:100%}.enemy-card small{font-size:12px}
+.battle-bottom{display:grid;grid-template-columns:minmax(150px,1fr) 3fr;gap:16px;border-top:1px solid var(--line);padding-top:16px}
+.battle-commands,.battle-details{display:flex;flex-direction:column;gap:8px;min-width:0}
+.battle-commands .btn,.battle-details>.btn{text-align:left}.battle-commands small,.battle-details>.btn small{display:block;color:var(--dim);font-size:11px;margin-top:4px}
+.companion{padding:8px}.battle-box .clog{min-height:3.8em}
+@media(max-width:600px){.battle-box{padding:10px;gap:10px}.battlefield{grid-template-columns:115px minmax(0,1fr);gap:10px;padding:10px 4px;min-height:200px}.battle-enemies{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.enemy-card{padding:5px}.enemy-card .glyph{font-size:30px}.enemy-card b{font-size:12px;overflow-wrap:anywhere}.battle-bottom{grid-template-columns:110px minmax(0,1fr);gap:10px}.battle-commands .btn{padding:8px}.player-glyph{font-size:44px}.battle-player h2{font-size:18px}}
 </style>
 <div id="app"></div>
 <script src="js/util.js"></script>
@@ -207,6 +223,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere}
 <script src="data/regions.js"></script>
 <script src="data/enemies.js"></script>
 <script src="data/classes.js"></script>
+<script src="data/skills.js"></script>
 <script src="data/subclasses.js"></script>
 <script src="data/items.js"></script>
 <script src="data/gear.js"></script>

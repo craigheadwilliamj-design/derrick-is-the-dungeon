@@ -2,14 +2,12 @@
 DD.sub = (function () {
   const S = DD.S.subclass, out = {};
   const prof = () => DD.save.profile;
-  out.list = classId => DD.data.subclasses.filter(s => s.classId === classId);
-  out.get = profile => {
-    const id = profile && profile.subclass && profile.subclass[profile.classId], s = id && DD.data.subclassById[id];
-    return s && s.classId === profile.classId ? s : null;
-  };
+  out.list = classId => [];
+  out.get = profile => null; // Legacy selections are retained but suspended.
   out.unlocked = () => prof().level >= S.level;
   // First pick is free; picking a different one later costs glucose. Returns '' on success, else why not.
   out.choose = function (classId, id) {
+    return 'Subclasses are suspended during the combat rework.';
     const s = DD.data.subclassById[id], p = prof();
     if (!s || s.classId !== classId) return 'Unknown subclass';
     if (p.level < S.level) return 'Locked until level ' + S.level;

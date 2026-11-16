@@ -51,8 +51,8 @@ DD.npc = (function () {
     T.answer = { i, ok }; T.npc.done = true; T.phase = 'result';
     if (ok) {
       const pool = S.travel.lootItems.filter(id => inv(id) < cap(id));
-      if (pool.length && Math.random() < L.lootItemChance) { const id = pick(pool); prof().inventory[id] = inv(id) + 1; T.loot = DD.data.items[id].name; }
-      else { const v = DD.derrick.loot(DD.u.int(Math.random, L.lootGlucose.min, L.lootGlucose.max), rn.regionId); prof().glucose += v; rn.glucose += v; T.loot = v + ' glucose'; }
+      if (pool.length && Math.random() < L.lootItemChance) { const id = pick(pool); DD.game.reward('item', id); T.loot = DD.data.items[id].name; }
+      else { const v = DD.derrick.loot(DD.u.int(Math.random, L.lootGlucose.min, L.lootGlucose.max), rn.regionId); DD.game.reward('glucose', v); rn.glucose += v; T.loot = v + ' glucose'; }
       T.msg = 'They hand you ' + T.loot + '.';
     } else {
       if (!rn.miss.includes(T.q.id)) rn.miss.push(T.q.id);
@@ -94,7 +94,8 @@ DD.npc = (function () {
     if (N.restWhy()) return;
     const st = DD.game.stats(), r = run(), T = DD.game.talk;
     prof().glucose -= N.restCost(); r.hp = st.maxHP; r.atp = st.maxATP;
-    if (DD.town.here()) DD.save.saveRun(r);
+    DD.game.syncResources(r);
+    if (DD.town.here() && r !== prof()) DD.save.saveRun(r);
     T.msg = 'You curl up in the lymph for a bit. Full HP and ATP.';
     DD.save.save(); DD.game.persist(); DD.ui.npc(); DD.ui.syncHud();
   };
@@ -117,7 +118,8 @@ DD.npc = (function () {
     const d = DD.data.enemy(defId), L = d && d.legendary; if (!L) return null;
     const it = DD.data.gearById[L.id];
     if (!it || DD.gear.owned(L.id)) return null;
-    DD.gear.give(L.id);
+    if (DD.game.earnings().gear.includes(L.id)) return null;
+    DD.game.reward('gear', L.id);
     return it;
   };
   N.markCleared = function (regionId) {

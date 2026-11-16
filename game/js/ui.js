@@ -78,25 +78,24 @@ DD.ui = (function () {
 
   // The dungeon menu is now the body map (js/bodymap.js defines ui.menu).
   // ---------- class select (Hematopoiesis) ----------
-  const RATINGS = [['hp', 'HP', 'maxHP'], ['pow', 'Power', 'power'], ['def', 'Defense', 'defense'], ['atp', 'ATP', 'maxATP']];
+  const RATINGS = [['hp', 'HP', 'maxHP'], ['pow', 'Power', 'power'], ['def', 'Armor', 'defense'], ['atp', 'ATP', 'maxATP']];
   ui.classes = function () {
     ui.mode = 'classes';
-    const p = DD.save.profile, locked = !!DD.save.run;
+    const p = DD.save.profile, locked = !!(DD.save.run && DD.save.run.kind !== 'town');
     const back = el('button', { class: 'btn', type: 'button', onclick: ui.menu }, 'Back to the marrow');
     const cards = DD.data.classOrder.map(id => {
       const c = DD.data.classes[id], st = DD.stats.compute(Object.assign({}, p, { classId: id })), cur = p.classId === id;
-      const rows = RATINGS.map(([k, label, sk]) => el('div', { class: 'rate' }, el('span', null, label), bar('rt', c.ratings[k] * 20),
-        el('b', null, c.ratings[k] + '/5'), el('small', { class: 'dim' }, (sk === 'power' || sk === 'defense' ? st[sk].toFixed(1) : st[sk]))));
+      const rows = RATINGS.map(([k, label, sk]) => el('div', { class: 'small' }, label + ': ', el('b', null, Math.round(st[sk]))));
       return el('div', { class: 'card cls' + (cur ? ' current' : '') },
         el('div', { class: 'rhead' }, el('h3', null, c.name), el('span', { class: 'chip ' + (cur ? 'ok' : '') }, cur ? 'Current · ' + c.role : c.role)),
         el('div', { class: 'ratings' }, rows),
         el('div', { class: 'small' }, el('b', null, 'Weapon: '), c.weapon + ' (an equipped weapon of this type does ×' + S.gear.weaponTypeMult + ' damage)'),
-        el('div', { class: 'small' }, el('b', null, 'Strong against: '), c.matchups.length ? c.matchups.join(', ') + ' (+50% damage)' : 'no one in particular. This is a support class.'),
+
         el('div', { class: 'small' }, el('b', null, c.passive.name + ' (passive): '), c.passive.desc),
-        el('div', { class: 'small' }, el('b', null, c.active.name + ' (' + c.active.cost + ' ATP): '), c.active.desc),
+        el('div', { class: 'small' }, el('b', null, 'ATP skills: '), DD.skills.list(Object.assign({}, p, { classId: id })).map(s => s.name + ' (' + s.cost + ' ATP)').join(' · ')),
         el('p', { class: 'codex small dim' }, c.codex),
         el('button', { class: 'btn' + (cur ? '' : ' primary'), type: 'button', disabled: cur || locked,
-          onclick: () => { p.classId = id; DD.save.save(); ui.classes(); } }, cur ? 'Your current class' : 'Become a ' + c.name));
+          onclick: () => { p.classId = id; DD.game.resources(); DD.save.save(); ui.classes(); } }, cur ? 'Your current class' : 'Become a ' + c.name));
     });
     mount(el('div', { class: 'screen menu' },
       el('div', { class: 'tag' }, 'Bone Marrow'),
@@ -194,115 +193,92 @@ DD.ui = (function () {
     } else g.floor.replaceChildren(el('b', null, r.name), el('small', null, run.floor.boss ? 'Boss floor' : 'Floor ' + (run.floorIdx + 1) + ' of ' + S.floorsPerDungeon));
     const stat = (node, label, v, m, cls) => node.replaceChildren(label + ' ', el('b', null, Math.round(v) + (m ? '/' + m : '')), bar(cls, m ? pct(v, m) : 0));
     stat(g.hp, 'HP', run.hp, st.maxHP, 'hp'); stat(g.atp, 'ATP', run.atp, st.maxATP, 'atp');
-    g.xp.replaceChildren('Lv ' + p.level + ' XP ', el('b', null, p.xp + '/' + st.xpToNext), bar('xp', pct(p.xp, st.xpToNext)));
+    g.xp.replaceChildren('Lv ' + p.level + ' XP ', el('b', null, p.xp + '/' + st.xpToNext + (run.earned ? ' · +' + run.earned.xp + ' pending' : '')), bar('xp', pct(p.xp, st.xpToNext)));
     hudGlucose(); hudBounties();
     g.log.replaceChildren(...DD.game.msgs.slice(-S.log.lines).reverse().map(t => el('div', null, t)));
   };
 
-  // ---------- combat ----------
-  ui.openCombat = function () { ui.mode = 'combat'; g.combat.hidden = false; ui.renderCombat(); };
-  ui.closeCombat = function () { stopTimer(); itemOpen = false; ui.mode = 'map'; g.combat.hidden = true; g.combat.replaceChildren(); ui.refreshMap(); };
-  const INTENT = { idle: ['Standing there', 'guard'], attack: ['Attack', ''], big: ['Big attack !!', 'danger'], defend: ['Bracing (damage halved)', 'guard'], question: ['Question', 'ask'] };
-
-  // Thin bar for answeredFast classes (Cytotoxic T). It only decides the crit; running out never fails the answer.
-  let timerId = null;
-  const stopTimer = () => { if (timerId) { clearInterval(timerId); timerId = null; } };
-  const hasFast = C => DD.fx.classEffects(DD.save.profile).some(e => e.cond && e.cond.answeredFast);
-  function fastTimer(C) {
-    const fill = el('i'), box = el('div', { class: 'timer', 'aria-hidden': 'true' }, fill), secs = DD.S.combat.fastSeconds;
-    const tick = () => { const left = Math.max(0, 1 - (Date.now() - C.qStart) / 1000 / secs); fill.style.width = Math.round(left * 100) + '%'; box.classList.toggle('spent', left <= 0); };
-    tick(); stopTimer(); timerId = setInterval(tick, 100);
-    return [box, el('div', { class: 'rmnote' }, C.cls.passive.name + ': answer within ' + secs + ' s for a crit (no penalty if you take longer)')];
-  }
+  // ---------- group combat ----------
+  const stopTimer = () => {};
   let itemOpen = false;
-  function itemMenu(C) {
-    const e = C.enemy, ids = DD.data.itemOrder.filter(id => DD.combat.count(id) > 0);
-    const rows = ids.map(id => {
-      const d = DD.data.items[id], why = DD.combat.itemWhy(C, id), c = d.use.effect && d.use.effect.cond;
-      const dud = c && c.enemyType && ![].concat(c.enemyType).includes(e.type) ? 'No effect on ' + e.type + '.' : '';
-      return el('button', { class: 'btn', disabled: !!why, title: why || d.tip, onclick: () => act('item', id) },
-        d.name, el('small', null, d.tip + (dud ? ' ' + dud : '') + (why ? ' (' + why + ')' : '')), el('small', { class: 'acost' }, '×' + DD.combat.count(id)));
-    });
-    return el('div', { class: 'stack', style: { alignItems: 'stretch' } },
-      el('div', { class: 'tag' }, 'Items · using one takes your turn'),
-      rows.length ? el('div', { class: 'actions' }, rows) : el('p', { class: 'dim small' }, 'You are carrying nothing. Buy supplies in any lymph node town.'),
-      el('button', { class: 'btn', onclick: () => act('items') }, 'Back'));
-  }
+  ui.openCombat = function () { ui.mode = 'combat'; g.combat.hidden = false; ui.renderCombat(); };
+  ui.closeCombat = function () { itemOpen = false; ui.mode = 'map'; g.combat.hidden = true; g.combat.replaceChildren(); ui.refreshMap(); };
   ui.renderCombat = function () {
-    stopTimer();
     const C = DD.game.combat; if (!C) return;
-    const e = C.enemy, run = C.run, [iname, icls] = INTENT[C.intent];
-    const foe = el('div', { class: 'foe' },
-      el('div', { class: 'glyph' + (e.boss ? ' boss' : '') }, e.glyph),
-      el('div', { class: 'foeinfo' },
-        el('h2', null, e.name), 
-        el('div', { class: 'chips' }, el('span', { class: 'chip' }, C.drill ? 'practice · no damage' : e.type), C.drill ? null : el('span', { class: 'chip' }, 'Lv ' + e.lvl), e.boss ? el('span', { class: 'chip danger' }, 'Boss') : null,
-          C.matchup > 1 ? el('span', { class: 'chip ok' }, 'Strong matchup') : null),
-        el('div', { class: 'stat' }, C.drill ? 'Questions left ' : 'HP ', el('b', null, e.hp + '/' + e.maxHP), bar('hp', pct(e.hp, e.maxHP)))));
-    const intent = C.phase === 'choose' && !C.drill ? el('div', { class: 'intent ' + icls }, el('span', { class: 'tag' }, 'It plans to'), el('b', null, iname)) : null;
-    const me = C.drill ? null : el('div', { class: 'me' },
-      el('div', { class: 'stat' }, 'You HP ', el('b', null, Math.round(run.hp) + '/' + C.st.maxHP), bar('hp', pct(run.hp, C.st.maxHP))),
-      el('div', { class: 'stat' }, 'ATP ', el('b', null, Math.round(run.atp) + '/' + C.st.maxATP), bar('atp', pct(run.atp, C.st.maxATP))),
-      C.buffs.length || C.enemyBuffs.length || C.ally || C.poison ? el('div', { class: 'chips' },
-        C.buffs.map(b => el('span', { class: 'chip ok' }, (b.label || b.id) + (b.turns != null ? ' (' + b.turns + ')' : ''))),
-        C.ally ? el('span', { class: 'chip ok' }, 'Neutrophil ally (' + C.ally.turns + ')') : null,
-        C.poison ? el('span', { class: 'chip ok' }, 'Enemy poisoned (' + C.poison.turns + ')') : null,
-        C.enemyBuffs.map(b => el('span', { class: 'chip danger' }, 'Enemy +25% (' + b.turns + ')'))) : null);
-    const body = el('div', { class: 'cbody' });
-    if (C.phase === 'choose' && C.drill) {
-      body.append(el('div', { class: 'actions' },
-        el('button', { class: 'btn primary', onclick: () => act('heavy') }, el('kbd', null, 'H'), 'Next question', el('small', null, 'answer each question right once to finish')),
-        el('button', { class: 'btn', onclick: DD.game.endDrill }, 'Stop drilling', el('small', null, 'back to your missed questions'))));
-    } else if (C.phase === 'choose' && itemOpen) {
-      body.append(itemMenu(C));
-    } else if (C.phase === 'choose') {
-      const a = C.cls.active, can = DD.combat.canAbility(C), fleeWhy = DD.combat.itemWhy(C, 'lymphDrain');
-      body.append(el('div', { class: 'actions' },
-        el('button', { class: 'btn', onclick: () => act('light') }, el('kbd', null, 'L'), 'Light', el('small', null, 'small hit, always lands')),
-        el('button', { class: 'btn primary', onclick: () => act('heavy') }, el('kbd', null, 'H'), 'Heavy', el('small', null, 'answer a question for a big hit')),
-        el('button', { class: 'btn', onclick: () => act('block') }, el('kbd', null, 'B'), 'Block', el('small', null, 'cut the next hit by ' + Math.round(C.st.blockCut * 100) + '%')),
-        el('button', { class: 'btn ability', disabled: !can, title: a.name + ' (' + a.cost + ' ATP, free action): ' + a.desc, 'aria-label': a.name + ', ' + a.cost + ' ATP, free action. ' + a.desc, onclick: () => act('ability') },
-          el('kbd', null, 'A'), a.name, el('small', { class: 'adesc' }, a.desc), el('small', { class: 'acost' }, a.cost + ' ATP · free action')),
-        el('button', { class: 'btn', onclick: () => act('items') }, el('kbd', null, 'I'), 'Item', el('small', null, 'uses your turn')),
-        el('button', { class: 'btn', disabled: !!fleeWhy, title: fleeWhy || 'Uses a Lymph Drain to escape to the lymph node town that drains this region', onclick: () => act('flee') },
-          'Flee', el('small', null, fleeWhy === 'None left' ? 'needs a Lymph Drain' : fleeWhy || 'uses a Lymph Drain (×' + DD.combat.count('lymphDrain') + ')'))));
+    const combat = DD.combat;
+    const button = (label, fn, why, tip) => el('button', { class: 'btn', type: 'button', disabled: !!why, title: why || tip || '', onclick: fn }, label, tip ? el('small', null, tip) : null);
+    const meter = (label, v, m, cls = 'hp') => el('div', { class: 'stat' }, label + ' ' + Math.round(v) + '/' + m, bar(cls, pct(v, m)));
+    const statuses = el('div', { class: 'chips' },
+      C.rage ? el('span', { class: 'chip ok' }, 'Protein Rage: ' + C.rage) : null,
+      C.coating ? el('span', { class: 'chip ok' }, 'Toxic Coating: ' + C.coating) : null,
+      C.shield ? el('span', { class: 'chip ok' }, 'One-hit Shield') : null,
+      C.wind ? el('span', { class: 'chip ok' }, 'Next Attack +50%') : null,
+      el('span', null, combat.statusText(C.status)));
+    const player = el('div', { class: 'battle-player' }, el('h2', null, C.cls.role), el('div', { class: 'glyph player-glyph', 'aria-hidden': 'true' }, '@'),
+      el('div', { class: 'small dim' }, C.cls.name), meter('HP', C.run.hp, C.st.maxHP), meter('ATP', C.run.atp, C.st.maxATP, 'atp'), statuses,
+      C.ally ? el('div', { class: 'companion card' }, el('b', null, 'Basophil'), meter('HP', C.ally.hp, C.ally.maxHP), el('small', null, C.ally.hp > 0 ? 'Attacks each round · shares 25% damage' : 'Defeated · recruit again')) : null);
+    const enemies = el('div', { class: 'battle-enemies' }, C.enemies.map((e, i) => {
+      const intent = e.intent === 'big' ? 'Charging: ' + (e.applies || 'heavy attack') : e.intent === 'defend' ? 'Guarding' : 'Attack';
+      const selected = C.selection.includes(i), targetable = C.phase === 'target' && e.hp > 0;
+      return el('button', { class: 'enemy-card' + (e.hp <= 0 ? ' defeated' : '') + (selected ? ' selected' : ''), type: 'button', disabled: !targetable,
+        'aria-label': e.name + ', HP ' + e.hp + ' of ' + e.maxHP + ', ' + intent,
+        onclick: () => act('target', i) },
+        el('div', { class: 'glyph' }, e.glyph), el('b', null, e.name),
+        el('small', null, e.boss ? 'Boss · Lv ' + e.lvl : e.type + ' · Lv ' + e.lvl), meter('HP', e.hp, e.maxHP),
+        el('small', { class: e.intent === 'big' ? 'danger' : '' }, e.hp > 0 ? intent : 'Defeated'),
+        el('small', null, combat.statusText(e.status)),
+        C.mark === i ? el('span', { class: 'chip ok' }, 'Antibody Mark') : null,
+        selected ? el('span', { class: 'chip' }, C.selection.filter(x => x === i).length + ' selected strikes') : null);
+    }));
+    const body = el('div', { class: 'battle-details' });
+    const commands = el('nav', { class: 'battle-commands', 'aria-label': 'Combat commands' });
+    if (C.phase === 'choose' && !C.drill) {
+      commands.append(button('Attack [L]', () => act('attack'), '', 'Free · choose one enemy'),
+        button('Block [B]', () => act('block'), '', 'Free · reduce all direct attacks this round by ' + Math.round(C.st.blockCut * 100) + '%'),
+        button('Abilities [A]', () => act('abilities'), C.rage ? 'Locked during Protein Rage' : '', 'ATP · answer a question'),
+        button('Items [I]', () => act('items'), C.rage ? 'Locked during Protein Rage' : '', 'Uses your turn'),
+        button('Flee', () => act('flee'), '', 'Leave now · lose expedition XP and loot'));
+      if (C.menu === 'abilities') body.append(el('h3', null, 'ATP abilities'), el('p', { class: 'small dim' }, 'Correct: activate and spend ATP. Wrong: lose the turn, keep ATP.'),
+        ...combat.skills().map(s => button(s.name + ' · ' + s.cost + ' ATP', () => act('ability', s.id), combat.skillWhy(C, s), s.tip + (s.type ? ' [' + s.type + ']' : ''))));
+      else if (C.menu === 'items') body.append(el('h3', null, 'Supplies'), ...DD.data.itemOrder.filter(id => combat.count(id)).map(id => {
+        const d = DD.data.items[id]; return button(d.name + ' ×' + combat.count(id), () => act('item', id), combat.itemWhy(C, id), d.tip);
+      }));
+      else body.append(el('h3', null, 'Choose your action'), el('p', null, 'Read enemy intentions, then choose a command. Attack and Block are always free.'),
+        el('div', { class: 'small dim' }, 'Armor ' + Math.round(C.st.defense) + ' · ' + Math.round(C.st.defense / (100 + C.st.defense) * 100) + '% Physical protection'),
+        el('div', { class: 'small dim' }, 'Pending: ' + ((C.run.earned || {}).xp || 0) + ' XP · ' + ((C.run.earned || {}).glucose || 0) + ' glucose · ' + (((C.run.earned || {}).gear || []).length) + ' gear. Clear or use Lymph Drain to keep them.'));
+    } else if (C.phase === 'target') {
+      body.append(el('h3', null, C.pending.name), el('p', null, C.pending.hits ? 'Choose strike ' + (C.selection.length + 1) + ' of ' + C.pending.hits + '. You may choose the same target again.' : 'Choose an enemy on the battlefield.'), button('Back', () => act('cancel')));
+    } else if (C.phase === 'choose' && C.drill) {
+      body.append(button('Next question', () => act('heavy')), button('Stop practice', DD.game.endDrill));
     } else if (C.phase === 'question' || C.phase === 'explain') {
       const q = C.q, ans = C.answer;
-      body.append(...[
-        el('div', { class: 'qtag' }, C.qKind === 'enemy' ? e.name + ' asks:' : 'Heavy attack: answer to land it', q.placeholder ? el('span', { class: 'chip' }, 'placeholder') : null,
-          q.img ? el('span', { class: 'chip ok' }, DD.img.TAGS[q.img.tag]) : null),
-        !ans && C.qKind === 'heavy' && hasFast(C) ? fastTimer(C) : null,
-        el('div', { class: 'qrow' }, el('p', { class: 'q' }, q.q), DD.review.flagBtn(q)),
-        q.img ? DD.img.view(q.img, !!ans) : null,
-        C.removed > 0 ? el('div', { class: 'rmnote' }, C.removed + ' wrong option' + (C.removed > 1 ? 's' : '') + ' removed (' + C.cls.active.name + ')') : null,
-        el('div', { class: 'opts' }, C.opts.map((o, i) => {
-          let cls = 'opt';
-          if (ans) cls += o.correct ? ' right' : (i === ans.i ? ' wrong' : '');
-          return el('button', { class: cls, disabled: !!ans, onclick: () => act('answer', i) }, el('kbd', null, String(i + 1)), o.text);
-        }))].flat().filter(Boolean));
-      if (ans) body.append(el('div', { class: 'fb ' + (ans.ok ? 'good' : 'bad') }, el('b', null, ans.ok ? 'Correct. ' : 'Not quite. The answer is ' + q.answer + '. '), q.explain),
-        el('button', { class: 'btn primary', onclick: () => act('cont') }, el('kbd', null, '↵'), 'Continue'));
+      body.append(el('div', { class: 'qtag' }, C.drill ? 'Practice' : C.pending.name + ' · ' + C.pending.cost + ' ATP on success'),
+        el('div', { class: 'qrow' }, el('p', { class: 'q' }, q.q), DD.review.flagBtn(q)));
+      if (q.img) body.append(DD.img.view(q.img, !!ans));
+      body.append(el('div', { class: 'opts' }, C.opts.map((o, i) => el('button', {
+        class: 'opt' + (ans ? o.correct ? ' right' : i === ans.i ? ' wrong' : '' : ''), disabled: !!ans,
+        onclick: () => act('answer', i) }, el('kbd', null, String(i + 1)), o.text))));
+      if (ans) body.append(el('div', { class: 'fb ' + (ans.ok ? 'good' : 'bad') }, el('b', null, ans.ok ? 'Correct. ' : 'The answer is ' + q.answer + '. '), q.explain), button('Continue [Enter]', () => act('cont')));
     } else if (C.phase === 'end') {
-      body.append(el('h3', null, C.drill ? 'Drill complete' : C.over === 'win' ? 'Pathogen destroyed' : C.over === 'flee' ? 'You slipped away' : 'Your cell has died'),
-        C.over === 'win' && !C.drill ? el('p', { class: 'warn' }, '+' + C.drop + ' glucose') : null,
-        el('p', { class: 'dim small' }, C.over === 'flee' ? 'The lymph carries you to the ' + DD.data.town(DD.world.townFor(run.regionId) || 'cervical').name + '. The pathogen stays behind, healed.' : e.codex),
-        el('button', { class: 'btn primary', onclick: () => act('cont') }, el('kbd', null, '↵'), 'Continue'));
+      const title = C.over === 'win' ? 'Victory' : C.over === 'return' ? 'Lymphatic return' : C.over === 'flee' ? 'Expedition abandoned' : 'Your cell was defeated';
+      body.append(el('h2', null, title), el('p', null, C.over === 'return' ? 'Return to the lymph node with your earnings. HP and ATP stay depleted.' : C.over === 'flee' ? 'Run earnings are forfeited. Your original belongings remain yours.' : C.over === 'win' ? 'Continue exploring, or return safely to keep the expedition rewards.' : 'You will reform in the marrow.'), button('Continue [Enter]', () => act('cont')));
     }
-    const log = el('div', { class: 'clog' }, C.log.slice(-S.log.lines).reverse().map(t => el('div', null, t)));
-    g.combat.replaceChildren(el('div', { class: 'cbox', role: 'dialog', 'aria-label': 'Combat', style: { '--accent': DD.data.region(run.regionId).accent } }, foe, intent, me, body, log));
+    g.combat.replaceChildren(el('div', { class: 'cbox battle-box', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Combat', style: { '--accent': DD.data.region(C.run.regionId).accent } },
+      el('div', { class: 'rhead' }, el('b', null, DD.data.region(C.run.regionId).name), el('span', null, 'Round ' + C.round)),
+      el('div', { class: 'battlefield' }, player, enemies),
+      el('div', { class: 'clog', role: 'status', 'aria-live': 'polite' }, C.log.slice(-3).map(t => el('div', null, t))),
+      el('div', { class: 'battle-bottom' }, commands, body)));
   };
-  function act(name, i) {
+  function act(name, value) {
     const C = DD.game.combat; if (!C) return;
-    if (name === 'items') itemOpen = !itemOpen && C.phase === 'choose' && !C.drill;
-    else itemOpen = false;
-    if (name === 'items') { /* menu toggle only */ }
-    else if (name === 'cont') { if (C.phase === 'end') return DD.game.endCombat(); DD.combat.cont(C); }
-    else if (name === 'answer') DD.combat.answer(C, i);
-    else if (name === 'item') DD.combat.useItem(C, i);
-    else if (name === 'flee') DD.combat.useItem(C, 'lymphDrain');
-    else DD.combat[name](C);
-    ui.renderCombat(); ui.refreshMap(true);
-    DD.ui.syncHud();
+    if (name === 'abilities' || name === 'items') {
+      if (C.phase !== 'choose' || C.rage) return;
+      C.menu = name;
+    } else if (name === 'cont' && C.phase === 'end') return DD.game.endCombat();
+    else if (name === 'item') DD.combat.useItem(C, value);
+    else if (typeof DD.combat[name] === 'function') DD.combat[name](C, value);
+    if (!C.drill) { DD.game.persist(); DD.save.save(); }
+    ui.renderCombat(); ui.syncHud();
   }
   ui.act = act;
   ui.syncHud = function () {

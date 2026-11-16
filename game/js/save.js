@@ -6,7 +6,7 @@ DD.save = (function () {
   let timer = null;
 
   function defaultProfile() {
-    return { v: 6, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: 0, loc: 'marrow',
+    return { v: 7, hp: null, resourcesV: 1, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: null, loc: 'marrow',
       inventory: {}, equipment: {}, gearBag: [], qstats: {}, regions: {}, routes: {},
       milestones: [], bounties: { active: [], seq: 0, done: 0 }, beaten: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' }, flagged: {} };
   }
@@ -15,7 +15,10 @@ DD.save = (function () {
     const o = Object.assign(defaultProfile(), p); // bump v and migrate here when the shape changes
     if (!Array.isArray(o.beaten)) o.beaten = []; // v2 (2a): enemy ids beaten, for B Cell Memory
     if (!DD.data.classes[o.classId]) o.classId = 'macrophage';
-    o.v = 6;
+    o.v = 7;
+    if (o.classId === 'basophil') o.classId = 'eosinophil';
+    if (!p.resourcesV) { o.hp = null; o.atp = null; }
+    o.resourcesV = 1;
     const place = DD.data.circ && DD.data.circ.nodes[o.loc]; // v3 (3a): where Derrick's cell is standing
     if (!place || place.kind !== 'place') o.loc = 'marrow';
     if (!o.routes || typeof o.routes !== 'object' || Array.isArray(o.routes)) o.routes = {};

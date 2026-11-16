@@ -7,9 +7,46 @@ DD.game = (function () {
   G.say = function (t) { G.msgs.push(t); while (G.msgs.length > 12) G.msgs.shift(); };
   G.stats = () => DD.stats.compute(prof());
 
+  G.resources = function () {
+    const p = prof(), st = G.stats();
+    p.hp = Number.isFinite(p.hp) ? Math.max(1, Math.min(p.hp, st.maxHP)) : st.maxHP;
+    p.atp = Number.isFinite(p.atp) ? Math.max(0, Math.min(p.atp, st.maxATP)) : st.maxATP;
+    return p;
+  };
+  G.syncResources = function (r) { if (r && !r.drill) { prof().hp = r.hp; prof().atp = r.atp; } };
+  G.earnings = function () { const r = G.run; return r ? (r.earned || (r.earned = { xp: 0, glucose: 0, gear: [], items: {}, kills: [] })) : null; };
+  G.reward = function (kind, value, amount = 1) {
+    const e = G.earnings();
+    if (!e) return;
+    if (kind === 'gear') e.gear.push(value);
+    else if (kind === 'item') e.items[value] = (e.items[value] || 0) + amount;
+    else e[kind] += value;
+  };
+  G.consumeItem = function (id) {
+    const e = G.earnings();
+    if (e && e.items[id] > 0) { if (--e.items[id] === 0) delete e.items[id]; }
+    else if (--prof().inventory[id] <= 0) delete prof().inventory[id];
+  };
+  G.settle = function (keep) {
+    const r = G.run; if (!r) return;
+    G.syncResources(r);
+    const e = r.earned;
+    if (keep && e) {
+      prof().glucose += e.glucose;
+      prof().gearBag.push(...e.gear);
+      for (const [id, n] of Object.entries(e.items)) prof().inventory[id] = Math.min(DD.data.items[id].cap || Infinity, (prof().inventory[id] || 0) + n);
+      G.gainXp(e.xp, true);
+      for (const foe of e.kills) {
+        if (!prof().beaten.includes(foe.defId)) prof().beaten.push(foe.defId);
+        if (!r.trip) DD.bounty.onKill(foe, r.regionId);
+      }
+      if (r.bossWon) { DD.npc.markCleared(r.regionId); DD.bounty.onClear(r.regionId); }
+    }
+    r.earned = null; G.syncResources(r); DD.save.save();
+  };
   G.newRun = function (regionId) {
-    const st = G.stats();
-    G.run = { v: 1, regionId, seed: (Math.random() * 2147483647) >>> 0, floorIdx: 0, genLevel: prof().level, hp: st.maxHP, atp: st.maxATP,
+    const st = G.stats(), resources = G.resources();
+    G.run = { v: 1, regionId, seed: (Math.random() * 2147483647) >>> 0, floorIdx: 0, genLevel: prof().level, hp: resources.hp, atp: resources.atp,
       killed: 0, glucose: 0, miss: [], px: 0, py: 0, floor: null, gm: DD.derrick.genMods(regionId) };
     G.msgs = [];
     G.loadFloor(0);
@@ -41,19 +78,21 @@ DD.game = (function () {
     const r = G.run; if (!r) return;
     if (r.trip) return DD.travel.persist();
     const f = r.floor;
+    G.syncResources(r); DD.save.save();
     DD.save.saveRun({ v: 1, regionId: r.regionId, seed: r.seed, floorIdx: r.floorIdx, genLevel: r.genLevel, hp: r.hp, atp: r.atp,
-      killed: r.killed, glucose: r.glucose, miss: r.miss, px: r.px, py: r.py, bossDead: f.bossDead, gm: r.gm,
+      earned: r.earned, bossWon: r.bossWon, battle: G.combat && !G.combat.drill ? DD.combat.snapshot(G.combat) : null, killed: r.killed, glucose: r.glucose, miss: r.miss, px: r.px, py: r.py, bossDead: f.bossDead, gm: r.gm,
       explored: Array.from(f.explored).join(''), en: f.enemies.map(e => [e.x, e.y, e.alive ? 1 : 0]),
       taken: f.pickups.map((p, i) => p.taken ? i : -1).filter(i => i >= 0), traps: f.traps.map(t => t.state), chests: f.chests.map((c, i) => c.taken ? i : -1).filter(i => i >= 0), npcs: DD.npc.saveState(f) });
   };
   G.resume = function (saved) {
     G.run = { v: 1, regionId: saved.regionId, seed: saved.seed, floorIdx: saved.floorIdx, genLevel: saved.genLevel, hp: saved.hp, atp: saved.atp,
-      killed: saved.killed || 0, glucose: saved.glucose || 0, miss: saved.miss || [], px: 0, py: 0, floor: null, gm: saved.gm || undefined };
+      earned: saved.earned, bossWon: saved.bossWon, killed: saved.killed || 0, glucose: saved.glucose || 0, miss: saved.miss || [], px: 0, py: 0, floor: null, gm: saved.gm || undefined };
     const st = G.stats(); G.run.hp = Math.min(G.run.hp, st.maxHP); G.run.atp = Math.min(G.run.atp, st.maxATP);
     G.msgs = []; G.loadFloor(saved.floorIdx, saved);
+    if (saved.battle) G.combat = DD.combat.create(G.run, null, { saved: saved.battle });
     G.say('You pick up where you left off.');
   };
-  G.abandon = function () { G.run = null; G.combat = null; DD.save.saveRun(null); };
+  G.abandon = function () { if (!G.run && DD.save.run && !DD.save.run.kind) G.resume(DD.save.run); G.settle(false); G.run = null; G.combat = null; DD.save.saveRun(null); };
 
   G.move = function (dx, dy) {
     const run = G.run; if (!run || G.combat || DD.ui.mode !== 'map') return;
@@ -68,7 +107,7 @@ DD.game = (function () {
     const p = f.pickups.find(q => !q.taken && q.x === nx && q.y === ny);
     if (p) {
       const E = S.economy.pickup, v = DD.derrick.loot(DD.u.int(Math.random, E.min, E.max), run.regionId);
-      p.taken = true; run.glucose += v; prof().glucose += v; G.say('You absorb ' + v + ' glucose.');
+      p.taken = true; run.glucose += v; G.reward('glucose', v); G.say('You absorb ' + v + ' glucose.');
     }
     const chest = f.chests.find(c => !c.taken && c.x === nx && c.y === ny);
     if (chest) DD.gear.openChest(chest);
@@ -89,7 +128,7 @@ DD.game = (function () {
   };
   G.clearDungeon = function () {
     const run = G.run, r = prof().regions[run.regionId] || (prof().regions[run.regionId] = { lastReviewed: 0, cleared: false, recent: [] });
-    r.cleared = true;
+    G.settle(true); r.cleared = true;
     const summary = { region: DD.data.region(run.regionId), killed: run.killed, glucose: run.glucose, missed: run.miss.length, legendary: run.legend || null };
     G.run = null; DD.save.saveRun(null); DD.save.save();
     DD.ui.showCleared(summary);
@@ -97,9 +136,11 @@ DD.game = (function () {
 
   // Death: half the carried glucose is lost (rounded down), the run and its dungeon are gone, everything else stays.
   G.die = function (C) {
-    const run = G.run, lost = Math.floor(prof().glucose * S.economy.deathLossPct);
+    const run = G.run; G.settle(false);
+    const lost = Math.floor(prof().glucose * S.economy.deathLossPct);
     prof().glucose -= lost;
     const info = { by: C.enemy.name, region: DD.data.region(run.regionId), missIds: run.miss.slice(), lost, kept: prof().glucose, killed: run.killed, trip: !!run.trip };
+    prof().hp = G.stats().maxHP; prof().atp = G.stats().maxATP;
     prof().loc = 'marrow'; // you re-form in the marrow
     G.run = null; DD.save.saveRun(null); DD.save.save();
     DD.ui.showDeath(info);
@@ -115,8 +156,9 @@ DD.game = (function () {
   G.endDrill = function () { G.combat = null; DD.ui.review(); };
 
   // XP and level-ups for the live run (combat kills and pop quizzes).
-  G.gainXp = function (n) {
+  G.gainXp = function (n, immediate) {
     const run = G.run;
+    if (run && !immediate) { G.reward('xp', n); return; }
     prof().xp += n;
     let st = G.stats();
     while (prof().xp >= st.xpToNext) {
@@ -159,37 +201,37 @@ DD.game = (function () {
 
   G.startCombat = function (enemy) {
     G.combat = DD.combat.create(G.run, enemy);
-    DD.ui.openCombat();
+    G.persist(); DD.ui.openCombat();
   };
   G.endCombat = function () {
-    const C = G.combat, run = G.run; G.combat = null;
-    if (C.drill) return DD.ui.review(); // practice drill: nothing else changes
+    const C = G.combat, run = G.run; if (!C || C.phase !== 'end') return;
+    G.combat = null;
+    if (C.drill) return DD.ui.review();
     if (C.over === 'lose') return G.die(C);
-    if (C.over === 'flee') { // Lymph Drain: the run stays saved, the pathogen resets, and you wash up in the town
-      C.enemy.hp = C.enemy.maxHP;
+    if (C.over === 'flee' || C.over === 'return') {
       const town = DD.world.townFor(run.regionId) || 'cervical';
-      prof().loc = town;
-      DD.save.save(); G.persist(); DD.ui.stopMap();
-      return DD.ui.town({ fled: true, id: town, via: 'lymph' });
+      G.settle(C.over === 'return');
+      if (C.over === 'return') prof().loc = town;
+      else if (run.trip) prof().loc = run.trip.from;
+      G.run = null; DD.save.saveRun(null); DD.save.save(); DD.ui.stopMap();
+      return C.over === 'return' ? DD.ui.town({ id: town, via: 'lymph' }) : DD.ui.menu();
     }
-    const e = C.enemy, x = S.enemy.xp;
-    e.alive = false; run.killed++;
-    if (!prof().beaten.includes(e.defId)) prof().beaten.push(e.defId); // B Cell Memory
-    const gain = Math.round((x.base + x.perLevel * e.lvl) * (e.boss ? x.bossMult : 1));
-    G.say(e.name + ' destroyed. +' + gain + ' XP.');
-    G.gainXp(gain);
+    const anchor = run.floor.enemies.find(e => e.uid === C.anchorUid); if (anchor) anchor.alive = false;
+    for (const e of C.enemies) {
+      const x = S.enemy.xp, gain = Math.round((x.base + x.perLevel * e.lvl) * (e.boss ? x.bossMult : 1));
+      const D = S.economy.drop, glucose = DD.derrick.loot(e.boss ? D.boss : Math.round(DD.u.int(Math.random, D.min, D.max) * (1 + D.perLevel * e.lvl)), run.regionId);
+      run.killed++; run.glucose += glucose; G.reward('glucose', glucose); G.gainXp(gain);
+      G.earnings().kills.push({ defId: e.defId, type: e.type, boss: e.boss });
+      G.say(e.name + ' defeated. ' + gain + ' XP and ' + glucose + ' glucose held until return.');
+      if (e.boss) {
+        const L = DD.npc.legendary(e.defId);
+        if (L) { run.legend = L.name; G.say('Found ' + L.name + '. Return safely to keep it.'); }
+        run.bossWon = true; run.floor.bossDead = true;
+        run.floor.g[run.floor.exit.y][run.floor.exit.x] = '>';
+      }
+    }
     if (run.trip) DD.travel.afterKill();
-    if (!run.trip) DD.bounty.onKill(e, run.regionId);
-    if (e.boss) {
-      DD.npc.markCleared(run.regionId); DD.bounty.onClear(run.regionId); // the region counts as cleared as soon as its boss falls
-      const L = DD.npc.legendary(e.defId);
-      if (L) { run.legend = L.name; G.say('Legendary drop: ' + L.name + '! It is in your gear bag.'); }
-      run.floor.bossDead = true;
-      run.floor.g[run.floor.exit.y][run.floor.exit.x] = '>';
-      G.say('The boss is down. The exit (>) has opened.');
-    }
-    DD.save.save(); G.persist();
-    DD.ui.closeCombat();
+    DD.save.save(); G.persist(); DD.ui.closeCombat();
   };
   return G;
 })();
