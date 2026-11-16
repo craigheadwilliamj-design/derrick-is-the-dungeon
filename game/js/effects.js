@@ -25,11 +25,11 @@ DD.fx = (function () {
     switch (r.type) {
       case 'damageMult': ctx.mult = (ctx.mult || 1) * r.mult; break;
       case 'damage':
-        if (r.target === 'self') ctx.selfDmg = (ctx.selfDmg || 0) + (r.pct || 0) * (ctx.hp || 0) + (r.amount || 0); // pct of current HP
+        if (r.target === 'self') ctx.selfDmg = (ctx.selfDmg || 0) + (r.pct || 0) * (r.of === 'max' ? ctx.maxHP : (ctx.hp || 0)) + (r.amount || 0); // pct of current HP (or of max HP with of:'max')
         else ctx.dmg = (ctx.dmg || 0) + r.amount;
         break;
       case 'heal': ctx.heal = (ctx.heal || 0) + (r.pct || 0) * ctx.maxHP + (r.amount || 0); break;
-      case 'atp': ctx.atp = (ctx.atp || 0) + r.amount; break;
+      case 'atp': ctx.atp = (ctx.atp || 0) + (r.amount || 0) + (r.pct || 0) * (ctx.maxATP || 0); break;
       case 'shield': ctx.shield = true; break;
       case 'removeWrong': ctx.removeWrong = (ctx.removeWrong || 0) + r.n; break;
       case 'poison': ctx.poison = { turns: r.turns, pct: r.pct }; break;

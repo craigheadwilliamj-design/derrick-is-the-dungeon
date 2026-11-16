@@ -130,6 +130,11 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 .ed-boxes{display:flex;flex-direction:column;gap:8px}.bx-list{display:flex;flex-direction:column;gap:6px}
 .bx-row{display:flex;gap:8px;align-items:center;border-radius:5px;padding:2px}.bx-row.sel{outline:1px solid var(--accent)}
 .bx-n{font:800 13px var(--mono);color:var(--bile);width:1.6em;text-align:center;flex:none}
+.shoprow{display:flex;gap:10px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px}
+.shopinfo{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.shopinfo>b{font-family:var(--disp);font-size:16px;font-weight:500;display:inline}
+.shopinfo .chip{align-self:flex-start}
+.chip.warn{color:var(--bile);border-color:var(--bile)}
+.qcard .q{font-size:16px}
 @media (max-width:480px){.ed-fields{grid-template-columns:1fr}}
 @media (max-width:480px){.me{grid-template-columns:1fr}.glyph{font-size:40px;width:48px}}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
@@ -140,6 +145,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 <script src="data/regions.js"></script>
 <script src="data/enemies.js"></script>
 <script src="data/classes.js"></script>
+<script src="data/items.js"></script>
 <script src="data/q-blood.js"></script>
 <script src="data/q-lymph.js"></script>
 <script src="js/save.js"></script>
@@ -152,6 +158,8 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 <script src="js/render.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/review.js"></script>
+<script src="js/town.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/input.js"></script>
 <script src="js/main.js"></script>

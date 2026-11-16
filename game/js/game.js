@@ -59,7 +59,10 @@ DD.game = (function () {
     if (foe) return G.startCombat(foe);
     run.px = nx; run.py = ny;
     const p = f.pickups.find(q => !q.taken && q.x === nx && q.y === ny);
-    if (p) { p.taken = true; run.glucose++; prof().glucose++; G.say('You absorb a glucose.'); }
+    if (p) {
+      const E = S.economy.pickup, v = DD.u.int(Math.random, E.min, E.max);
+      p.taken = true; run.glucose += v; prof().glucose += v; G.say('You absorb ' + v + ' glucose.');
+    }
     const t = f.g[ny][nx];
     if (t === '>') return G.takeStairs();
     DD.dungeon.computeFov(f, nx, ny);
@@ -81,16 +84,36 @@ DD.game = (function () {
     DD.ui.showCleared(summary);
   };
 
+  // Death: half the carried glucose is lost (rounded down), the run and its dungeon are gone, everything else stays.
+  G.die = function (C) {
+    const run = G.run, lost = Math.floor(prof().glucose * S.economy.deathLossPct);
+    prof().glucose -= lost;
+    const info = { by: C.enemy.name, region: DD.data.region(run.regionId), missIds: run.miss.slice(), lost, kept: prof().glucose, killed: run.killed };
+    G.run = null; DD.save.saveRun(null); DD.save.save();
+    DD.ui.showDeath(info);
+  };
+  // Practice fight against a training dummy using only these question ids. Never touches the live run.
+  G.startDrill = function (ids) {
+    const st = G.stats(), dummy = { uid: 'dummy', defId: 'dummy', name: 'Training Dummy', type: 'straw', glyph: 'T', boss: false, lvl: 1, atk: 0, def: 0,
+      hp: ids.length, maxHP: ids.length, x: 0, y: 0, alive: true, codex: 'Straw and sandbags. It has never infected anyone.' };
+    const pseudo = { v: 1, regionId: 'marrow', hp: st.maxHP, atp: st.maxATP, miss: [], glucose: 0, killed: 0, drill: true };
+    G.combat = DD.combat.create(pseudo, dummy, { drill: ids });
+    DD.ui.drill();
+  };
+  G.endDrill = function () { G.combat = null; DD.ui.review(); };
+
   G.startCombat = function (enemy) {
     G.combat = DD.combat.create(G.run, enemy);
     DD.ui.openCombat();
   };
   G.endCombat = function () {
     const C = G.combat, run = G.run; G.combat = null;
-    if (C.over === 'lose') {
-      const info = { by: C.enemy.name, region: DD.data.region(run.regionId), miss: run.miss.length };
-      G.run = null; DD.save.saveRun(null); DD.save.save();
-      return DD.ui.showDeath(info);
+    if (C.drill) return DD.ui.review(); // practice drill: nothing else changes
+    if (C.over === 'lose') return G.die(C);
+    if (C.over === 'flee') { // Lymph Drain: the run stays saved, the pathogen resets, and you wash up in the town
+      C.enemy.hp = C.enemy.maxHP;
+      DD.save.save(); G.persist(); DD.ui.stopMap();
+      return DD.ui.town({ fled: true });
     }
     const e = C.enemy, x = S.enemy.xp;
     e.alive = false; run.killed++;

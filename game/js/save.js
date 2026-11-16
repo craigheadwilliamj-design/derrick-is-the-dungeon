@@ -16,6 +16,9 @@ DD.save = (function () {
     if (!Array.isArray(o.beaten)) o.beaten = []; // v2 (2a): enemy ids beaten, for B Cell Memory
     if (!DD.data.classes[o.classId]) o.classId = 'macrophage';
     o.v = 2;
+    o.glucose = Math.max(0, Math.floor(+o.glucose) || 0);
+    if (!o.inventory || typeof o.inventory !== 'object' || Array.isArray(o.inventory)) o.inventory = {};
+    Object.keys(o.inventory).forEach(k => { if (!(o.inventory[k] > 0)) delete o.inventory[k]; });
     o.settings = Object.assign({ sourceFilter: 'all' }, o.settings);
     return o;
   }

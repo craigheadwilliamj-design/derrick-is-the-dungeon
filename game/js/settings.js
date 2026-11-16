@@ -58,6 +58,26 @@ DD.S = {
     degranulate: { cost: 7, pct: 0.08, turns: 3 },              // Eosinophil: poison, % of enemy max HP per turn
     inflammation: { cost: 9, turns: 3, allyMult: 0.6 }          // Basophil: ally light attack (x player power) per turn
   },
+  // Economy (phase 2b). Glucose is the currency; prices are in glucose.
+  economy: {
+    drop: { min: 3, max: 6, perLevel: 0.1, boss: 25 },   // regular: round(roll(3..6) x (1 + 0.1 x level)); boss: flat
+    pickup: { min: 5, max: 12 },                         // $ tiles
+    sellPct: 0.5,                                        // shop buys back at 50%
+    inn: { base: 10, perLevel: 2 },                      // full HP + ATP restore
+    respiration: { glucose: 5, atp: 15 },                // glucose -> ATP at the town counter
+    deathLossPct: 0.5                                    // carried glucose lost on death, rounded down
+  },
+  // Consumables. price = glucose. Effects are built from these in data/items.js.
+  items: {
+    tonic: { price: 15, cap: 3, healPct: 0.4 },
+    atpReserve: { price: 30, atpPct: 0.6 },
+    complement: { price: 12, mult: 1.5 },
+    mucusWard: { price: 14 },
+    fever: { price: 10, mult: 1.3, selfPct: 0.04 },     // selfPct of max HP each turn; never kills you
+    interferon: { price: 12, mult: 1.6 },
+    antibiotic: { price: 12, mult: 1.6 },
+    lymphDrain: { price: 20 }
+  },
   picker: { recentExclude: 8, unseen: 2, wrong: 1.5, right: 0.5, floor: 0.25, staleCap: 2, staleDays: 7, weakBias: 2 },
   mastery: { window: 20, minAnswers: 5, fadeDays: 14, fadeFloor: 0.25 },
   img: { minBoxFrac: 0.02, maxBytes: 20 * 1024 * 1024, labelMax: 60, panelMaxW: 1000, zoomMaxW: 2000 },
