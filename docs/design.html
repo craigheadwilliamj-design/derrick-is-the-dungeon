@@ -184,7 +184,7 @@ results: damage, damageMult, heal, stat+, atp+, poison(n turns), shield,
 <tr><td>1c</td><td>Replace placeholders with questions from the user's blood &amp; lymphatic study guides/notes (user provides).</td></tr>
 <tr><td>2a</td><td>All 6 classes and abilities as effect data, ATP, class select at marrow.</td></tr>
 <tr><td>2b</td><td>Consumables, glucose, one town (shop + inn), death/respawn, missed-question review, post-mortem.</td></tr>
-<tr><td>3a</td><td>Body map, circulation graph, walkable vessel segments, hazards/ambushes, lymph paths, all four towns, fast travel + ordering quiz. <b>Traps</b> in vessels and dungeon floors.</td></tr>
+<tr><td>3a</td><td>Body map, circulation graph, walkable vessel segments, hazards/ambushes, lymph paths, all six towns, fast travel + ordering quiz. <b>Traps</b> in vessels and dungeon floors.</td></tr>
 <tr><td>3b</td><td>NPCs (native cells, town cells, dendritic merchant), thymus + milestone upgrades, bosses with legendary drops. Baseline NPC dialogue with Derrick jokes (event-reactive lines come in 5b).</td></tr>
 <tr><td>4a</td><td>In-game question writer (sample capability) with review step; mastery fading on the map; flag button.</td></tr>
 <tr><td>4b</td><td>Gear: 4 slots, rarity, ~60 items, chests/shops/merchant stock.</td></tr>
@@ -231,11 +231,11 @@ data/q-blood.js data/q-lymph.js …  one file per system: DD.data.questions.bloo
 // box coords are 0–1 fractions of image width/height</pre>
 Options are shuffled at display time. Answer by click, tap, or keys 1–4. Always show <code>explain</code> after answering, with a Continue button (Enter/Space).</li>
 <li><b>Profile (persistent) shape:</b>
-<pre>{ v:2, updatedAt, level, xp, classId, glucose, atp, beaten:[enemyDefId…],
+<pre>{ v:3, updatedAt, level, xp, classId, glucose, atp, beaten:[enemyDefId…],
   inventory:{itemId:count}, equipment:{weapon,armor,acc1,acc2}, gearBag:[…],
   qstats:{ [qid]:{seen,right,wrong,last,streak} },
   regions:{ [regionId]:{ lastReviewed, cleared:bool, recent:[0|1,…last 20 answers] } },
-  routes:{ "from>to":{ walks, unlocked } }, milestones:[…], subclass:{},
+  loc:"marrow" (place id), routes:{ "from>to":{ walks, unlocked, fail } }, milestones:[…], subclass:{},
   ngPlus:0, conditions:[…], event:{ id, day }, settings:{ sourceFilter:"all" } }</pre>
 Mid-dungeon run state (floor, map, entities, HP) is saved separately as <code>run</code> so a reload resumes the floor.</li>
 <li><b>Saving:</b> <code>const db = await claude.use("db")</code> and <code>user</code>. If either is null, use localStorage only (key <code>dd_profile</code> / <code>dd_run</code>, always in try/catch). Docs: <code>db.collection("data/users/"+uid).doc("profile")</code>, <code>.doc("run")</code>, custom questions as <code>.doc("cq_"+id)</code>, image records as <code>.doc("img_"+id)</code>. Check the size limits in <code>db.d.ts</code>, and if <code>qstats</code> could exceed them, shard it as <code>qstats_&lt;system&gt;</code>. Save after each combat, on floor change, and on town or menu actions (debounced 1.5 s, one write in flight per doc). Never save on every step. On load, take whichever of db and localStorage has the newer <code>updatedAt</code>. The game must start and play before db answers.</li>
@@ -348,6 +348,7 @@ Diapedesis (a short "squeeze through the endothelium" moment) happens on enterin
 <li>Remove the temporary bloodstream dungeon. Move the blood questions into ambushes and traps, and keep the "Bloodstream" mastery entry on the map.</li>
 </ul>
 
+<p><i>Built (3a):</i> profile <code>v</code> is 3 (adds <code>loc</code>). Graph in <code>data/circulation.js</code>, routing in <code>js/world.js</code>, segments and trips in <code>js/travel.js</code>, map in <code>js/bodymap.js</code>. A trip is a run with <code>run.trip</code> (saved at each stop; Pause/Continue resumes the stop). Differences from the spec above: the lymph node chain is a tree (inguinal and lumbar meet at the cisterna chyli, mesenteric joins there too), not a line, because that is the real drainage; vessels are ~34 tiles (arteries and veins scaled per vessel) rather than 60, to hit 1–2 minutes (median route about 80 s at 5 steps/s); exactly 1–2 ambushes per trip (15% per blood vessel, capped at 2, one forced if the trip has 4+ vessels); lymph vessels have no ambushes but do have traps (lymph questions); Lymph Drain flees to the node town that drains the region and cannot be used inside a vessel; the eyes use the ophthalmic artery and the inner ear's real supply (labyrinthine artery) is noted as simplified; bone marrow has no lymph route. Fast travel quiz needs 2 completed walks; a failed quiz needs one more walk before a retry. Hold a d-pad key to keep walking on trips.</p>
 <h3>3b · NPCs, thymus, bosses</h3>
 <ul>
 <li><code>data/npcs.js</code>: <code>{id, name, kind:"native|town|merchant", regions:[…], lines:{greet:[…], derrick:[…]}, codex}</code>.</li>

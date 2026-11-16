@@ -24,6 +24,7 @@ DD.game = (function () {
       saved.explored.split('').forEach((c, i) => { f.explored[i] = c === '1' ? 1 : 0; });
       saved.en.forEach((s, i) => { const e = f.enemies[i]; if (e) { e.x = s[0]; e.y = s[1]; e.alive = !!s[2]; } });
       saved.taken.forEach(i => { if (f.pickups[i]) f.pickups[i].taken = true; });
+      (saved.traps || []).forEach((s, i) => { if (f.traps[i]) f.traps[i].state = s; });
       f.bossDead = !!saved.bossDead;
       if (f.bossDead && f.exit) f.g[f.exit.y][f.exit.x] = '>';
       run.px = saved.px; run.py = saved.py;
@@ -36,11 +37,12 @@ DD.game = (function () {
   };
   G.persist = function () {
     const r = G.run; if (!r) return;
+    if (r.trip) return DD.travel.persist();
     const f = r.floor;
     DD.save.saveRun({ v: 1, regionId: r.regionId, seed: r.seed, floorIdx: r.floorIdx, genLevel: r.genLevel, hp: r.hp, atp: r.atp,
       killed: r.killed, glucose: r.glucose, miss: r.miss, px: r.px, py: r.py, bossDead: f.bossDead,
       explored: Array.from(f.explored).join(''), en: f.enemies.map(e => [e.x, e.y, e.alive ? 1 : 0]),
-      taken: f.pickups.map((p, i) => p.taken ? i : -1).filter(i => i >= 0) });
+      taken: f.pickups.map((p, i) => p.taken ? i : -1).filter(i => i >= 0), traps: f.traps.map(t => t.state) });
   };
   G.resume = function (saved) {
     G.run = { v: 1, regionId: saved.regionId, seed: saved.seed, floorIdx: saved.floorIdx, genLevel: saved.genLevel, hp: saved.hp, atp: saved.atp,
@@ -53,6 +55,7 @@ DD.game = (function () {
 
   G.move = function (dx, dy) {
     const run = G.run; if (!run || G.combat || DD.ui.mode !== 'map') return;
+    if (run.trip) return DD.travel.move(dx, dy);
     const f = run.floor, nx = run.px + dx, ny = run.py + dy;
     if (!DD.dungeon.walk(f, nx, ny)) return;
     const foe = DD.dungeon.enemyAt(f, nx, ny);
@@ -64,6 +67,8 @@ DD.game = (function () {
       p.taken = true; run.glucose += v; prof().glucose += v; G.say('You absorb ' + v + ' glucose.');
     }
     const t = f.g[ny][nx];
+    const trap = f.traps.find(q => q.state === 0 && q.x === nx && q.y === ny);
+    if (trap) { DD.dungeon.computeFov(f, nx, ny); DD.ui.refreshMap(); return G.springTrap(trap); }
     if (t === '>') return G.takeStairs();
     DD.dungeon.computeFov(f, nx, ny);
     const eng = DD.dungeon.enemiesAct(f, nx, ny);
@@ -88,7 +93,8 @@ DD.game = (function () {
   G.die = function (C) {
     const run = G.run, lost = Math.floor(prof().glucose * S.economy.deathLossPct);
     prof().glucose -= lost;
-    const info = { by: C.enemy.name, region: DD.data.region(run.regionId), missIds: run.miss.slice(), lost, kept: prof().glucose, killed: run.killed };
+    const info = { by: C.enemy.name, region: DD.data.region(run.regionId), missIds: run.miss.slice(), lost, kept: prof().glucose, killed: run.killed, trip: !!run.trip };
+    prof().loc = 'marrow'; // you re-form in the marrow
     G.run = null; DD.save.saveRun(null); DD.save.save();
     DD.ui.showDeath(info);
   };
@@ -102,6 +108,49 @@ DD.game = (function () {
   };
   G.endDrill = function () { G.combat = null; DD.ui.review(); };
 
+  // XP and level-ups for the live run (combat kills and pop quizzes).
+  G.gainXp = function (n) {
+    const run = G.run;
+    prof().xp += n;
+    let st = G.stats();
+    while (prof().xp >= st.xpToNext) {
+      prof().xp -= st.xpToNext; prof().level++;
+      const before = st.maxHP; st = G.stats();
+      run.hp = Math.min(st.maxHP, run.hp + (st.maxHP - before) + Math.round(st.maxHP * S.stats.levelUpHealPct));
+      G.say('Level up! You are now level ' + prof().level + '.');
+    }
+  };
+
+  // Pop quiz traps (dungeon floors and vessels). Wrong = 10% max HP + level; right = disarmed + 5 XP. Either way the trap is spent and stays visible.
+  G.springTrap = function (trap) {
+    const run = G.run, systems = run.trip ? run.systems : DD.data.region(run.regionId).systems, q = DD.q.pick(systems);
+    G.quiz = { trap, q, opts: DD.q.options(q, 0), answer: null };
+    G.say('You trigger a trap: ' + trap.name + '!');
+    DD.ui.popQuiz();
+  };
+  G.answerTrap = function (i) {
+    const Q = G.quiz, run = G.run; if (!Q || Q.answer) return;
+    const o = Q.opts[i]; if (!o) return;
+    const ok = o.correct, TR = S.travel.trap;
+    DD.q.record(Q.q, ok, run.trip ? DD.q.regionOf(Q.q) : run.regionId);
+    Q.answer = { i, ok };
+    if (ok) { Q.trap.state = 2; Q.msg = 'Disarmed. +' + TR.xp + ' XP.'; G.gainXp(TR.xp); }
+    else {
+      Q.trap.state = 1;
+      if (!run.miss.includes(Q.q.id)) run.miss.push(Q.q.id);
+      Q.dmg = Math.max(1, Math.round(G.stats().maxHP * TR.dmgPct) + TR.dmgPerLevel * prof().level);
+      run.hp = Math.max(0, run.hp - Q.dmg); Q.msg = 'The trap hits you for ' + Q.dmg + '.';
+    }
+    G.say(Q.msg);
+    DD.save.save(); G.persist();
+    DD.ui.popQuiz();
+  };
+  G.endTrap = function () {
+    const run = G.run, name = G.quiz.trap.name; G.quiz = null;
+    if (run.hp <= 0) return G.die({ enemy: { name: 'a trap (' + name + ')' } });
+    DD.ui.closeQuiz();
+  };
+
   G.startCombat = function (enemy) {
     G.combat = DD.combat.create(G.run, enemy);
     DD.ui.openCombat();
@@ -112,23 +161,18 @@ DD.game = (function () {
     if (C.over === 'lose') return G.die(C);
     if (C.over === 'flee') { // Lymph Drain: the run stays saved, the pathogen resets, and you wash up in the town
       C.enemy.hp = C.enemy.maxHP;
+      const town = DD.world.townFor(run.regionId) || 'cervical';
+      prof().loc = town;
       DD.save.save(); G.persist(); DD.ui.stopMap();
-      return DD.ui.town({ fled: true });
+      return DD.ui.town({ fled: true, id: town });
     }
     const e = C.enemy, x = S.enemy.xp;
     e.alive = false; run.killed++;
     if (!prof().beaten.includes(e.defId)) prof().beaten.push(e.defId); // B Cell Memory
     const gain = Math.round((x.base + x.perLevel * e.lvl) * (e.boss ? x.bossMult : 1));
-    prof().xp += gain;
     G.say(e.name + ' destroyed. +' + gain + ' XP.');
-    let st = G.stats();
-    while (prof().xp >= st.xpToNext) {
-      prof().xp -= st.xpToNext; prof().level++;
-      const before = st.maxHP; st = G.stats();
-      run.hp = Math.min(st.maxHP, run.hp + (st.maxHP - before) + Math.round(st.maxHP * S.stats.levelUpHealPct));
-      run.atp = Math.min(st.maxATP, run.atp + 0);
-      G.say('Level up! You are now level ' + prof().level + '.');
-    }
+    G.gainXp(gain);
+    if (run.trip) DD.travel.afterKill();
     if (e.boss) {
       run.floor.bossDead = true;
       run.floor.g[run.floor.exit.y][run.floor.exit.x] = '>';

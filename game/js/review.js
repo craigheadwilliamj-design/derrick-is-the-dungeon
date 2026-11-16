@@ -31,12 +31,12 @@ DD.review = (function () {
     const rows = R.missed();
     const groups = DD.img.SYSTEMS.map(([id, name]) => [name, rows.filter(r => r.q.system === id)]).filter(g => g[1].length);
     ui.mount(el('div', { class: 'screen menu' },
-      el('div', { class: 'tag' }, 'Bone Marrow'),
+      el('div', { class: 'tag' }, 'Derrick'),
       el('h1', null, 'Missed questions'),
       el('p', { class: 'dim small' }, rows.length ? rows.length + ' question' + (rows.length === 1 ? '' : 's') + ' you have missed at least once. Worst first within each system: misses minus right answers.'
         : 'Nothing missed yet. Questions you get wrong will collect here with their answers.'),
       el('div', { class: 'toolrow2' },
-        el('button', { class: 'btn', type: 'button', onclick: ui.menu }, 'Back to the marrow'),
+        el('button', { class: 'btn', type: 'button', onclick: () => ui.menu() }, 'Back to the body map'),
         el('button', { class: 'btn primary', type: 'button', disabled: !rows.length, title: 'A no-damage practice fight against a training dummy, using only these questions',
           onclick: () => DD.game.startDrill(rows.map(r => r.q.id)) }, 'Drill these' + (rows.length ? ' (' + rows.length + ')' : ''))),
       groups.map(([name, list]) => el('div', { class: 'ed-group' },
@@ -52,11 +52,11 @@ DD.review = (function () {
     ui.mount(el('div', { class: 'screen menu' },
       el('div', { class: 'tag' }, 'Post-mortem · ' + info.region.name),
       el('h1', null, 'Your cell has died'),
-      el('p', { class: 'lede' }, 'Destroyed by ' + info.by + ' after ' + info.killed + ' kill' + (info.killed === 1 ? '' : 's') + '. You will re-form in the bone marrow with full HP and ATP, and this dungeon resets.'),
+      el('p', { class: 'lede' }, 'Destroyed by ' + info.by + ' after ' + info.killed + ' kill' + (info.killed === 1 ? '' : 's') + '. You will re-form in the bone marrow with full HP and ATP, and ' + (info.trip ? 'this trip ends.' : 'this dungeon resets.')),
       el('p', { class: 'warn' }, info.lost ? 'You lost ' + info.lost + ' glucose (half of what you carried). ' + info.kept + ' left.' : 'You had no glucose to lose.'),
       el('p', { class: 'dim small' }, 'Level, gear, items, question history and routes are kept.'),
       el('div', { class: 'toolrow2' },
-        el('button', { class: 'btn primary', type: 'button', onclick: ui.menu }, 'Respawn at the marrow'),
+        el('button', { class: 'btn primary', type: 'button', onclick: () => ui.menu('marrow') }, 'Respawn at the marrow'),
         el('button', { class: 'btn', type: 'button', onclick: ui.classes }, 'Respawn and switch class')),
       el('h3', null, qs.length ? 'Questions you missed this run (' + qs.length + ')' : 'You missed no questions this run'),
       qs.map(q => card(q, null))));

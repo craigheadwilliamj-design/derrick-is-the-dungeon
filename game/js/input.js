@@ -7,6 +7,12 @@ DD.input = {
       if (ui.mode === 'map') {
         const m = { arrowup: [0, -1], w: [0, -1], arrowdown: [0, 1], s: [0, 1], arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0] }[k];
         if (m) { e.preventDefault(); DD.game.move(m[0], m[1]); }
+      } else if (ui.mode === 'popquiz') {
+        const Q = DD.game.quiz; if (!Q) return;
+        if (!Q.answer && /^[1-4]$/.test(k) && +k <= Q.opts.length) { e.preventDefault(); DD.game.answerTrap(+k - 1); }
+        else if (Q.answer && (k === 'enter' || k === ' ')) { e.preventDefault(); DD.game.endTrap(); }
+      } else if (ui.mode === 'dia') {
+        if ((k === 'enter' || k === ' ') && ui.diaSkip) { e.preventDefault(); ui.diaSkip(); }
       } else if (ui.mode === 'combat') {
         const C = DD.game.combat; if (!C) return;
         if (C.phase === 'choose') {

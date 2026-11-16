@@ -114,7 +114,7 @@ DD.combat = (function () {
     C.intent = rollIntent(C); C.phase = 'choose'; C.q = null; C.opts = null; C.answer = null;
   }
   function ask(C, kind) {
-    const sys = DD.data.region(C.run.regionId).systems;
+    const sys = C.run.systems || DD.data.region(C.run.regionId).systems;
     C.q = C.drill ? drillPick(C) : DD.q.pick(sys);
     const x = ctx(C); DD.fx.fire('onQuestionAsk', x);
     C.opts = DD.q.options(C.q, x.removeWrong);
@@ -175,7 +175,7 @@ DD.combat = (function () {
       if (!A.count(id)) return 'None left';
       if (id === 'tonic' && C.run.hp >= C.st.maxHP) return 'Already at full HP';
       if (id === 'atpReserve' && C.run.atp >= C.st.maxATP) return 'Already at full ATP';
-      if (d.use.flee) return C.enemy.boss ? 'Cannot escape a boss' : '';
+      if (d.use.flee) return C.run.trip ? 'Not inside a vessel' : C.enemy.boss ? 'Cannot escape a boss' : '';
       if (d.use.effect && C.buffs.some(b => b.id === d.use.effect.id)) return 'Already active';
       return '';
     },
@@ -202,7 +202,7 @@ DD.combat = (function () {
         else say(C, 'Not yet. It goes back in the pile.');
         C.phase = 'explain'; return;
       }
-      DD.q.record(C.q, ok, C.run.regionId);
+      DD.q.record(C.q, ok, C.run.trip ? DD.q.regionOf(C.q) : C.run.regionId);
       if (!ok && !C.run.miss.includes(C.q.id)) C.run.miss.push(C.q.id);
       if (C.qKind === 'heavy') {
         if (ok) {
