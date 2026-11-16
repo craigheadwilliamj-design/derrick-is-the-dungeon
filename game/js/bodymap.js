@@ -111,7 +111,7 @@
       actions.push(el('button', { class: 'btn small danger', onclick: () => { DD.game.abandon(); DD.save.save(); ui.menu(id); } }, 'Abandon the ' + rr.name + ' run'));
     } else if (here) {
       if (W.isDungeon(id)) actions.push(r.playable ? el('button', { class: 'btn primary', onclick: () => ui.enter(id, false) }, 'Enter the ' + r.name)
-        : el('p', { class: 'dim small' }, 'No pathogens or questions here yet. The dungeon opens once it has content.'));
+        : el('p', { class: 'dim small' }, 'No usable study questions here yet. Add study material or save lab images with at least 4 different labels in the same system and source.'));
       if (n.sub === 'town') actions.push(el('button', { class: 'btn primary', onclick: () => ui.town({ id, via: 'hev' }) }, 'Visit the ' + n.name));
       if (n.sub === 'thymus') actions.push(el('button', { class: 'btn primary', onclick: ui.thymus }, 'Enter the thymus' + (DD.thymus.pending(p.classId) ? ' (upgrade ready)' : '')));
       const tn = W.townFor(id);
@@ -134,7 +134,6 @@
       }
     }
     const filterNote = r && r.playable && !DD.q.available(r.systems) ? el('div', { class: 'warn small' }, 'No questions match this source filter here. All questions are used instead.') : null;
-    const imgN = r && !r.playable && DD.img.questions(r.systems, null).length;
     return el('div', { class: 'card place', style: { '--accent': acc } },
       el('div', { class: 'rhead' }, el('h3', null, n.name), el('div', { class: 'chips' }, here ? el('span', { class: 'chip ok' }, '@ you are here') : null, isCleared(id) ? el('span', { class: 'chip ok' }, '✓ cleared') : null, el('span', { class: 'chip' }, kindText(n)))),
       r ? el('div', { class: 'dim small' }, r.system + (r.blurb ? ' · ' + r.blurb : '')) : null,
@@ -143,7 +142,6 @@
       drains ? el('div', { class: 'dim small' }, 'Drains: ' + drains) : null,
       r && !r.noPlace ? masteryBlock(m, false, r.id) : null,
       filterNote,
-      imgN ? el('div', { class: 'dim small' }, imgN + ' image questions saved. They appear when this dungeon opens.') : null,
       el('div', { class: 'stack', style: { alignItems: 'stretch' } }, actions));
   }
   function masteryBlock(m, noTime, id) {

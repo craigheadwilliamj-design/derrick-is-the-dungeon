@@ -1,9 +1,9 @@
-// Places on the body map. `playable` is true only where questions and enemies exist. `trap` names the pop-quiz trap on that dungeon's floors.
+// Places on the body map. `playable` is derived from live study content below.
 // Bloodstream is not a dungeon any more: it is the mastery entry for the vessels (blood and circulatory questions, asked in ambushes and traps).
 DD.data.regions = [
   { id: 'bloodstream', name: 'Bloodstream', noPlace: true, systems: ['blood'], system: 'Blood', accent: '#e0474f',
     blurb: 'Blood and circulatory questions come up in vessel ambushes and traps while you travel.' },
-  { id: 'spleen', name: 'Spleen', systems: ['lymph'], system: 'Lymphatic', accent: '#b07be0', playable: true, trap: 'Red pulp snag',
+  { id: 'spleen', name: 'Spleen', systems: ['lymph'], system: 'Lymphatic', accent: '#b07be0', trap: 'Red pulp snag',
     blurb: 'Filters blood and houses lymphocytes.' },
   { id: 'marrow', name: 'Bone Marrow', systems: ['found', 'cells'], system: 'Fundamentals (chemistry, cells & tissues)', accent: '#d8cdb8', trap: 'Yellow marrow fat pocket', blurb: 'Chemistry, cells, tissues and other fundamentals. Home base and tutorial dungeon.' },
   { id: 'brain', name: 'Brain', systems: ['nervous'], system: 'Nervous', accent: '#9a8ee8', trap: 'Misfiring synapse', blurb: '' },
@@ -17,3 +17,10 @@ DD.data.regions = [
   { id: 'skin', name: 'Skin', systems: ['integ'], system: 'Integumentary', accent: '#e0a57b', trap: 'Paper cut', blurb: '' }
 ];
 DD.data.region = id => DD.data.regions.find(r => r.id === id);
+// Every existing consumer (map, arrival, bounties and events) sees current content,
+// including saves/imports/deletions, without keeping a separate unlock flag in sync.
+// Ignore source filters: the picker also falls back to all sources in a region.
+DD.data.regions.forEach(r => Object.defineProperty(r, 'playable', {
+  enumerable: true,
+  get: () => !r.noPlace && !!DD.q && DD.q.pool(r.systems, true).length > 0
+}));

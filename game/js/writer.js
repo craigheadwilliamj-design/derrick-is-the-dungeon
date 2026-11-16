@@ -248,8 +248,6 @@ DD.writer = (function () {
     mount(head('Questions saved', null),
       el('p', { class: 'lede' }, keep.length + ' question' + (keep.length === 1 ? '' : 's') + ' added to ' + sysName(keep[0].system) + '. They are in rotation now.'),
       okAll ? null : el('p', { class: 'warn' }, 'The cloud save failed, so they are saved on this device only. Open this screen again later and they will be pushed up.'),
-      DD.data.regions.some(r => r.playable && r.systems.includes(keep[0].system)) ? null
-        : el('p', { class: 'dim small' }, 'That system’s dungeon is not open yet. The questions are saved and will appear when it opens.'),
       el('div', { class: 'toolrow2' },
         W.drafts.length ? el('button', { class: 'btn', type: 'button', onclick: review }, 'Back to review (' + W.drafts.length + ' left)') : null,
         el('button', { class: 'btn primary', type: 'button', onclick: () => { W.text = ''; input(); } }, 'Add more material'),

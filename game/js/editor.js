@@ -17,7 +17,6 @@ DD.editor = (function () {
   const mountScreen = (...kids) => DD.ui.mount(el('div', { class: 'screen menu editor' }, ...kids));
   const head = (title, back) => el('div', { class: 'ed-head' },
     el('button', { class: 'btn small', type: 'button', onclick: back }, '← Back'), el('h1', null, title));
-  const playable = sys => DD.data.regions.some(r => r.playable && r.systems.includes(sys));
 
   // ---------- list ----------
   ed.open = function () { DD.ui.mode = 'editor'; confirmId = null; listMsg = ''; list(); };
@@ -224,7 +223,7 @@ DD.editor = (function () {
         catch (e) { if (uploaded) { try { await I.deleteAsset(uploaded.id); } catch (e2) { /* ignore */ } } throw e; }
         last = { system: rec.system, tag: rec.tag };
         const n = I.countFor(rec);
-        listMsg = 'Saved. ' + (n ? n + ' of ' + rec.boxes.length + ' markers became questions' + (playable(rec.system) ? ' in the ' + I.SYSTEMS.find(s => s[0] === rec.system)[1] + ' dungeon.' : '; that system’s dungeon opens in a later update.')
+        listMsg = 'Saved. ' + (n ? n + ' of ' + rec.boxes.length + ' markers became questions' + ' in the ' + I.SYSTEMS.find(s => s[0] === rec.system)[1] + ' dungeon.'
           : 'No questions yet: you need 4 different labels in this system and source (add more markers or more images).');
         if (E.objUrl) URL.revokeObjectURL(E.objUrl);
         list();
