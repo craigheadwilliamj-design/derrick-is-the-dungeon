@@ -89,6 +89,37 @@ kbd{font-family:var(--mono);color:var(--bile);margin-right:8px}
 .fb.good{border-color:var(--ok)} .fb.bad{border-color:var(--art)}
 .clog{font-size:12px;color:var(--dim);display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);padding-top:8px;min-height:3.6em}
 .clog div:first-child{color:var(--bone)}
+/* lab images */
+[hidden]{display:none!important}
+.toolrow{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}
+.filter{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.btn[aria-pressed=true]{border-color:var(--accent)}
+.imgbtn{display:block;padding:0;border:1px solid var(--line);border-radius:5px;background:var(--map-bg);cursor:zoom-in;width:100%;overflow:hidden}
+.qimg{display:block;width:100%;height:auto;max-height:42vh;object-fit:contain}
+.zoom{position:fixed;inset:0;z-index:20;background:#000e;display:grid;place-items:center;padding:12px;cursor:zoom-out}
+.zimg{max-width:100%;max-height:100%;object-fit:contain}
+.zclose{position:fixed;top:max(12px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px))}
+.ed-head{display:flex;gap:12px;align-items:center}.ed-head h1{font-size:26px}
+.ed-group{display:flex;flex-direction:column;gap:8px}
+.ed-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.ed-card .thumb{width:100%;aspect-ratio:4/3;object-fit:contain;background:var(--map-bg);border-radius:4px}
+.ed-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:4px;min-width:0}.field.wide{grid-column:1/-1}
+label{font-size:13px;color:var(--dim)}
+input[type=text],select{font:inherit;color:var(--bone);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:9px 10px;min-height:40px;min-width:0;width:100%}
+input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-offset:1px}
+.stage{position:relative;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--map-bg)}
+.edimg{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
+.bx{position:absolute;box-sizing:border-box;border:2px solid var(--bile);background:#d9b44a55;cursor:move}
+.bx.sel{border-color:var(--accent);background:#e0474f55}
+.bx.ghost{pointer-events:none;border-style:dashed}
+.bx .n{position:absolute;left:2px;top:0;font:800 12px var(--mono);color:#fff;text-shadow:0 0 3px #000;pointer-events:none}
+.bx .rz{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;background:var(--bone);border:2px solid var(--accent);border-radius:3px;cursor:nwse-resize;display:none}
+.bx .x{position:absolute;right:-2px;top:-2px;width:26px;height:26px;padding:0;border:0;border-radius:3px;background:var(--art);color:#fff;font:800 16px/1 var(--mono);display:none;cursor:pointer}
+.bx.sel .rz,.bx.sel .x{display:block}
+.ed-boxes{display:flex;flex-direction:column;gap:8px}.bx-list{display:flex;flex-direction:column;gap:6px}
+.bx-row{display:flex;gap:8px;align-items:center;border-radius:5px;padding:2px}.bx-row.sel{outline:1px solid var(--accent)}
+.bx-n{font:800 13px var(--mono);color:var(--bile);width:1.6em;text-align:center;flex:none}
+@media (max-width:480px){.ed-fields{grid-template-columns:1fr}}
 @media (max-width:480px){.me{grid-template-columns:1fr}.glyph{font-size:40px;width:48px}}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
@@ -101,6 +132,7 @@ kbd{font-family:var(--mono);color:var(--bile);margin-right:8px}
 <script src="data/q-blood.js"></script>
 <script src="data/q-lymph.js"></script>
 <script src="js/save.js"></script>
+<script src="js/images.js"></script>
 <script src="js/effects.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/questions.js"></script>
@@ -109,5 +141,6 @@ kbd{font-family:var(--mono);color:var(--bile);margin-right:8px}
 <script src="js/render.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/editor.js"></script>
 <script src="js/input.js"></script>
 <script src="js/main.js"></script>

@@ -12,7 +12,9 @@ DD.save = (function () {
   }
   function migrate(p) {
     if (!p || typeof p !== 'object') return null;
-    return Object.assign(defaultProfile(), p); // v1 only; bump v and migrate here when the shape changes
+    const o = Object.assign(defaultProfile(), p); // v1 only; bump v and migrate here when the shape changes
+    o.settings = Object.assign({ sourceFilter: 'all' }, o.settings);
+    return o;
   }
   function lsGet(k) { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }

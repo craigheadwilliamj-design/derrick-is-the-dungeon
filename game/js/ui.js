@@ -13,8 +13,10 @@ DD.ui = (function () {
     return d <= 0 ? 'reviewed today' : 'reviewed ' + d + (d === 1 ? ' day ago' : ' days ago');
   }
 
+  ui.mount = mount;
   ui.init = function (r) { root = r; };
   ui.refresh = function () { if (ui.mode === 'title') ui.title(); else if (ui.mode === 'menu') ui.menu(); };
+  const FILTERS = [['all', 'All'], ['human-model', 'Human model'], ['fetal-pig', 'Fetal pig'], ['text', 'Text only']];
 
   // ---------- title ----------
   ui.title = function () {
@@ -60,6 +62,8 @@ DD.ui = (function () {
         el('div', { class: 'dim small' }, r.system + (r.blurb ? ' · ' + r.blurb : '')),
         meter,
         r.playable ? el('div', { class: 'dim small' }, ago(reg && reg.lastReviewed)) : null,
+        r.playable && !DD.q.available(r.systems) ? el('div', { class: 'warn small' }, 'No questions match this source filter here. All questions are used instead.') : null,
+        !r.playable && DD.img.questions(r.systems, null).length ? el('div', { class: 'dim small' }, DD.img.questions(r.systems, null).length + ' image questions saved. They appear when this dungeon opens.') : null,
         r.playable ? el('button', { class: 'btn primary', onclick: () => ui.enter(r.id, resume) }, resume ? 'Resume floor ' + (run.floorIdx + 1) : 'Enter dungeon') : null);
     });
     mount(el('div', { class: 'screen menu' },
@@ -71,6 +75,12 @@ DD.ui = (function () {
         bar('xp', pct(p.xp, st.xpToNext)), el('div', { class: 'small dim' }, p.xp + ' / ' + st.xpToNext + ' XP'),
         el('div', { class: 'small' }, el('b', null, cls.passive.name + ': '), cls.passive.desc),
         el('div', { class: 'small' }, el('b', null, cls.active.name + ' (' + cls.active.cost + ' ATP): '), cls.active.desc)),
+      el('div', { class: 'card toolrow' },
+        el('div', { class: 'filter', role: 'group', 'aria-label': 'Question source' }, el('span', { class: 'tag' }, 'Source'),
+          FILTERS.map(([v, l]) => el('button', { class: 'btn small' + (p.settings.sourceFilter === v ? ' primary' : ''), type: 'button', 'aria-pressed': String(p.settings.sourceFilter === v),
+            onclick: () => { p.settings.sourceFilter = v; DD.save.save(); ui.menu(); } }, l))),
+        DD.img.state === 'unavailable' ? el('span', { class: 'dim small' }, 'Image questions need the claude.ai viewer.')
+          : el('button', { class: 'btn small', type: 'button', disabled: DD.img.state !== 'ready', onclick: DD.editor.open }, 'Lab images' + (DD.img.state === 'ready' ? ' (' + DD.img.records.length + ')' : '…'))),
       el('p', { class: 'dim small' }, 'Questions are starter placeholders until the real study-guide set arrives.'),
       el('div', { class: 'grid' }, cards),
       el('div', { class: 'foot' },
@@ -165,8 +175,10 @@ DD.ui = (function () {
     } else if (C.phase === 'question' || C.phase === 'explain') {
       const q = C.q, ans = C.answer;
       body.append(
-        el('div', { class: 'qtag' }, C.qKind === 'enemy' ? e.name + ' asks:' : 'Heavy attack: answer to land it', q.placeholder ? el('span', { class: 'chip' }, 'placeholder') : null),
+        el('div', { class: 'qtag' }, C.qKind === 'enemy' ? e.name + ' asks:' : 'Heavy attack: answer to land it', q.placeholder ? el('span', { class: 'chip' }, 'placeholder') : null,
+          q.img ? el('span', { class: 'chip ok' }, DD.img.TAGS[q.img.tag]) : null),
         el('p', { class: 'q' }, q.q),
+        q.img ? DD.img.view(q.img, !!ans) : null,
         el('div', { class: 'opts' }, C.opts.map((o, i) => {
           let cls = 'opt';
           if (ans) cls += o.correct ? ' right' : (i === ans.i ? ' wrong' : '');

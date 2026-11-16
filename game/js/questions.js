@@ -2,7 +2,18 @@
 DD.q = (function () {
   const P = DD.S.picker, M = DD.S.mastery, DAY = 86400000;
   const recent = [];
-  const pool = systems => systems.flatMap(s => DD.data.questions[s] || []);
+  // Source filter: all | human-model | fetal-pig | text. A tag filter keeps only image questions with that tag.
+  const filter = () => (DD.save.profile.settings || {}).sourceFilter || 'all';
+  const text = systems => systems.flatMap(s => DD.data.questions[s] || []);
+  const imgs = (systems, tag) => (DD.img ? DD.img.questions(systems, tag) : []);
+  function pool(systems, ignoreFilter) {
+    const f = ignoreFilter ? 'all' : filter();
+    if (f === 'text') return text(systems);
+    if (f === 'all') return text(systems).concat(imgs(systems, null));
+    return imgs(systems, f);
+  }
+  // How many questions match the current source filter.
+  const available = systems => pool(systems).length;
 
   function weight(q, opts) {
     const st = DD.save.profile.qstats[q.id] || { seen: 0, right: 0, wrong: 0, last: 0 };
@@ -14,6 +25,7 @@ DD.q = (function () {
   }
   function pick(systems, opts) {
     let all = pool(systems).filter(q => !q.flagged);
+    if (!all.length) all = pool(systems, true).filter(q => !q.flagged); // filter matches nothing here: use everything
     let cand = all.filter(q => !recent.includes(q.id));
     if (!cand.length) cand = all;
     const q = DD.u.weightedPick(Math.random, cand, x => weight(x, opts));
@@ -45,5 +57,5 @@ DD.q = (function () {
     const rec = 1 - (1 - M.fadeFloor) * DD.u.clamp(days / M.fadeDays, 0, 1);
     return { value: Math.round(100 * acc * rec), n: r.recent.length, lastReviewed: r.lastReviewed };
   }
-  return { pick, options, record, mastery, pool };
+  return { pick, options, record, mastery, pool, available };
 })();
