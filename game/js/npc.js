@@ -17,11 +17,11 @@ DD.npc = (function () {
     const M = S.merchant, ids = DD.u.shuffle(r, DD.data.itemOrder), n = DD.u.int(r, M.stockMin, M.stockMax);
     return ids.slice(0, n).map(id => ({ id, price: Math.round(DD.data.items[id].price * M.priceMult), qty: DD.u.int(r, 1, M.qtyMax) }));
   };
-  N.saveState = f => (f.npcs || []).map(n => n.kind === 'merchant' ? { q: n.stock.map(s => s.qty), t: n.tip ? 1 : 0 } : n.done ? 1 : 0);
+  N.saveState = f => (f.npcs || []).map(n => n.kind === 'merchant' ? { q: n.stock.map(s => s.qty), t: n.tip ? 1 : 0, g: n.rare && n.rare.sold ? 1 : 0 } : n.done ? 1 : 0);
   N.loadState = function (f, saved) {
     (saved || []).forEach((s, i) => {
       const n = (f.npcs || [])[i]; if (!n) return;
-      if (n.kind === 'merchant' && s && typeof s === 'object') { n.stock.forEach((x, j) => { if (s.q && s.q[j] != null) x.qty = s.q[j]; }); if (s.t) n.tip = N.fadedTip(); }
+      if (n.kind === 'merchant' && s && typeof s === 'object') { n.stock.forEach((x, j) => { if (s.q && s.q[j] != null) x.qty = s.q[j]; }); if (s.t) n.tip = N.fadedTip(); if (s.g && n.rare) n.rare.sold = true; }
       else if (s === 1) n.done = true;
     });
   };
@@ -76,6 +76,12 @@ DD.npc = (function () {
     T.msg = 'Bought ' + DD.data.items[s.id].name + ' for ' + s.price + ' glucose.';
     DD.save.save(); DD.game.persist(); DD.ui.npc();
   };
+  N.buyRare = function () {
+    const T = DD.game.talk, n = T.npc, it = n.rare && DD.data.gearById[n.rare.id];
+    if (!it || !DD.gear.buyRare(n)) return;
+    T.msg = 'Bought ' + it.name + ' for ' + n.rare.price + ' glucose. It is in your gear bag.';
+    DD.save.save(); DD.game.persist(); DD.ui.npc();
+  };
   N.restWhy = function () {
     const st = DD.game.stats(), r = run();
     if (!r) return 'HP and ATP only matter inside a dungeon run.';
@@ -105,13 +111,13 @@ DD.npc = (function () {
   };
 
   // ---------- boss legendaries ----------
-  // The first kill of a region's boss drops a legendary stub into profile.gearBag (4b gives it stats). Returns the stub if it was new.
+  // The first kill of a region's boss drops its legendary gear item into profile.gearBag. Returns the item if it was new.
   N.legendary = function (defId) {
     const d = DD.data.enemy(defId), L = d && d.legendary; if (!L) return null;
-    const bag = prof().gearBag;
-    if (bag.some(g => g.id === L.id)) return null;
-    bag.push({ id: L.id, name: L.name, slot: L.slot, desc: L.desc, boss: defId });
-    return L;
+    const it = DD.data.gearById[L.id];
+    if (!it || DD.gear.owned(L.id)) return null;
+    DD.gear.give(L.id);
+    return it;
   };
   N.markCleared = function (regionId) {
     const p = prof(), r = p.regions[regionId] || (p.regions[regionId] = { lastReviewed: 0, cleared: false, recent: [] });

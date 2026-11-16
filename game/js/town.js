@@ -15,6 +15,20 @@ DD.town = (function () {
   T.here = () => !!document.querySelector('.screen.town');
 
   function done(msg) { T.msg = msg; DD.save.save(); if (T.panel) T.open(T.panel, T.panelArg); }
+  T.buyGear = function (id) {
+    const it = DD.data.gearById[id], p = prof();
+    if (!it || T.gearBought.has(id)) return;
+    if (p.glucose < DD.gear.price(it)) return done('Not enough glucose for ' + it.name + '.');
+    p.glucose -= DD.gear.price(it); DD.gear.give(id); T.gearBought.add(id);
+    done('Bought ' + it.name + ' for ' + DD.gear.price(it) + ' glucose. It is in your gear bag.');
+  };
+  T.sellGear = function (id) {
+    const it = DD.data.gearById[id], bag = prof().gearBag, i = bag.indexOf(id);
+    if (!it || i < 0 || !DD.gear.canSell(it)) return;
+    bag.splice(i, 1); prof().glucose += DD.gear.sellPrice(it);
+    done('Sold ' + it.name + ' for ' + DD.gear.sellPrice(it) + ' glucose.');
+  };
+  T.gearBought = new Set();
   T.buy = function (id) {
     const d = DD.data.items[id], p = prof();
     if (inv(id) >= cap(id)) return done('You can only carry ' + d.cap + ' ' + d.name + 's.');
@@ -94,7 +108,7 @@ DD.town = (function () {
     const f = { W: b.W, H: b.H, g: b.g, explored: new Uint8Array(n).fill(1), vis: new Uint8Array(n).fill(1), traps: [], pickups: [], enemies: [], npcs: [], tiles: TM.features };
     b.keepers.forEach(k => f.npcs.push({ kind: 'town', id: k.id, glyph: '☺', x: k.x, y: k.y }));
     // The dendritic merchant, at the same chance as on a dungeon floor: dendritic cells present antigen in the paracortex.
-    if (r() < DD.S.merchant.chance && b.spots.merchant) f.npcs.push({ kind: 'merchant', id: 'dendritic', glyph: '¥', x: b.spots.merchant.x, y: b.spots.merchant.y, stock: DD.npc.makeStock(r), tip: null });
+    if (r() < DD.S.merchant.chance && b.spots.merchant) f.npcs.push({ kind: 'merchant', id: 'dendritic', glyph: '¥', x: b.spots.merchant.x, y: b.spots.merchant.y, stock: DD.npc.makeStock(r), rare: DD.gear.rareStock(DD.rng((seed + 17) >>> 0)), tip: null });
     // Ambient cells: always the sinus macrophage, then a shuffled mix, wandering only inside their own zones.
     const defs = DD.data.npcs.filter(d => d.kind === 'ambient'), mac = defs.filter(d => d.zones.includes('n'));
     const order = mac.concat(DD.u.shuffle(r, defs.filter(d => !mac.includes(d)))), count = DD.u.int(r, TS.ambient.min, TS.ambient.max);
@@ -196,7 +210,22 @@ DD.town = (function () {
       el('div', { class: 'shopinfo' }, el('b', null, DD.data.items[id].name), el('span', { class: 'chip' }, '×' + inv(id))),
       el('button', { class: 'btn small', type: 'button', onclick: () => T.sell(id) }, 'Sell ' + sellPrice(id) + ' g')))
       : [note('Nothing to sell. You are not carrying any items.')];
-    return ['Plasma cell · shop', talk('plasma'), chips(), msgEl(), rows, el('h3', null, 'Sell (' + Math.round(E.sellPct * 100) + '% of price)'), sell];
+    // Gear (4b): commons and a few uncommons that rotate with each visit, favoring gear from the regions that drain to this node.
+    const GR = DD.gear, stock = GR.shopStock(st.seed, town().regions).filter(id => !T.gearBought.has(id));
+    const gearRows = stock.map(id => { const it = DD.data.gearById[id], price = GR.price(it), poor = p.glucose < price;
+      return el('div', { class: 'shoprow gearrow' }, GR.info(it, el('span', { class: 'chip' }, 'owned ' + GR.owned(id))),
+        el('button', { class: 'btn small', type: 'button', disabled: poor, title: poor ? 'Not enough glucose' : '', onclick: () => T.buyGear(id) }, 'Buy ' + price + ' g')); });
+    const bagSell = [...new Set(p.gearBag)].map(id => DD.data.gearById[id]).filter(it => GR.canSell(it))
+      .sort((a, b) => (GR.owned(b.id) > 1) - (GR.owned(a.id) > 1) || GR.sellPrice(b) - GR.sellPrice(a))
+      .map(it => el('div', { class: 'shoprow' }, el('div', { class: 'shopinfo' }, el('b', { class: 'gname', style: { color: GR.color(it.rarity) } }, it.name),
+        el('span', { class: 'chip' }, 'you own ' + GR.owned(it.id) + (GR.owned(it.id) > 1 ? ' (extra copy)' : ''))),
+        el('button', { class: 'btn small', type: 'button', onclick: () => T.sellGear(it.id) }, 'Sell ' + GR.sellPrice(it) + ' g')));
+    return ['Plasma cell · shop', talk('plasma'), chips(), msgEl(), rows,
+      el('h3', null, 'Gear'), note('Stock changes every visit. Equip what you buy from the gear screen.'),
+      el('div', { class: 'toolrow2' }, el('button', { class: 'btn small primary', type: 'button', onclick: () => { savePos(); DD.gear.screen(() => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Open gear screen')),
+      gearRows.length ? gearRows : note('Sold out for this visit.'),
+      el('h3', null, 'Sell (' + Math.round(E.sellPct * 100) + '% of price)'), sell,
+      bagSell.length ? [el('div', { class: 'tag' }, 'Gear in your bag (equipped gear is not for sale; legendaries are never sold)'), bagSell] : null];
   }
   function innPanel() {
     const iw = T.innWhy();
@@ -275,7 +304,7 @@ DD.town = (function () {
     DD.game.run = null; DD.game.combat = null; DD.game.talk = null; // the saved run is the only copy while you are here
     prof().loc = id;
     if (g.ro) g.ro.disconnect();
-    g = {}; T.lines = {}; T.msg = ''; T.panel = null;
+    g = {}; T.lines = {}; T.msg = ''; T.panel = null; T.gearBought = new Set();
     const spot = b.spots[opts.via === 'hev' ? 'hev' : 'lymph'];
     st = { id, seed: res ? res.seed : (Math.random() * 2147483647) >>> 0, x: res ? res.x : spot.x, y: res ? res.y : spot.y, zone: null, msgs: [] };
     build(id, st.seed);

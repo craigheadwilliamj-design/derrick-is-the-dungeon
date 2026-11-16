@@ -93,7 +93,7 @@ DD.dungeon = (function () {
       }
       return null;
     };
-    const f = { W, H, g, rooms, start, enemies: [], pickups: [], traps: [], stairs: null, exit: null, boss: !!o.boss,
+    const f = { W, H, g, rooms, start, enemies: [], pickups: [], traps: [], chests: [], stairs: null, exit: null, boss: !!o.boss,
       explored: new Uint8Array(W * H), vis: new Uint8Array(W * H), bossDead: false };
     const level = o.playerLevel + o.floorIdx;
     let uid = 0;
@@ -126,8 +126,15 @@ DD.dungeon = (function () {
     const nd = DD.npc.nativeFor(o.regionId, o.floorIdx, o.seed);
     if (nd) { const p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]); if (p) f.npcs.push({ kind: 'native', id: nd.id, glyph: '☺', x: p.x, y: p.y, done: false }); }
     if (!o.boss && r() < S.merchant.chance) {
-      const stock = DD.npc.makeStock(r), p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]);
-      if (p) f.npcs.push({ kind: 'merchant', id: 'dendritic', glyph: '¥', x: p.x, y: p.y, stock, tip: null });
+      const stock = DD.npc.makeStock(r), p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]), rare = DD.gear.rareStock(r);
+      if (p) f.npcs.push({ kind: 'merchant', id: 'dendritic', glyph: '¥', x: p.x, y: p.y, stock, rare, tip: null });
+    }
+    // Gear chests (4b), drawn last so older layouts and rolls stay the same. Contents are rolled now, so a reload shows the same chest.
+    f.chests = [];
+    const GC = S.gear.chest, nc = DD.u.int(r, GC.min, GC.max);
+    for (let i = 0; i < nc; i++) {
+      const p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]);
+      if (p) f.chests.push({ x: p.x, y: p.y, taken: false, item: DD.gear.rollChest(r, o.regionId, !!o.boss) });
     }
     return f;
   }

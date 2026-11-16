@@ -26,6 +26,10 @@ DD.combat = (function () {
       matchup: cls.matchups.includes(enemy.type) ? S.strongMatchup : 1, xpGain: 0, poison: null, ally: null,
       drill: opts && opts.drill ? { left: new Set(opts.drill), total: opts.drill.length, qs: new Map(DD.q.all().map(q => [q.id, q])) } : null, drop: 0 };
     C.intent = rollIntent(C);
+    if (!C.drill) { // gear that triggers at the start of a fight (4b): ATP, a shield for the first hit
+      const fs = ctx(C); DD.fx.fire('fightStart', fs); gain(C, fs);
+      if (fs.shield) C.buffs.push({ id: 'gear-ward', src: 'gear', label: 'Gear ward: first hit does 0', trigger: 'static', result: { type: 'shield' }, expires: 'hit' });
+    }
     say(C, C.drill ? 'Training dummy. No damage either way: answer every question right once.' : enemy.name + ' (Lv ' + enemy.lvl + ') attacks!' + (C.matchup > 1 ? ' You are strong against ' + enemy.type + '.' : ''));
     return C;
   }
@@ -82,8 +86,8 @@ DD.combat = (function () {
       C.enemyBuffs.forEach(b => { mult *= b.mult; });
       const ward = C.buffs.findIndex(b => b.result && b.result.type === 'shield');
       if (ward >= 0) { // Mucus Ward: this hit does 0
-        C.buffs.splice(ward, 1); C.blocking = false;
-        say(C, e.name + (it === 'big' ? ' unleashes a big attack' : ' attacks') + ', but the Mucus Ward absorbs it.');
+        const wardId = C.buffs[ward].id; C.buffs.splice(ward, 1); C.blocking = false;
+        say(C, e.name + (it === 'big' ? ' unleashes a big attack' : ' attacks') + ', but ' + (wardId === 'gear-ward' ? 'your gear absorbs it' : 'the Mucus Ward absorbs it') + '.');
         return endRound(C);
       }
       let d = Math.max(S.minHit, Math.round(e.atk * mult - C.st.defense * S.defenseWeight));
@@ -110,6 +114,7 @@ DD.combat = (function () {
       const d = Math.min(C.run.hp - 1, Math.max(1, Math.round(ts.selfDmg)));
       if (d > 0) { C.run.hp -= d; say(C, 'Fever burns you for ' + d + '.'); }
     }
+    gain(C, ts); // gear that heals or restores ATP each turn
     DD.fx.tick(C.buffs); DD.fx.tick(C.enemyBuffs);
     C.intent = rollIntent(C); C.phase = 'choose'; C.q = null; C.opts = null; C.answer = null;
   }
@@ -209,6 +214,7 @@ DD.combat = (function () {
           const x = ctx(C, { mult: S.heavyRight, answeredFast: fast });
           DD.fx.fire('onHeavyCorrect', x); DD.fx.fire('onQuestionCorrect', x); gain(C, x);
           C.firstHeavy = false;
+          if (x.poison && !C.poison) { C.poison = x.poison; say(C, 'Your gear poisons ' + C.enemy.name + '.'); }
           hit(C, playerDamage(C, x), 'Your heavy blow lands');
           if (x.execute && C.enemy.hp > 0 && C.enemy.hp / C.enemy.maxHP < x.execute) {
             C.enemy.hp = 0; say(C, 'Executed: ' + C.enemy.name + ' fell below ' + Math.round(x.execute * 100) + '% HP.');

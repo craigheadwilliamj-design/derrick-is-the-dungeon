@@ -165,6 +165,16 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 @media (max-width:480px){.ed-fields{grid-template-columns:1fr}}
 @media (max-width:480px){.me{grid-template-columns:1fr}.glyph{font-size:40px;width:48px}}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+/* 4b: gear, rarity colors (white, green, blue, gold) */
+:root{--r-common:#e8e4dc;--r-uncommon:#6fd18a;--r-rare:#6fa8ff;--r-legendary:#f2c14e}
+.gearcard{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--rc,var(--line));border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.gearcard.legendary{box-shadow:0 0 12px color-mix(in srgb,var(--rc) 30%,transparent)}
+.ginfo .gname{font-family:var(--disp);font-size:17px;font-weight:500;color:var(--rc);display:inline}
+.chip.rc{color:var(--rc);border-color:var(--rc)}
+.fxl{margin:2px 0 0;padding-left:18px;font-size:13px}
+.gslots{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.diff{font-family:var(--mono);font-size:12px;display:flex;flex-direction:column;gap:1px;border-top:1px solid var(--line);padding-top:6px}
+.diff .up{color:var(--ok)} .diff .down{color:var(--art)}
 </style>
 <div id="app"></div>
 <script src="js/util.js"></script>
@@ -173,6 +183,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 <script src="data/enemies.js"></script>
 <script src="data/classes.js"></script>
 <script src="data/items.js"></script>
+<script src="data/gear.js"></script>
 <script src="data/npcs.js"></script>
 <script src="data/townmap.js"></script>
 <script src="data/circulation.js"></script>
@@ -189,6 +200,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 <script src="js/render.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/gear.js"></script>
 <script src="js/review.js"></script>
 <script src="js/writer.js"></script>
 <script src="js/town.js"></script>

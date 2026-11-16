@@ -6,7 +6,7 @@ DD.save = (function () {
   let timer = null;
 
   function defaultProfile() {
-    return { v: 5, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: 0, loc: 'marrow',
+    return { v: 6, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: 0, loc: 'marrow',
       inventory: {}, equipment: {}, gearBag: [], qstats: {}, regions: {}, routes: {},
       milestones: [], bounties: { active: [], seq: 0, done: 0 }, beaten: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' }, flagged: {} };
   }
@@ -15,7 +15,7 @@ DD.save = (function () {
     const o = Object.assign(defaultProfile(), p); // bump v and migrate here when the shape changes
     if (!Array.isArray(o.beaten)) o.beaten = []; // v2 (2a): enemy ids beaten, for B Cell Memory
     if (!DD.data.classes[o.classId]) o.classId = 'macrophage';
-    o.v = 5;
+    o.v = 6;
     const place = DD.data.circ && DD.data.circ.nodes[o.loc]; // v3 (3a): where Derrick's cell is standing
     if (!place || place.kind !== 'place') o.loc = 'marrow';
     if (!o.routes || typeof o.routes !== 'object' || Array.isArray(o.routes)) o.routes = {};
@@ -24,6 +24,11 @@ DD.save = (function () {
     if (!o.bounties || typeof o.bounties !== 'object' || !Array.isArray(o.bounties.active)) o.bounties = { active: [], seq: 0, done: 0 };
     o.bounties.seq = o.bounties.seq | 0; o.bounties.done = o.bounties.done | 0;
     if (!Array.isArray(o.gearBag)) o.gearBag = [];
+    // v6 (4b): gearBag is a list of gear ids (3b stored legendary stubs with the same ids); equipment is {weapon, armor, acc1, acc2} of gear ids.
+    const known = id => !!(DD.data.gearById && DD.data.gearById[id]);
+    o.gearBag = o.gearBag.map(g => (g && typeof g === 'object' ? g.id : g)).filter(known);
+    if (!o.equipment || typeof o.equipment !== 'object' || Array.isArray(o.equipment)) o.equipment = {};
+    (DD.data.gearSlots || []).forEach(s => { if (o.equipment[s] && !known(o.equipment[s])) delete o.equipment[s]; });
     o.glucose = Math.max(0, Math.floor(+o.glucose) || 0);
     if (!o.inventory || typeof o.inventory !== 'object' || Array.isArray(o.inventory)) o.inventory = {};
     Object.keys(o.inventory).forEach(k => { if (!(o.inventory[k] > 0)) delete o.inventory[k]; });

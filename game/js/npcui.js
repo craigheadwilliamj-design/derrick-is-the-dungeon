@@ -47,7 +47,11 @@
           return el('div', { class: 'shoprow' }, el('div', { class: 'shopinfo' }, el('b', null, it.name), el('span', { class: 'chip' }, s.qty + ' left · owned ' + (p.inventory[s.id] || 0) + (it.cap ? '/' + it.cap : '')),
             el('div', { class: 'small' }, it.tip), el('div', { class: 'small dim' }, it.real)),
             el('button', { class: 'btn small', disabled: !!w, title: w, onclick: () => NP.buy(i) }, 'Buy ' + s.price + ' g')); }),
-        el('div', { class: 'shoprow' }, el('div', { class: 'shopinfo' }, el('b', null, 'Rare stock'), el('div', { class: 'small dim' }, 'Nothing special today.')), el('button', { class: 'btn small', disabled: true }, 'Empty')),
+        (() => { const rs = n.rare, it = rs && DD.data.gearById[rs.id];
+          if (!it) return el('div', { class: 'shoprow' }, el('div', { class: 'shopinfo' }, el('b', null, 'Rare stock'), el('div', { class: 'small dim' }, 'Nothing special today.')), el('button', { class: 'btn small', disabled: true }, 'Empty'));
+          const why = rs.sold ? 'Sold out' : p.glucose < rs.price ? 'Not enough glucose' : '';
+          return el('div', { class: 'shoprow gearrow' }, DD.gear.info(it, el('span', { class: 'chip warn' }, 'rare stock · owned ' + DD.gear.owned(it.id))),
+            el('button', { class: 'btn small', disabled: !!why, title: why, onclick: () => NP.buyRare() }, rs.sold ? 'Sold' : 'Buy ' + rs.price + ' g')); })(),
         el('h3', null, 'Services'),
         el('div', { class: 'shoprow' }, el('div', { class: 'shopinfo' }, el('b', null, 'Rest'), el('div', { class: 'small dim' }, 'Full HP and ATP, at ×' + M.restMult + ' the inn price.' + (why ? ' ' + why : ''))),
           el('button', { class: 'btn small', disabled: !!why, onclick: NP.rest }, 'Rest ' + NP.restCost() + ' g')),

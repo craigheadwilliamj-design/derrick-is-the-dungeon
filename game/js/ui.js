@@ -72,7 +72,7 @@ DD.ui = (function () {
       return el('div', { class: 'card cls' + (cur ? ' current' : '') },
         el('div', { class: 'rhead' }, el('h3', null, c.name), el('span', { class: 'chip ' + (cur ? 'ok' : '') }, cur ? 'Current · ' + c.role : c.role)),
         el('div', { class: 'ratings' }, rows),
-        el('div', { class: 'small' }, el('b', null, 'Weapon: '), c.weapon + ' (own type gets a bonus once gear arrives)'),
+        el('div', { class: 'small' }, el('b', null, 'Weapon: '), c.weapon + ' (an equipped weapon of this type does ×' + S.gear.weaponTypeMult + ' damage)'),
         el('div', { class: 'small' }, el('b', null, 'Strong against: '), c.matchups.length ? c.matchups.join(', ') + ' (+50% damage)' : 'no one in particular. This is a support class.'),
         el('div', { class: 'small' }, el('b', null, c.passive.name + ' (passive): '), c.passive.desc),
         el('div', { class: 'small' }, el('b', null, c.active.name + ' (' + c.active.cost + ' ATP): '), c.active.desc),
@@ -121,7 +121,7 @@ DD.ui = (function () {
     const L = (cls, ch, label) => el('span', null, el('b', { class: cls }, ch), label);
     const legend = el('div', { class: 'legend' }, trip
       ? [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gg', '$', 'glucose'), L('gg', '!', 'item'), L('gc', '%', 'clot'), L('gd', '=', 'plaque'), L('gv', '»', 'one-way valve'), L('gt', '^', 'trap'), L('gs', '>', 'onward')]
-      : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
+      : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gg', '&', 'chest'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
       el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.leave, g.abort),
       g.strip, g.mapbox, g.log,
@@ -306,7 +306,7 @@ DD.ui = (function () {
       el('div', { class: 'tag' }, s.region.name),
       el('h1', null, 'Dungeon cleared'),
       el('p', { class: 'lede' }, s.killed + ' pathogens destroyed · ' + s.glucose + ' glucose collected · ' + s.missed + ' questions missed.'),
-      s.legendary ? el('p', { class: 'warn' }, 'Legendary drop: ' + s.legendary + '. It is saved for the gear update.') : null,
+      s.legendary ? el('p', { class: 'warn' }, 'Legendary drop: ' + s.legendary + '. It is in your gear bag.') : null,
       el('p', { class: 'dim small' }, 'Leave through the body map, or take this region’s lymphatic vessel to its node town.'),
       el('div', { class: 'stack' },
         DD.world.townFor(s.region.id) ? el('button', { class: 'btn primary', onclick: () => DD.travel.start(DD.world.plan(s.region.id, DD.world.townFor(s.region.id))) }, 'Lymphatic vessel to the ' + DD.data.town(DD.world.townFor(s.region.id)).name) : null,
