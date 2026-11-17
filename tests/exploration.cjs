@@ -13,6 +13,11 @@ function resume(){const s=JSON.parse(JSON.stringify(D.save.run));D.game.run=null
 D.save.profile.loc='cervical';D.explore.start();assert.equal(D.ui.mode,'junction');assert.equal(D.game.run,null);
 D.explore.depart('thoracicDuct');assert.equal(D.game.run.trip.mode,'explore');
 const first=D.game.run;D.explore.choose('brain');assert.equal(D.game.run,first,'cannot change path mid-vessel');
+// Choose a reproducible generated segment containing loot; empty segments are valid gameplay.
+for(let seed=1; !first.floor.pickups.length && seed<1000; seed++){
+  first.seed=seed;first.floor=D.travel.generate(D.world.get('thoracicDuct'),seed,0,false);
+}
+assert.ok(first.floor.pickups.length,'generated fixture contains a pickup');
 first.px=4;first.floor.pickups[0].taken=true;D.travel.persist();resume();assert.equal(D.game.run.px,4);assert.equal(D.game.run.floor.pickups[0].taken,true);
 finish();resume();assert.equal(D.game.run.trip.junction,true);assert.equal(D.explore.current(),'thoracicDuct');
 D.explore.choose('brain');assert.equal(D.explore.current(),'thoracicDuct','unconnected destination rejected');
