@@ -113,7 +113,7 @@ DD.ui = (function () {
   // ---------- game screen ----------
   ui.game = function () {
     const active = DD.game.run;
-    if (active && active.trip && active.trip.mode === 'explore' && active.trip.junction) return ui.junction(DD.explore.current());
+    if (active && active.trip && active.trip.mode === 'explore') active.trip.junction = false;
     ui.mode = 'map';
     if (g.ro) g.ro.disconnect();
     stopTimer(); g = {};

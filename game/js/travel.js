@@ -206,7 +206,7 @@ DD.travel = (function () {
   }
   function banner() {
     const run = G().run, n = X.segs(run)[run.trip.idx];
-    if (n && DD.ui.banner) DD.ui.banner(n.name, n.note);
+    if (run.trip.mode !== 'explore' && n && DD.ui.banner) DD.ui.banner(n.name, n.note);
   }
   X.persist = function () {
     const run = G().run; if (!run || !run.trip) return;
@@ -300,8 +300,8 @@ DD.travel = (function () {
   function advance() {
     const g = G(), run = g.run, t = run.trip, segs = X.segs(run);
     if (t.mode === 'explore') {
-      t.junction = true; X.persist();
-      return DD.ui.junction(t.ids[t.idx + 1]);
+      t.junction = false; X.persist();
+      return DD.ui.game();
     }
     const i = t.idx + 1, n = segs[i];
     if (!n) return arrive(run, segs[segs.length - 1]);
