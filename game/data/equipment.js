@@ -54,7 +54,7 @@
   head('insulin-hood','Insulin Hood',{atpMult:.25},{},{rules:['Maximum ATP +25%.']});
   head('myocardium-helm','Helm of the Pericardium',{armorMult:.25,hpMult:.1},{},{rules:['Armor +25%; maximum HP +10%.']});
   head('ascorbic-helm','Anti-Scurvy Hat',{companionHeal:.5},{},{desc:'A pirate tricorne. Ascorbic acid (vitamin C) literally means “against scurvy”: it prevents the disease.',rules:['Recruit Basophil heals the companion for 50% more.']});
-  head('renal-helm',"Bowman’s Helm",{tonicPoison:1,bowBasic:.15},{},{desc:'Bowman’s capsule is where the kidney begins filtering blood.',rules:['Recovery Tonics remove one Poison stack.','Basic attacks with bows deal +15% damage.']});
+  head('renal-helm',"Bowman’s Helm",{tonicPoison:1,bowBasic:.15},{},{desc:'Bowman’s capsule is where the kidney begins filtering blood.',rules:['O-Neg Bags remove one Poison stack.','Basic attacks with bows deal +15% damage.']});
   head('marrow-helm','Marrow Helm',{deathXP:.25},{defense:8},{rules:['Retain 25% of expedition-earned XP on death.']});
   const weapon=(id,name,wtype,hands,rarity,source,attack,perks={},extra={})=>add(id,name,'weapon',rarity,source,{},perks,Object.assign({wtype,hands,attack,damageType:'physical'},extra));
   for(const [id,name,type,hands,starter] of [

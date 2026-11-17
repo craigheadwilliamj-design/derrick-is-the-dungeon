@@ -73,6 +73,41 @@ Kept from legacy under new definitions: Selectin Boots, Chemokine Compass, Hundr
 
 Saved for future names: Circle of Willis (a circlet), Arbor Vitae (a legendary charm), Islets of Langerhans, Crypts of Lieberkühn, Bundle of His, Organ of Corti, Locus Coeruleus.
 
+## Consumables (approved design, partly built)
+
+Approved November 17, 2026. 25 consumables. Using one takes your turn. The combat Item menu is split into tabs: Heal, Cure, Throw, Buff, Utility. Prices are glucose and initial playtest values. "Built" items exist in `game/data/items.js` (IDs unchanged; O-Neg Bag, Creatine Shake and Opsonin Glaze were renamed from Recovery Tonic, ATP Shot and Complement). Everything else needs engine work. Specialty stock may favor region-themed items (gut node: Antacid Tablet, Jar of Gastric Juice; brain-draining node: neurotransmitters).
+
+| Item | Tab | Price | Effect | Card fact | Status |
+|---|---|---:|---|---|---|
+| O-Neg Bag | Heal | 15 | Heal 40% max HP. Carry cap 3. | O-negative red blood cells can be given to almost any patient, so emergency rooms keep them on hand. | built |
+| Creatine Shake | Heal | 30 | Restore 60% max ATP. | Muscle uses creatine phosphate to rebuild ATP within seconds. | built |
+| Serotonin Snack | Heal | 14 | Heal 5% max HP each turn for 4 turns. | About 90% of the body's serotonin is made in the gut. | new |
+| Clotting Gauze | Cure | 10 | End Bleed on you. | Gauze plus pressure helps a wound clot. | new |
+| Antacid Tablet | Cure | 10 | End Corrode on you. | Antacids neutralize stomach acid. | new |
+| Activated Charcoal | Cure | 12 | Remove all Poison stacks on you. | Activated charcoal binds some swallowed toxins in the gut. | new |
+| Antioxidant Smoothie | Cure | 10 | End Weaken on you. | Antioxidants neutralize reactive oxygen species. | new |
+| Smelling Salts | Cure | 12 | You cannot be Stunned next round. | Smelling salts release ammonia, which triggers a sharp inhalation reflex. | new |
+| Bottle of Bleach | Throw | 18 | Oxidative damage to all enemies, plus Weaken. | Neutrophils make hypochlorous acid, the active ingredient in bleach. | new |
+| Hand Sanitizer | Throw | 15 | Damage to all enemies, ×2 against bacteria. | Alcohol sanitizer works poorly on norovirus, a virus with no envelope. | new |
+| Jar of Gastric Juice | Throw | 16 | Heavy Acid damage to one enemy, plus Corrode for 3 turns. | Stomach acid is hydrochloric acid at about pH 1.5–3.5; it turns pepsinogen into pepsin. | new |
+| Opsonin Glaze | Buff | 12 | Your next damaging ATP ability deals ×1.5. | Opsonins coat a pathogen so phagocytes can grab it; "opsonize" comes from Greek for preparing food. | built |
+| Mucus Flask | Buff | 14 | The next hit you take does 0. | Mucus traps microbes and debris on airway and gut surfaces. | built |
+| Fever | Buff | 10 | ×1.3 damage for the fight; lose 4% max HP each turn (never kills). | Fever can slow some pathogens and speed immune responses, at a cost in energy. | built |
+| Interferon | Buff | 12 | ×1.6 against viruses for the fight. Check against Head-item multipliers. | Virus-infected cells release interferons that warn neighbors to strengthen antiviral defenses. | built |
+| Antibiotic | Buff | 12 | ×1.6 against bacteria for the fight; nothing against viruses. Check against Head-item multipliers. | Antibiotics treat bacterial infections only; they do not work on viruses. | built |
+| Liquid Courage | Buff | 12 | +25% damage for the fight; lose 10% max HP after it (dehydration). | Alcohol is a CNS depressant that boosts GABA-A receptors, and it suppresses ADH, so you lose water. | new |
+| EpiPen | Buff | 18 | End Stun and Weaken on you; +20% damage for 2 turns. | Epinephrine raises heart rate and opens the airways, which is why it treats anaphylaxis. | new |
+| Hit of Dopamine | Buff | 16 | For the fight, each correct ability answer refunds 2 ATP. | Dopamine neurons fire for unexpected rewards, a signal that helps the brain learn. | new |
+| Acetylcholine Ampoule | Buff | 12 | Your next basic Attack strikes twice. | At the neuromuscular junction, acetylcholine makes a muscle fiber contract. | new |
+| GABA Gummy | Buff | 14 | The enemy's next telegraphed heavy attack becomes a normal attack (existing `tameBig` rule). | GABA is the brain's main inhibitory neurotransmitter. | new |
+| Endorphin Rush | Buff | 14 | 30% less direct damage taken for 2 turns. | Endorphins are the body's own opioids, released during pain and stress. | new |
+| Cheat Sheet | Utility | 40 | Your next ability question shows only 2 options (you still answer it). Max 2 per expedition. | Testing yourself strengthens memory more than rereading. | new |
+| tPA Injection | Utility | 15 | Dissolve a clot hazard in a vessel. | tPA is a drug that breaks down blood clots. | new |
+| Lymph Drain | Utility | 20 | Escape to the draining lymph node, keeping expedition earnings. | Lymphatic vessels carry fluid through lymph nodes before it returns to the blood. | built |
+| Defibrillator | Utility | not sold | Revive once at 30% HP when killed. Very rare deep loot; carry cap 1. Consumable twin of the Don't-Eat-Me Shroud. | Defibrillators shock dangerous rhythms like ventricular fibrillation back to normal. | new |
+
+Cut during design: THC items (too much stoner humor for the tone).
+
 ## Catalogue
 
 Numbers not explicitly chosen in the conversation are initial test values. Stable item IDs are shown for migration and maintenance.
@@ -131,7 +166,7 @@ Numbers not explicitly chosen in the conversation are initial test values. Stabl
 | Insulin Hood | rare / field | Maximum ATP +25%. | eq-insulin-hood |
 | Helm of the Pericardium | rare / field | Armor +25%; maximum HP +10%. | eq-myocardium-helm |
 | Anti-Scurvy Hat | rare / field | A pirate tricorne. Recruit Basophil heals the companion for 50% more. | eq-ascorbic-helm |
-| Bowman’s Helm | rare / field | Recovery Tonics remove one Poison stack. Basic attacks with bows deal +15% damage. | eq-renal-helm |
+| Bowman’s Helm | rare / field | O-Neg Bags remove one Poison stack. Basic attacks with bows deal +15% damage. | eq-renal-helm |
 | Marrow Helm | rare / field | +8 Armor; Retain 25% of expedition-earned XP on death. | eq-marrow-helm |
 
 ### weapon
