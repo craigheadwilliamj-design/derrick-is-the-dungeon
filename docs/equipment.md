@@ -1,6 +1,6 @@
 # Approved equipment catalogue
 
-Implemented November 17, 2026. 74 active items: 32 weapons, 22 body armors, 10 shields, 10 Head items. Existing accessories and all other old gear remain owned in a legacy vault and are excluded from new stock and loot. Accessory designs were approved later the same day (see Accessories below) and are not built yet.
+Implemented November 17, 2026. 99 active items: 32 weapons, 22 body armors, 10 shields, 10 Head items, 25 accessories. Existing accessories and all other old gear remain owned in a legacy vault and are excluded from new stock and loot. Accessories were approved and built later the same day (see Accessories below).
 
 ## Rules
 
@@ -37,14 +37,14 @@ Wizard gets two spells from the main-hand staff and always retains Membrane Barr
 | mold | Spore Cloud | 8 | Light Toxin group damage and 1 Poison stack each. |
 | mold | Culture Bloom | 5 | Add 3 Poison stacks to an already-Poisoned enemy. |
 
-## Accessories (approved design, not yet built)
+## Accessories
 
-Approved November 17, 2026. 25 accessories replace the legacy accessory pool for new loot and shops; the 79 legacy accessories stay owned in the vault. Accessories avoid raw stat bloat and the Head slot's large multipliers. Each category has a job: boots move and explore, gloves change your attacks, cloaks resist statuses and keep you alive, rings are small stackable effects. Boots, gloves and cloaks cannot be doubled; two different rings or charms can. No sets, no class-locked accessories. Status-duration effects never reach immunity. Numbers are initial playtest values. "New" marks effects that need engine work.
+Approved November 17, 2026. 25 accessories replace the legacy accessory pool for new loot and shops; the 79 legacy accessories stay owned in the vault. Accessories avoid raw stat bloat and the Head slot's large multipliers. Each category has a job: boots move and explore, gloves change your attacks, cloaks resist statuses and keep you alive, rings are small stackable effects. Boots, gloves and cloaks cannot be doubled; two different rings or charms can. No sets, no class-locked accessories. Status-duration effects never reach immunity. Numbers are initial playtest values. "New rule" marks effects that needed a new engine hook. Uncommons are ordinary shop and chest stock, rares are field finds, deep items come from later floors, and the three legendaries drop from their bosses (marrow, eyes & ears, spleen).
 
-| Item | Category | Quality | Effect | Card fact | New |
+| Item | Category | Quality | Effect | Card fact | New rule |
 |---|---|---|---|---|---|
 | Selectin Boots | boots | uncommon | Arteries push every 2nd step; veins nudge every 6th. | Selectins let white blood cells roll along a vessel wall. | |
-| Boots of the Endothelium | boots | uncommon | Vessel hazards deal 50% less damage. | Endothelial cells line every blood vessel. | ✓ |
+| Boots of the Endothelium | boots | uncommon | Traps deal 50% less damage. | Endothelial cells line every blood vessel. | ✓ |
 | Greaves of Ranvier | boots | rare | Starting a fight by walking into an enemy gives a free basic Attack before round 1. | Myelinated axons conduct faster because the signal jumps between nodes of Ranvier. | ✓ |
 | Lymph Waders | boots | deep | Keep found gear on Flee or Leave. | Lymphatic vessels carry fluid, and what is in it, to lymph nodes. | ✓ |
 | Tear-Soaked Gloves | gloves | uncommon | Basic Attack +20% against bacteria. | Tears contain lysozyme, which breaks down peptidoglycan in bacterial cell walls. | |
@@ -73,9 +73,9 @@ Kept from legacy under new definitions: Selectin Boots, Chemokine Compass, Hundr
 
 Saved for future names: Circle of Willis (a circlet), Arbor Vitae (a legendary charm), Islets of Langerhans, Crypts of Lieberkühn, Bundle of His, Organ of Corti, Locus Coeruleus.
 
-## Consumables (approved design, partly built)
+## Consumables
 
-Approved November 17, 2026. 25 consumables. Using one takes your turn. The combat Item menu is split into tabs: Heal, Cure, Throw, Buff, Utility. Prices are glucose and initial playtest values. "Built" items exist in `game/data/items.js` (IDs unchanged; O-Neg Bag, Creatine Shake and Opsonin Glaze were renamed from Recovery Tonic, ATP Shot and Complement). Everything else needs engine work. Specialty stock may favor region-themed items (gut node: Antacid Tablet, Jar of Gastric Juice; brain-draining node: neurotransmitters).
+Approved November 17, 2026. 26 consumables (25 sold, plus the Defibrillator). Using one takes your turn. The combat Item menu is split into tabs: Heal, Cure, Throw, Buff, Utility. Prices are glucose and initial playtest values. All are built in `game/data/items.js` ("new" marks the 18 added November 17; O-Neg Bag, Creatine Shake and Opsonin Glaze were renamed from Recovery Tonic, ATP Shot and Complement, IDs unchanged). Throws use your Power but skip ability-only triggers. tPA and the Defibrillator are used automatically; the Defibrillator has a 20% chance to drop from a boss (carry cap 1). Specialty stock may favor region-themed items (gut node: Antacid Tablet, Jar of Gastric Juice; brain-draining node: neurotransmitters).
 
 | Item | Tab | Price | Effect | Card fact | Status |
 |---|---|---:|---|---|---|
@@ -102,7 +102,7 @@ Approved November 17, 2026. 25 consumables. Using one takes your turn. The comba
 | GABA Gummy | Buff | 14 | The enemy's next telegraphed heavy attack becomes a normal attack (existing `tameBig` rule). | GABA is the brain's main inhibitory neurotransmitter. | new |
 | Endorphin Rush | Buff | 14 | 30% less direct damage taken for 2 turns. | Endorphins are the body's own opioids, released during pain and stress. | new |
 | Cheat Sheet | Utility | 40 | Your next ability question shows only 2 options (you still answer it). Max 2 per expedition. | Testing yourself strengthens memory more than rereading. | new |
-| tPA Injection | Utility | 15 | Dissolve a clot hazard in a vessel. | tPA is a drug that breaks down blood clots. | new |
+| tPA Injection | Utility | 15 | Walk into a clot in a vessel to dissolve it (used automatically). | tPA is a drug that breaks down blood clots. | new |
 | Lymph Drain | Utility | 20 | Escape to the draining lymph node, keeping expedition earnings. | Lymphatic vessels carry fluid through lymph nodes before it returns to the blood. | built |
 | Defibrillator | Utility | not sold | Revive once at 30% HP when killed. Very rare deep loot; carry cap 1. Consumable twin of the Don't-Eat-Me Shroud. | Defibrillators shock dangerous rhythms like ventricular fibrillation back to normal. | new |
 
@@ -214,4 +214,4 @@ Coat of Mucous retains 25% of escrowed glucose on Flee/Leave, not XP or found it
 
 ## Validation
 
-Run `node tests/equipment.cjs`, `node tests/combat-rework.cjs`, and `node tests/content-unlocks.cjs`. These cover the catalogue, ownership and migration, hand constraints, per-copy enchanting, spell kits, wrong-answer costs, shields, armor/head/weapon effects, reward retention, and DOM menu rendering. Browser visual QA is not included.
+Run `node tests/equipment.cjs`, `node tests/combat-rework.cjs`, `node tests/content-unlocks.cjs` and `node tests/accessories-consumables.cjs`. These cover the catalogue, ownership and migration, hand constraints, per-copy enchanting, spell kits, wrong-answer costs, shields, armor/head/weapon effects, reward retention, and DOM menu rendering. Browser visual QA is not included.

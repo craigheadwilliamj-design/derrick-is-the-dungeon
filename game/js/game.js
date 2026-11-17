@@ -27,6 +27,13 @@ DD.game = (function () {
     if (e && e.items[id] > 0) { if (--e.items[id] === 0) delete e.items[id]; }
     else if (--prof().inventory[id] <= 0) delete prof().inventory[id];
   };
+  // Don't-Eat-Me Shroud (once per expedition), then a carried Defibrillator. Returns a log line if you were saved.
+  G.rescue = function (run, maxHP) {
+    if (!run || run.hp > 0) return '';
+    if (DD.gear.perks(prof()).cheatDeath && !run.shroud) { run.shroud = 1; run.hp = 1; return 'Don’t-Eat-Me Shroud: the killing blow leaves you at 1 HP.'; }
+    if (DD.combat.count('defib') > 0) { G.consumeItem('defib'); run.hp = Math.max(1, Math.round(maxHP * S.items.defib.revivePct)); return DD.data.items.defib.use.msg; }
+    return '';
+  };
   G.settle = function (keep, reason = 'flee') {
     const r = G.run; if (!r) return;
     G.syncResources(r);
@@ -34,7 +41,7 @@ DD.game = (function () {
     if(!keep&&e){
       const perks=DD.gear.perks(prof());
       if(reason==='death')G.gainXp(Math.floor(e.xp*(perks.deathXP||0)),true);
-      else prof().glucose+=Math.floor(e.glucose*(perks.fleeGlucose||0));
+      else{prof().glucose+=Math.floor(e.glucose*(perks.fleeGlucose||0));if(perks.keepGear)prof().gearBag.push(...e.gear);}
     }
     if (keep && e) {
       prof().glucose += e.glucose;
@@ -85,13 +92,13 @@ DD.game = (function () {
     const f = r.floor;
     G.syncResources(r); DD.save.save();
     DD.save.saveRun({ v: 1, regionId: r.regionId, seed: r.seed, floorIdx: r.floorIdx, genLevel: r.genLevel, hp: r.hp, atp: r.atp,
-      earned: r.earned, bossWon: r.bossWon, battle: G.combat && !G.combat.drill ? DD.combat.snapshot(G.combat) : null, killed: r.killed, glucose: r.glucose, miss: r.miss, px: r.px, py: r.py, bossDead: f.bossDead, gm: r.gm,
+      earned: r.earned, bossWon: r.bossWon, shroud: r.shroud, cheats: r.cheats, battle: G.combat && !G.combat.drill ? DD.combat.snapshot(G.combat) : null, killed: r.killed, glucose: r.glucose, miss: r.miss, px: r.px, py: r.py, bossDead: f.bossDead, gm: r.gm,
       explored: Array.from(f.explored).join(''), en: f.enemies.map(e => [e.x, e.y, e.alive ? 1 : 0]),
       taken: f.pickups.map((p, i) => p.taken ? i : -1).filter(i => i >= 0), traps: f.traps.map(t => t.state), chests: f.chests.map((c, i) => c.taken ? i : -1).filter(i => i >= 0), npcs: DD.npc.saveState(f) });
   };
   G.resume = function (saved) {
     G.run = { v: 1, regionId: saved.regionId, seed: saved.seed, floorIdx: saved.floorIdx, genLevel: saved.genLevel, hp: saved.hp, atp: saved.atp,
-      earned: saved.earned, bossWon: saved.bossWon, killed: saved.killed || 0, glucose: saved.glucose || 0, miss: saved.miss || [], px: 0, py: 0, floor: null, gm: saved.gm || undefined };
+      earned: saved.earned, bossWon: saved.bossWon, shroud: saved.shroud, cheats: saved.cheats, killed: saved.killed || 0, glucose: saved.glucose || 0, miss: saved.miss || [], px: 0, py: 0, floor: null, gm: saved.gm || undefined };
     const st = G.stats(); G.run.hp = Math.min(G.run.hp, st.maxHP); G.run.atp = Math.min(G.run.atp, st.maxATP);
     G.msgs = []; G.loadFloor(saved.floorIdx, saved);
     if (saved.battle) G.combat = DD.combat.create(G.run, null, { saved: saved.battle });
@@ -105,7 +112,7 @@ DD.game = (function () {
     const f = run.floor, nx = run.px + dx, ny = run.py + dy;
     if (!DD.dungeon.walk(f, nx, ny)) return;
     const foe = DD.dungeon.enemyAt(f, nx, ny);
-    if (foe) return G.startCombat(foe);
+    if (foe) return G.startCombat(foe, { firstStrike: true });
     const npc = DD.npc.at(f, nx, ny);
     if (npc) return DD.npc.open(npc); // bump into a cell to talk to it
     run.px = nx; run.py = ny;
@@ -191,8 +198,9 @@ DD.game = (function () {
     else {
       Q.trap.state = 1;
       if (!run.miss.includes(Q.q.id)) run.miss.push(Q.q.id);
-      Q.dmg = Math.max(1, Math.round(G.stats().maxHP * TR.dmgPct) + TR.dmgPerLevel * prof().level);
+      Q.dmg = Math.max(1, Math.round((Math.round(G.stats().maxHP * TR.dmgPct) + TR.dmgPerLevel * prof().level) * (1 - (DD.gear.perks(prof()).trapCut || 0))));
       run.hp = Math.max(0, run.hp - Q.dmg); Q.msg = 'The trap hits you for ' + Q.dmg + '.';
+      const saved = G.rescue(run, G.stats().maxHP); if (saved) Q.msg += ' ' + saved;
     }
     G.say(Q.msg);
     DD.save.save(); G.persist();
@@ -204,8 +212,8 @@ DD.game = (function () {
     DD.ui.closeQuiz();
   };
 
-  G.startCombat = function (enemy) {
-    G.combat = DD.combat.create(G.run, enemy);
+  G.startCombat = function (enemy, opts) {
+    G.combat = DD.combat.create(G.run, enemy, opts);
     G.persist(); DD.ui.openCombat();
   };
   G.endCombat = function () {
@@ -231,6 +239,7 @@ DD.game = (function () {
       if (e.boss) {
         const L = DD.npc.legendary(e.defId);
         if (L) { run.legend = L.name; G.say('Found ' + L.name + '. Return safely to keep it.'); }
+        const DF = S.items.defib; if (Math.random() < DF.bossChance && DD.combat.count('defib') < DF.cap) { G.reward('item', 'defib'); G.say('Found a Defibrillator.'); }
         run.bossWon = true; run.floor.bossDead = true;
         run.floor.g[run.floor.exit.y][run.floor.exit.x] = '>';
       }

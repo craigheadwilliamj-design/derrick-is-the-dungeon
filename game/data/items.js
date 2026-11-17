@@ -32,7 +32,37 @@
         cond: { enemyType: 'bacteria' }, result: { type: 'damageMult', mult: I.antibiotic.mult } } } },
     lymphDrain: { id: 'lymphDrain', name: 'Lymph Drain', price: I.lymphDrain.price, tip: 'Return to the lymph node with all expedition XP and loot, including from boss fights.',
       real: 'Lymphatic vessels carry fluid from the tissues through lymph nodes before it returns to the blood.',
-      use: { flee: true, msg: 'You slip into a lymphatic vessel.' } }
+      use: { flee: true, msg: 'You slip into a lymphatic vessel.' } },
+    // Approved 2026-11-17. `special` items are handled by name in combat.js; `cure` removes that status from you; `throw` items hit enemies.
+    serotonin: { id: 'serotonin', name: 'Serotonin Snack', price: I.serotonin.price, tip: 'Heal ' + pc(I.serotonin.pct) + ' of max HP at the start of each turn for ' + I.serotonin.turns + ' turns.',
+      real: 'About 90% of the body\'s serotonin is made in the gut.', use: { special: true, msg: 'You eat a Serotonin Snack.' } },
+    gauze: { id: 'gauze', name: 'Clotting Gauze', price: I.gauze.price, cure: 'bleed', tip: 'Ends Bleed on you.', real: 'Gauze plus pressure helps a wound clot.', use: { msg: 'You press Clotting Gauze to the wound.' } },
+    antacid: { id: 'antacid', name: 'Antacid Tablet', price: I.antacid.price, cure: 'corrode', tip: 'Ends Corrode on you.', real: 'Antacids neutralize stomach acid.', use: { msg: 'You chew an Antacid Tablet.' } },
+    charcoal: { id: 'charcoal', name: 'Activated Charcoal', price: I.charcoal.price, cure: 'poison', tip: 'Removes all Poison stacks on you.', real: 'Activated charcoal binds some swallowed toxins in the gut.', use: { msg: 'Activated Charcoal soaks up the poison.' } },
+    smoothie: { id: 'smoothie', name: 'Antioxidant Smoothie', price: I.smoothie.price, cure: 'weaken', tip: 'Ends Weaken on you.', real: 'Antioxidants neutralize reactive oxygen species.', use: { msg: 'You drink an Antioxidant Smoothie.' } },
+    salts: { id: 'salts', name: 'Smelling Salts', price: I.salts.price, tip: 'You cannot be Stunned during the next enemy round.', real: 'Smelling salts release ammonia, which triggers a sharp inhalation reflex.', use: { special: true, msg: 'The ammonia snaps you alert.' } },
+    bleach: { id: 'bleach', name: 'Bottle of Bleach', price: I.bleach.price, tip: 'Oxidative damage to every enemy, plus Weaken.', real: 'Neutrophils make hypochlorous acid, the active ingredient in bleach.',
+      throw: { name: 'Bottle of Bleach', type: 'oxidative', mult: I.bleach.mult, status: 'weaken', turns: I.bleach.weakenTurns, all: true }, use: { msg: 'You hurl a Bottle of Bleach.' } },
+    sanitizer: { id: 'sanitizer', name: 'Hand Sanitizer', price: I.sanitizer.price, tip: 'Toxin damage to every enemy, ×' + I.sanitizer.vsBacteria + ' against bacteria.', real: 'Alcohol sanitizer works poorly on norovirus, a virus with no envelope.',
+      throw: { name: 'Hand Sanitizer', type: 'toxin', mult: I.sanitizer.mult, vs: { bacteria: I.sanitizer.vsBacteria }, all: true }, use: { msg: 'You spray Hand Sanitizer everywhere.' } },
+    gastric: { id: 'gastric', name: 'Jar of Gastric Juice', price: I.gastric.price, tip: 'Heavy Acid damage to one enemy, plus Corrode for ' + I.gastric.corrodeTurns + ' turns.', real: 'Stomach acid is hydrochloric acid at about pH 1.5–3.5; it turns pepsinogen into pepsin.',
+      throw: { name: 'Jar of Gastric Juice', type: 'acid', mult: I.gastric.mult, status: 'corrode', turns: I.gastric.corrodeTurns }, use: { msg: 'You lob a Jar of Gastric Juice.' } },
+    courage: { id: 'courage', name: 'Liquid Courage', price: I.courage.price, tip: '×' + I.courage.mult + ' damage for the fight; lose ' + pc(I.courage.afterPct) + ' of max HP after it (dehydration).',
+      real: 'Alcohol is a CNS depressant that boosts GABA-A receptors, and it suppresses ADH, so you lose water.',
+      use: { msg: 'Liquid Courage burns on the way down.', effect: { id: 'courage', src: 'buff', label: 'Liquid Courage: ×' + I.courage.mult + ' damage', trigger: 'static', result: { type: 'damageMult', mult: I.courage.mult } } } },
+    epipen: { id: 'epipen', name: 'EpiPen', price: I.epipen.price, tip: 'Ends Stun and Weaken on you; ×' + I.epipen.mult + ' damage for ' + I.epipen.turns + ' turns.', real: 'Epinephrine raises heart rate and opens the airways, which is why it treats anaphylaxis.',
+      use: { msg: 'Epinephrine floods your system.', effect: { id: 'epipen', src: 'buff', label: 'EpiPen: ×' + I.epipen.mult + ' damage', trigger: 'static', result: { type: 'damageMult', mult: I.epipen.mult }, turns: I.epipen.turns, fresh: true } } },
+    dopamine: { id: 'dopamine', name: 'Hit of Dopamine', price: I.dopamine.price, tip: 'For the fight, each correct ability answer refunds ' + I.dopamine.atp + ' ATP.', real: 'Dopamine neurons fire for unexpected rewards, a signal that helps the brain learn.', use: { special: true, msg: 'That felt rewarding.' } },
+    acetylcholine: { id: 'acetylcholine', name: 'Acetylcholine Ampoule', price: I.acetylcholine.price, tip: 'Your next basic Attack strikes twice.', real: 'At the neuromuscular junction, acetylcholine makes a muscle fiber contract.', use: { special: true, msg: 'Your fibers twitch, ready to contract.' } },
+    gaba: { id: 'gaba', name: 'GABA Gummy', price: I.gaba.price, tip: 'The next telegraphed heavy attack against you becomes a normal attack.', real: 'GABA is the brain\'s main inhibitory neurotransmitter.', use: { special: true, msg: 'Everything feels a little calmer.' } },
+    endorphin: { id: 'endorphin', name: 'Endorphin Rush', price: I.endorphin.price, tip: pc(I.endorphin.cut) + ' less direct damage taken for ' + I.endorphin.turns + ' enemy rounds.', real: 'Endorphins are the body\'s own opioids, released during pain and stress.', use: { special: true, msg: 'The pain fades into the background.' } },
+    cheat: { id: 'cheat', name: 'Cheat Sheet', price: I.cheat.price, tip: 'Your next ability question shows only 2 options. Max ' + I.cheat.perRun + ' per expedition.', real: 'Testing yourself strengthens memory more than rereading.', use: { special: true, msg: 'You glance at your Cheat Sheet.' } },
+    tpa: { id: 'tpa', name: 'tPA Injection', price: I.tpa.price, outside: true, tip: 'Walk into a clot in a vessel to dissolve it (used automatically).', real: 'tPA is a drug that breaks down blood clots.', use: { msg: 'tPA dissolves the clot.' } },
+    defib: { id: 'defib', name: 'Defibrillator', price: 0, noShop: true, outside: true, cap: I.defib.cap, tip: 'If you are killed, revive once at ' + pc(I.defib.revivePct) + ' HP (used automatically). Very rare.', real: 'Defibrillators shock dangerous rhythms like ventricular fibrillation back to normal.', use: { msg: 'CLEAR! The Defibrillator jolts you back.' } }
   };
-  DD.data.itemOrder = ['tonic', 'atpReserve', 'complement', 'mucusWard', 'fever', 'interferon', 'antibiotic', 'lymphDrain'];
+  DD.data.itemOrder = ['tonic', 'atpReserve', 'serotonin', 'gauze', 'antacid', 'charcoal', 'smoothie', 'salts', 'bleach', 'sanitizer', 'gastric',
+    'complement', 'mucusWard', 'fever', 'interferon', 'antibiotic', 'courage', 'epipen', 'dopamine', 'acetylcholine', 'gaba', 'endorphin', 'cheat', 'tpa', 'lymphDrain', 'defib'];
+  DD.data.itemTabs = { Heal: ['tonic', 'atpReserve', 'serotonin'], Cure: ['gauze', 'antacid', 'charcoal', 'smoothie', 'salts'], Throw: ['bleach', 'sanitizer', 'gastric'],
+    Buff: ['complement', 'mucusWard', 'fever', 'interferon', 'antibiotic', 'courage', 'epipen', 'dopamine', 'acetylcholine', 'gaba', 'endorphin'], Utility: ['cheat', 'tpa', 'lymphDrain', 'defib'] };
+  DD.data.shopItems = DD.data.itemOrder.filter(id => !DD.data.items[id].noShop);
 })();

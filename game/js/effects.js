@@ -32,7 +32,7 @@ DD.fx = (function () {
     return classEffects(ctx.profile).concat(gearEffects(ctx.profile), setEffects(ctx.profile), ctx.buffs || [], DD.derrick.effects(ctx.profile)); // event and chronic effects fire last (5b)
   }
   // Total of one utility result across equipped gear (travelSpeed adds up).
-  const gearSum = (profile, type) => gearEffects(profile).reduce((a, e) => a + (e.result.type === type ? (e.result.add || 1) : 0), 0);
+  const gearSum = (profile, type) => gearEffects(profile).reduce((a, e) => a + (e.result.type === type ? (e.result.add || 1) : 0), 0) + ((DD.gear && DD.gear.perks(profile)[type]) || 0); // legacy effects + modern perks
   function condOk(c, ctx) {
     if (!c) return true;
     const e = ctx.enemy;

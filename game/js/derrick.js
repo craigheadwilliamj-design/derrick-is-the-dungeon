@@ -73,7 +73,7 @@ DD.derrick = (function () {
     const d = eventOf(prof());
     return d && !d.regions.includes('*') && touches(d, regionId) ? E.lootMult : 1;
   };
-  D.loot = (n, regionId) => n > 0 ? Math.max(1, Math.round(n * D.lootMult(regionId) * prod(mods('global'), 'glucoseMult'))) : n;
+  D.loot = (n, regionId) => n > 0 ? Math.max(1, Math.round(n * D.lootMult(regionId) * prod(mods('global'), 'glucoseMult') * (1 + (DD.gear.perks(prof()).glucosePlus || 0)))) : n; // Sweet Tooth Ring
   // A vaccinated species counts as beaten for B Cell Memory.
   D.primed = defId => sourcesOf(prof()).some(d => (d.primes || []).includes(defId));
   // Glycosuria: glucose lost to the urine when a route passes the renal vein or the kidneys. Returns the amount lost.

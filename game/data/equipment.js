@@ -85,10 +85,37 @@
   weapon('carb-staff','Staff of Carbs','staff',2,'rare','specialty',4,{}, {staffKit:'carbs',stats:{maxATP:16},desc:'A little stale. Still a complex carbohydrate. It is a breadstick.'});
   weapon('gas-staff','Staff of Gases','staff',2,'veryrare','deep',8,{}, {staffKit:'gases'});
   weapon('moldy-stick','Old Moldy Stick','staff',2,'rare','field',5,{}, {staffKit:'mold',desc:'Mold-inspired fantasy equipment; Poison is a game effect, not how penicillin works.'});
+  // Accessories (approved 2026-11-17). Categories: boots/gloves/cloak cannot be doubled; rings and charms can (never the same item twice).
+  const acc=(id,name,category,rarity,source,perks,rule,desc,extra={})=>add(id,name,'acc',rarity,source,extra.stats||{},perks,Object.assign({category,rules:[rule],desc},extra));
+  acc('selectin-boots','Selectin Boots','boots','uncommon','basic',{travelSpeed:1},'Arteries push you every 2nd step; veins nudge you every 6th.','Selectins let white blood cells roll along a vessel wall.');
+  acc('endothelium-boots','Boots of the Endothelium','boots','uncommon','basic',{trapCut:.5},'Traps deal 50% less damage.','Endothelial cells line every blood vessel.');
+  acc('ranvier-greaves','Greaves of Ranvier','boots','rare','field',{firstStrike:true},'Start a fight by walking into an enemy: a free basic Attack before round 1.','Myelinated axons conduct faster because the signal jumps between the nodes of Ranvier.');
+  acc('lymph-waders','Lymph Waders','boots','veryrare','deep',{keepGear:true},'Keep found gear when you Flee or Leave.','Lymphatic vessels carry fluid, and what is in it, to lymph nodes.');
+  acc('tear-gloves','Tear-Soaked Gloves','gloves','uncommon','basic',{basicVs:{bacteria:.2}},'Basic Attack +20% against bacteria.','Tears contain lysozyme, which breaks down peptidoglycan in bacterial cell walls.');
+  acc('integrin-gauntlets','Integrin Gauntlets','gloves','uncommon','basic',{bleedPlus:1},'Bleed you apply lasts 1 more turn.','Integrins give white blood cells their firm grip before they leave a vessel.');
+  acc('cascade-knuckles','Cascade Knuckles','gloves','rare','field',{corrodePlus:1},'Corrode you apply lasts 1 more turn.','The complement cascade ends in the membrane attack complex, a pore punched in the target membrane.');
+  acc('tendon-wraps','Tendon Wraps','gloves','rare','field',{offhandPlus:.15},'Off-hand strikes use 65% strength instead of 50%.','Tendons carry the force of a muscle to bone.');
+  acc('apoptosis-gloves','Gloves of Apoptosis','gloves','veryrare','deep',{abilityExecute:.1},'A correct ability that leaves an enemy below 10% HP kills it.','Fas ligand binding Fas triggers apoptosis in the target cell.');
+  acc('scab-cloak','Scab Cloak','cloak','uncommon','basic',{bleedMinus:1},'Bleed on you lasts 1 turn less.','A scab is a dried blood clot over a wound.');
+  acc('liver-mantle','Mantle of the Liver','cloak','uncommon','basic',{resist:{toxin:.25}},'25% Toxin resistance (the strongest source applies).','The liver chemically processes many toxins and drugs.');
+  acc('sugar-coat','Sugar Coat','cloak','rare','field',{sugarCoat:true},'The first status put on you each fight lasts 1 turn less (Poison: 1 fewer stack).','The glycocalyx is a sugar-rich coat on the outside of the cell membrane.');
+  acc('shroud','Don’t-Eat-Me Shroud','cloak','veryrare','deep',{cheatDeath:true},'Once per expedition, a lethal hit leaves you at 1 HP.','CD47 is a “don’t eat me” signal that tells macrophages to leave a cell alone.');
+  acc('powerhouse-ring','Powerhouse Ring','ring','uncommon','basic',{turnATP:1},'+1 ATP at the start of each turn.','Mitochondria make most of a cell’s ATP.');
+  acc('adrenal-band','Adrenal Band','ring','uncommon','basic',{startATP:6},'+6 ATP at the start of each fight.','The adrenal cortex makes cortisol, which raises blood glucose during stress.');
+  acc('sweet-tooth-ring','Sweet Tooth Ring','ring','uncommon','basic',{glucosePlus:.15},'+15% glucose collected.','Glucose is the main fuel cells burn to make ATP.');
+  acc('scar-band','Scar Tissue Band','ring','uncommon','basic',{turnHeal:.03},'Heal 3% max HP at the start of each turn.','Scars are collagen laid down by fibroblasts during repair.');
+  acc('toll-ring','Toll Ring','ring','rare','field',{vsType:{bacteria:.15,fungus:.15}},'+15% damage against bacteria and fungi.','Toll-like receptors recognize molecular patterns shared by many microbes.');
+  acc('hassall-signet','Signet of Hassall','ring','rare','field',{vsType:{virus:.15}},'+15% damage against viruses.','Hassall’s corpuscles sit in the thymus, where T cells learn to tolerate self.');
+  acc('grudge-ring','Ring of Grudges','ring','rare','field',{beatenBonus:.15},'+15% damage against a pathogen type you have beaten before.','Memory B cells respond faster the second time a pathogen appears.');
+  acc('seahorse-signet','Seahorse Signet','ring','rare','field',{seahorse:3},'After 3 correct ability answers in a row, your next ability costs no ATP.','The hippocampus, Greek for seahorse, helps form new long-term memories.');
+  acc('chemokine-compass','Chemokine Compass','charm','uncommon','basic',{revealNPCs:1},'Native cells and merchants show through walls on dungeon floors.','Chemokines are signals that draw white blood cells toward infection.');
+  acc('hundred-strain-charm','Hundred-Strain Charm','charm','legendary','boss',{wrongHalf:.5},'A wrong ability answer still deals half its damage (ATP is still spent).','Rhinoviruses have over 100 serotypes, so immunity to one does not protect against the rest.',{region:'marrow',boss:'rhinovirus'});
+  acc('elementary-body','Elementary Body','charm','legendary','boss',{refundHalf:.5},'A correct ability answer refunds half its ATP.','Chlamydia’s infectious elementary bodies enter cells and become replicating reticulate bodies.',{region:'eyesears',boss:'Chlamydia trachomatis'});
+  acc('latent-genome-ring','Latent Genome Ring','ring','legendary','boss',{beatenBonus:.3},'+30% damage against a pathogen type you have beaten before.','During latency the Epstein-Barr virus genome persists as a circular episome inside memory B cells.',{region:'spleen',boss:'Epstein-Barr virus',stats:{power:3,maxATP:6}});
   const regions={ 'eq-myocyte-armor':'quads','eq-rugae-robes':'gut','eq-respiration-robes':'lungs','eq-glycogen-robes':'gut',
     'eq-diaphyseal-shield':'femur','eq-bismol-shield':'gut','eq-caffeine-rapier':'brain','eq-carb-staff':'gut' };
   for(const it of items)if(regions[it.id])it.region=regions[it.id];
-  const legacyNames={'lysozyme-axe':'Enzyme Axe','keratin-plate':'Keratin Plate Mail','myelin-sheath':'Myelin Cloak','chemokine-compass':'Molecular Compass','atp-synthase-ring':'Ring of the Mitochondria'};
+  const legacyNames={'lysozyme-axe':'Enzyme Axe','keratin-plate':'Keratin Plate Mail','myelin-sheath':'Myelin Cloak','chemokine-compass':'Molecular Compass','atp-synthase-ring':'Ring of the Mitochondria','selectin-boots':'Old Selectin Boots','hundred-strain':'Old Hundred-Strain Charm','elementary-body':'Old Elementary Body'};
   for(const it of DD.data.gear)if(legacyNames[it.id])it.name=legacyNames[it.id];
   DD.data.activeGear=items;
   DD.data.gear=DD.data.gear.concat(items);

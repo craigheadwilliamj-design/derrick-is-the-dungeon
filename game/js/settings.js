@@ -76,7 +76,13 @@ DD.S = {
     fever: { price: 10, mult: 1.3, selfPct: 0.04 },     // selfPct of max HP each turn; never kills you
     interferon: { price: 12, mult: 1.6 },
     antibiotic: { price: 12, mult: 1.6 },
-    lymphDrain: { price: 20 }
+    lymphDrain: { price: 20 },
+    // Approved 2026-11-17 (initial playtest values)
+    serotonin: { price: 14, pct: 0.05, turns: 4 }, gauze: { price: 10 }, antacid: { price: 10 }, charcoal: { price: 12 }, smoothie: { price: 10 }, salts: { price: 12 },
+    bleach: { price: 18, mult: 1.2, weakenTurns: 2 }, sanitizer: { price: 15, mult: 0.8, vsBacteria: 2 }, gastric: { price: 16, mult: 2, corrodeTurns: 3 },
+    courage: { price: 12, mult: 1.25, afterPct: 0.1 }, epipen: { price: 18, mult: 1.2, turns: 2 }, dopamine: { price: 16, atp: 2 },
+    acetylcholine: { price: 12 }, gaba: { price: 14 }, endorphin: { price: 14, cut: 0.3, turns: 2 },
+    cheat: { price: 40, removeWrong: 2, perRun: 2 }, tpa: { price: 15 }, defib: { revivePct: 0.3, cap: 1, bossChance: 0.2 }
   },
   picker: { recentExclude: 8, unseen: 2, wrong: 1.5, right: 0.5, floor: 0.25, staleCap: 2, staleDays: 7, weakBias: 2 },
   mastery: { window: 20, minAnswers: 5, fadeDays: 14, fadeFloor: 0.25, fadingBelow: 0.6 },
