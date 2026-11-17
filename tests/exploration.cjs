@@ -23,6 +23,7 @@ function pathTo(f,start,target){
  }
  return null;
 }
+let vesselOverlays=0;D.ui.banner=()=>{vesselOverlays++;};D.ui.junction=()=>{throw new Error('Vessel movement opened the old junction menu');};
 function walkExit(id){
  const run=D.game.run,f=run.floor,target=f.portals.find(p=>p.to===id);assert.ok(target,'physical exit to '+id);
  const steps=pathTo(f,[run.px,run.py],target);assert.ok(steps,'reachable '+id);
@@ -66,4 +67,5 @@ const entrance=D.game.run.floor.visit;
 const doorwayPath=pathTo(D.game.run.floor,[D.game.run.px,D.game.run.py],entrance);
 for(const d of doorwayPath)D.travel.move(...d);
 assert.ok(loading&&entered,'walking into organ doorway loads its separate dungeon through the entry screen');
+assert.equal(vesselOverlays,0,'free exploration never opens vessel arrival overlays');
 console.log('Passed: walking through all cardiac/pulmonary branches, organ bypass and town entrance, exact reload, area cache, and every graph exit physically reachable.');
