@@ -26,7 +26,7 @@
   armor('myocyte-armor',"Myocyte’s Armor",'rare','specialty','medium',{defense:30,power:3});
   armor('keratin-mail','Keratin Splint Mail','rare','field','heavy',{defense:38});
   armor('ossified-mail','Ossified Plate Mail','veryrare','deep','heavy',{defense:55});
-  armor('blood-mail','Blood Plate Mail','legendary','boss','heavy',{defense:65},{immune:['bleed']},{region:'marrow',rules:['Immune to Bleed.']});
+  armor('blood-mail','Blood Plate(let) Mail','legendary','boss','heavy',{defense:65},{immune:['bleed']},{region:'marrow',rules:['Immune to Bleed.']});
   armor('rugae-robes','Robes of Rugae','rare','specialty','robes',{maxATP:10},{damage:{acid:.5}},{rules:['Acid damage +50%.']});
   armor('respiration-robes','Robes of Respiration','rare','specialty','robes',{maxATP:10},{healAbilityATP:2},{rules:['Healing ATP abilities also restore 2 ATP when they heal.']});
   armor('integument-robe','Robe of the Integument','rare','field','robes',{defense:30});
@@ -52,9 +52,9 @@
   head('erythrocyte-helm','Helm of the Erythrocyte',{hpMult:.25},{},{rules:['Maximum HP +25%.']});
   head('bile-circlet','Circlet of Bile',{damage:{acid:.5}},{},{rules:['Acid damage +50%.']});
   head('insulin-hood','Insulin Hood',{atpMult:.25},{},{rules:['Maximum ATP +25%.']});
-  head('myocardium-helm','Myocardium Helm',{armorMult:.25,hpMult:.1},{},{rules:['Armor +25%; maximum HP +10%.']});
-  head('ascorbic-helm','Ascorbic Helm',{companionHeal:.5},{},{desc:'Smells faintly of lime. Your Basophil insists it helps.',rules:['Recruit Basophil heals the companion for 50% more.']});
-  head('renal-helm','Renal Helm',{tonicPoison:1},{},{rules:['Recovery Tonics remove one Poison stack.']});
+  head('myocardium-helm','Helm of the Pericardium',{armorMult:.25,hpMult:.1},{},{rules:['Armor +25%; maximum HP +10%.']});
+  head('ascorbic-helm','Anti-Scurvy Hat',{companionHeal:.5},{},{desc:'A pirate tricorne. Ascorbic acid (vitamin C) literally means “against scurvy”: it prevents the disease.',rules:['Recruit Basophil heals the companion for 50% more.']});
+  head('renal-helm',"Bowman’s Helm",{tonicPoison:1,bowBasic:.15},{},{desc:'Bowman’s capsule is where the kidney begins filtering blood.',rules:['Recovery Tonics remove one Poison stack.','Basic attacks with bows deal +15% damage.']});
   head('marrow-helm','Marrow Helm',{deathXP:.25},{defense:8},{rules:['Retain 25% of expedition-earned XP on death.']});
   const weapon=(id,name,wtype,hands,rarity,source,attack,perks={},extra={})=>add(id,name,'weapon',rarity,source,{},perks,Object.assign({wtype,hands,attack,damageType:'physical'},extra));
   for(const [id,name,type,hands,starter] of [
