@@ -133,6 +133,7 @@ DD.combat = (function () {
       if(e.status.weaken)raw*=1+(wp.vsWeaken||0);
       if(e.hp<e.maxHP*.5)raw*=1+(wp.finisher||0);
       if(C.lastBlock)raw*=1+(wp.afterBlock||0);
+      if(w&&w.wtype==='bow')raw*=1+(C.gear.bowBasic||0);
     }
     if(e.intent==='defend')raw*=.5;
     const armor=type==='physical'?e.def*(e.status.corrode?1-S.corrode:1)*(basic?1-(wp.pierce||0):1):0;

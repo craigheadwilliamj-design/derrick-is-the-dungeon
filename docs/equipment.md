@@ -1,6 +1,6 @@
 # Approved equipment catalogue
 
-Implemented November 17, 2026. 74 active items: 32 weapons, 22 body armors, 10 shields, 10 Head items. Existing accessories and all other old gear remain owned in a legacy vault and are excluded from new stock and loot. No new accessory designs were approved in this pass.
+Implemented November 17, 2026. 74 active items: 32 weapons, 22 body armors, 10 shields, 10 Head items. Existing accessories and all other old gear remain owned in a legacy vault and are excluded from new stock and loot. Accessory designs were approved later the same day (see Accessories below) and are not built yet.
 
 ## Rules
 
@@ -37,6 +37,42 @@ Wizard gets two spells from the main-hand staff and always retains Membrane Barr
 | mold | Spore Cloud | 8 | Light Toxin group damage and 1 Poison stack each. |
 | mold | Culture Bloom | 5 | Add 3 Poison stacks to an already-Poisoned enemy. |
 
+## Accessories (approved design, not yet built)
+
+Approved November 17, 2026. 25 accessories replace the legacy accessory pool for new loot and shops; the 79 legacy accessories stay owned in the vault. Accessories avoid raw stat bloat and the Head slot's large multipliers. Each category has a job: boots move and explore, gloves change your attacks, cloaks resist statuses and keep you alive, rings are small stackable effects. Boots, gloves and cloaks cannot be doubled; two different rings or charms can. No sets, no class-locked accessories. Status-duration effects never reach immunity. Numbers are initial playtest values. "New" marks effects that need engine work.
+
+| Item | Category | Quality | Effect | Card fact | New |
+|---|---|---|---|---|---|
+| Selectin Boots | boots | uncommon | Arteries push every 2nd step; veins nudge every 6th. | Selectins let white blood cells roll along a vessel wall. | |
+| Boots of the Endothelium | boots | uncommon | Vessel hazards deal 50% less damage. | Endothelial cells line every blood vessel. | ✓ |
+| Greaves of Ranvier | boots | rare | Starting a fight by walking into an enemy gives a free basic Attack before round 1. | Myelinated axons conduct faster because the signal jumps between nodes of Ranvier. | ✓ |
+| Lymph Waders | boots | deep | Keep found gear on Flee or Leave. | Lymphatic vessels carry fluid, and what is in it, to lymph nodes. | ✓ |
+| Tear-Soaked Gloves | gloves | uncommon | Basic Attack +20% against bacteria. | Tears contain lysozyme, which breaks down peptidoglycan in bacterial cell walls. | |
+| Integrin Gauntlets | gloves | uncommon | Bleed you apply lasts 1 more turn. | Integrins give white blood cells their firm grip before they leave a vessel. | ✓ |
+| Cascade Knuckles | gloves | rare | Corrode you apply lasts 1 more turn. | The complement cascade ends in the membrane attack complex, a pore punched in the target's membrane. | ✓ |
+| Tendon Wraps | gloves | rare | Off-hand strikes use 65% strength instead of 50%. | Tendons carry the force of a muscle to bone. | ✓ |
+| Gloves of Apoptosis | gloves | deep | A correct ability that leaves an enemy below 10% HP kills it. | Fas ligand binding Fas triggers apoptosis in the target cell. | |
+| Scab Cloak | cloak | uncommon | Bleed on you lasts 1 turn less. | A scab is a dried blood clot over a wound. | ✓ |
+| Mantle of the Liver | cloak | uncommon | 25% Toxin resistance (strongest source applies). | The liver chemically processes many toxins and drugs. | |
+| Sugar Coat | cloak | rare | The first status applied to you each fight lasts 1 turn less (Poison: 1 fewer stack). | The glycocalyx is a sugar-rich coat on the outside of the cell membrane. | ✓ |
+| Don't-Eat-Me Shroud | cloak | deep | Once per expedition, a lethal hit leaves you at 1 HP. | CD47 is a "don't eat me" signal that tells macrophages to leave a cell alone. | ✓ |
+| Powerhouse Ring | ring | uncommon | +1 ATP at the start of each turn. | Mitochondria make most of a cell's ATP. | |
+| Adrenal Band | ring | uncommon | +6 ATP at the start of each fight. | The adrenal cortex makes cortisol, which raises blood glucose during stress. | |
+| Sweet Tooth Ring | ring | uncommon | +15% expedition glucose. | Glucose is the main fuel cells burn to make ATP. | ✓ |
+| Scar Tissue Band | ring | uncommon | Heal 3% max HP at the start of each turn. Watch on high-HP builds. | Scars are collagen laid down by fibroblasts during repair. | |
+| Toll Ring | ring | rare | +15% damage against bacteria and fungi. | Toll-like receptors recognize molecular patterns shared by many microbes. | |
+| Signet of Hassall | ring | rare | +15% damage against viruses. | Hassall's corpuscles sit in the thymus, where T cells learn to tolerate self. | |
+| Ring of Grudges | ring | rare | +15% damage against a pathogen type you have beaten before. | Memory B cells respond faster the second time a pathogen appears. | |
+| Seahorse Signet | ring | rare | After 3 correct answers in a row, your next ability costs no ATP. | The hippocampus, Greek for seahorse, helps form new long-term memories. | ✓ |
+| Chemokine Compass | charm | uncommon | Native cells and merchants show through walls on dungeon floors. | Chemokines are signals that draw white blood cells toward infection. | |
+| Hundred-Strain Charm | charm | legendary / rhinovirus | A wrong ability answer still deals half its damage (ATP is still spent). | Rhinoviruses have over 100 serotypes, so immunity to one does not protect against the rest. | adapted |
+| Elementary Body | charm | legendary / *Chlamydia* | A correct ability answer refunds half its ATP. | Chlamydia's infectious elementary bodies enter cells and become replicating reticulate bodies. | adapted |
+| Latent Genome Ring | ring | legendary / Epstein-Barr virus | +3 Power; +6 max ATP; ×1.3 damage against a pathogen type you have beaten before. Intentionally an upgrade over Ring of Grudges. | During latency the Epstein-Barr virus genome persists as a circular episome inside memory B cells. | |
+
+Kept from legacy under new definitions: Selectin Boots, Chemokine Compass, Hundred-Strain Charm, Elementary Body, Latent Genome (now a Ring), and the Toll-like Receptor, Fas Ligand and Cortisol ideas. Muscle Cyst and the other old boss accessories go to a later boss-loot pass.
+
+Saved for future names: Circle of Willis (a circlet), Arbor Vitae (a legendary charm), Islets of Langerhans, Crypts of Lieberkühn, Bundle of His, Organ of Corti, Locus Coeruleus.
+
 ## Catalogue
 
 Numbers not explicitly chosen in the conversation are initial test values. Stable item IDs are shown for migration and maintenance.
@@ -59,7 +95,7 @@ Numbers not explicitly chosen in the conversation are initial test values. Stabl
 | Myocyte’s Armor | rare / specialty | +30 Armor; +3 Power; Region: quads | eq-myocyte-armor |
 | Keratin Splint Mail | rare / field | +38 Armor | eq-keratin-mail |
 | Ossified Plate Mail | veryrare / deep | +55 Armor | eq-ossified-mail |
-| Blood Plate Mail | legendary / boss | +65 Armor; Immune to Bleed.; Region: marrow | eq-blood-mail |
+| Blood Plate(let) Mail | legendary / boss | +65 Armor; Immune to Bleed.; Region: marrow | eq-blood-mail |
 | Robes of Rugae | rare / specialty | +10 max ATP; Acid damage +50%.; Region: gut | eq-rugae-robes |
 | Robes of Respiration | rare / specialty | +10 max ATP; Healing ATP abilities also restore 2 ATP when they heal.; Region: lungs | eq-respiration-robes |
 | Robe of the Integument | rare / field | +30 Armor | eq-integument-robe |
@@ -93,9 +129,9 @@ Numbers not explicitly chosen in the conversation are initial test values. Stabl
 | Helm of the Erythrocyte | rare / field | Maximum HP +25%. | eq-erythrocyte-helm |
 | Circlet of Bile | rare / field | Acid damage +50%. | eq-bile-circlet |
 | Insulin Hood | rare / field | Maximum ATP +25%. | eq-insulin-hood |
-| Myocardium Helm | rare / field | Armor +25%; maximum HP +10%. | eq-myocardium-helm |
-| Ascorbic Helm | rare / field | Recruit Basophil heals the companion for 50% more. | eq-ascorbic-helm |
-| Renal Helm | rare / field | Recovery Tonics remove one Poison stack. | eq-renal-helm |
+| Helm of the Pericardium | rare / field | Armor +25%; maximum HP +10%. | eq-myocardium-helm |
+| Anti-Scurvy Hat | rare / field | A pirate tricorne. Recruit Basophil heals the companion for 50% more. | eq-ascorbic-helm |
+| Bowman’s Helm | rare / field | Recovery Tonics remove one Poison stack. Basic attacks with bows deal +15% damage. | eq-renal-helm |
 | Marrow Helm | rare / field | +8 Armor; Retain 25% of expedition-earned XP on death. | eq-marrow-helm |
 
 ### weapon
