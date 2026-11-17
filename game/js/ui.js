@@ -121,6 +121,12 @@ DD.ui = (function () {
     g.trip = trip;
     g.leave = el('button', { class: 'btn small', onclick: ui.leave }, trip ? 'Pause' : 'Leave');
     g.chart = el('button', { class: 'btn small chartbtn', type: 'button', onclick: DD.derrickui.chart, title: 'Derrick’s vitals and what he has been up to' }, 'Chart');
+    g.gear = el('button', { class: 'btn small', type: 'button', onclick: () => {
+      if (ui.mode !== 'map' || DD.gear.locked()) return;
+      DD.game.persist();
+      ui.stopMap();
+      DD.gear.screen(ui.game);
+    } }, 'Gear');
     g.abort = trip ? el('button', { class: 'btn small', onclick: ui.abortTrip, title: 'Give up this trip and wash back up where you set out' }, 'Abort') : null;
     g.bountySummary = el('summary');
     g.bountyRows = el('div', { class: 'bountyrows' });
@@ -145,7 +151,7 @@ DD.ui = (function () {
       ? [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gg', '$', 'glucose'), L('gg', '!', 'item'), L('gc', '%', 'clot'), L('gd', '=', 'plaque'), L('gv', '»', 'one-way valve'), L('gt', '^', 'trap'), L('gs', '>', 'onward')]
       : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gg', '&', 'chest'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
-      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.leave, g.abort),
+      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.gear, g.leave, g.abort),
       g.bounties, g.strip, g.mapbox, g.log,
       el('div', { class: 'controls' }, dpad, legend),
       g.combat));
@@ -313,3 +319,4 @@ DD.ui = (function () {
   };
   return ui;
 })();
+
