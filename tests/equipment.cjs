@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const root=path.join(__dirname,'..','game'),storage=new Map();
 const c=vm.createContext({console,setTimeout,clearTimeout,URL,crypto,document:{addEventListener(){},querySelector(){return null;}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}});c.window=c;
 for(const [,src]of fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<script src="([^"]+)"/g))if(src!=='js/main.js')new vm.Script(fs.readFileSync(path.join(root,src),'utf8'),{filename:src}).runInContext(c);
-const D=c.DD, realTownUI=D.ui.town;D.save.loadLocal();vm.runInContext('Math.random=()=>.5',c);
+const D=c.DD, realTownUI=D.ui.town, realStopMap=D.ui.stopMap;D.save.loadLocal();vm.runInContext('Math.random=()=>.5',c);
 D.data.questions[D.data.region('marrow').systems[0]]=[{id:'test',system:D.data.region('marrow').systems[0],q:'Synthetic?',answer:'A',wrong:['B','C','D'],explain:'Synthetic.'}];
 D.ui.openCombat=()=>{};D.ui.closeCombat=()=>{};D.ui.showDeath=()=>{};D.ui.showCleared=()=>{};D.ui.menu=()=>{};D.ui.stopMap=()=>{};D.ui.town=()=>{};
 function profile(id='neutrophil'){
@@ -60,7 +60,7 @@ C=battle({head:'eq-marrow-helm'});D.game.reward('glucose',100);D.game.reward('xp
 console.log('Passed: 74-item roster, starters, hands, vault, loot, per-copy enchanting/migration, five staff kits, ATP on failure, immunities/resistance, shield/weapon/head/armor effects, flee/death retention.');
 
 // Exercise gear and town workshop panels with the actual DOM builders.
-function dom(tag='div',text=''){return {nodeType:1,tag,textContent:text,children:[],style:{},scrollTop:0,append(...xs){this.children.push(...xs);},replaceChildren(...xs){this.children=xs;},setAttribute(k,v){this[k]=v;},addEventListener(){},classList:{toggle(){}},getContext(){return {};}};}
+function dom(tag='div',text=''){return {nodeType:1,tag,textContent:text,children:[],style:{},scrollTop:0,append(...xs){this.children.push(...xs);},replaceChildren(...xs){this.children=xs;},setAttribute(k,v){this[k]=v;},addEventListener(k,fn){this['on'+k]=fn;},querySelector(){return null;},classList:{toggle(){}},getContext(){return {};}};}
 c.document.createElement=tag=>dom(tag);c.document.createTextNode=text=>dom('#text',text);D.render.draw=()=>{};D.ui.banner=()=>{};
 const page=dom();D.ui.init(page);const text=n=>typeof n==='object'?[n.textContent||'',...(n.children||[]).map(text)].join(' '):String(n);
 p=profile();p.gearBag=['eq-fine-vest','eq-axon-bow'];p.glucose=1000;D.gear.screen(()=>{});assert.match(text(page),/Main hand/);assert.match(text(page),/Axon Bow/);
@@ -73,3 +73,33 @@ vm.runInContext('Math.random=()=>0',c);C=battle({weapon:'eq-cilia-bow'});attack(
 C=battle({weapon:'eq-myosin-crossbow'});D.combat.block(C);C.enemies[0].intent='attack';previous=C.enemies[0].hp;attack(C);assert.equal(previous-C.enemies[0].hp,30);
 C=battle({armor:'eq-respiration-robes',weapon:'eq-carb-staff'},'bcell');C.run.hp=30;const capacity=C.run.atp;cast(C,'serving');assert.equal(C.run.atp,capacity-6);
 console.log('Passed: dual wield, Caffeine first strike, Cilia follow-up, Myosin counter and Respiration healing.');
+
+// Open the real Gear button in dungeon and vessel HUDs, swap, and return in place.
+D.ui.stopMap=realStopMap;
+function findButton(node,label){
+ if(node.tag==='button'&&text(node).trim()===label)return node;
+ for(const child of node.children||[]){const found=findButton(child,label);if(found)return found;}
+}
+for(const trip of [false,true]){
+ p=profile();D.save.saveRun(null);D.game.newRun('marrow');
+ const run=D.game.run;
+ if(trip){run.regionId='bloodstream';run.trip={ids:['marrow','ivc','ra'],idx:0,steps:7,amb:[],from:'marrow',to:'heart',mode:'blood'};}
+ D.game.reward('gear','eq-fine-vest');D.game.reward('glucose',12);
+ p.gearBag=['eq-axon-bow'];
+ const floor=run.floor,position=[run.px,run.py],earnings=JSON.stringify(run.earned);
+ D.ui.game();
+ const gearButton=findButton(page,'Gear');assert.ok(gearButton);
+ gearButton.onclick();assert.equal(D.ui.mode,'gear');
+ D.game.move(1,0);assert.deepEqual([run.px,run.py],position,'movement pauses in gear');
+ assert.equal(D.gear.equip('eq-axon-bow','weapon'),true);
+ findButton(page,'Back').onclick();
+ assert.equal(D.ui.mode,'map');assert.equal(D.game.run,run);assert.equal(run.floor,floor);
+ assert.deepEqual([run.px,run.py],position);assert.equal(JSON.stringify(run.earned),earnings);
+ assert.equal(p.equipment.weapon,'eq-axon-bow');assert.ok(!p.gearBag.includes('eq-fine-vest'),'pending loot stays escrowed');
+ if(trip)assert.equal(run.trip.steps,7);
+ // Stale HUD actions cannot bypass an active or saved combat lock.
+ D.game.combat={};findButton(page,'Gear').onclick();assert.equal(D.ui.mode,'map');assert.equal(D.gear.unequip('weapon'),false);D.game.combat=null;
+ D.save.run.battle={};findButton(page,'Gear').onclick();assert.equal(D.ui.mode,'map');assert.equal(D.gear.unequip('weapon'),false);delete D.save.run.battle;
+}
+console.log('Passed: dungeon/vessel Gear access, swapping, return position, paused movement, escrow and battle locks.');
+
