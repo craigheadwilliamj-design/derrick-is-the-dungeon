@@ -22,3 +22,7 @@ Five solo kits now have free Attack/Block and three question-gated ATP abilities
 Legacy Bard saves become Ranger. Existing equipment and saved subclass/milestone selections remain owned; old subclass upgrades and heavy/enemy-quiz-specific legendary rules are suspended pending the next equipment/progression review. Poison currently ends with combat. Wrong ability answers use the turn and preserve ATP. These are initial balance settings and need playtesting.
 
 Checks: run `node tests/content-unlocks.cjs` and `node tests/combat-rework.cjs`.
+
+## Equipment rework
+
+The [approved equipment catalogue](docs/equipment.md) lists all 74 active pieces, hand rules, starter kits, five Wizard staff repertoires, specialty shops and the Fibroblast enchanter. Old equipment is preserved in a legacy vault. ATP is spent on incorrect answers too. Run `node tests/equipment.cjs` alongside the existing combat and content checks.

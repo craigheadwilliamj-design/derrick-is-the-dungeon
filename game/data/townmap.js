@@ -68,3 +68,8 @@ DD.data.townmap = {
     r: { name: 'Respiration counter', blurb: 'Cellular respiration: glycolysis in the cytoplasm, then the Krebs cycle and electron transport in the mitochondria.' }
   }
 };
+
+// Fibroblast's Golgi Workshop, in the cortex near the capsule.
+DD.data.townmap.rows[11]=DD.data.townmap.rows[11].replace('cccccpp','cccFcpp');
+DD.data.townmap.legend.F={tile:'F',bump:'enchant'};
+DD.data.townmap.features.F={ch:'✧',col:'#c09aff',glow:true};

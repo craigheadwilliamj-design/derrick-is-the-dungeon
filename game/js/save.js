@@ -6,7 +6,7 @@ DD.save = (function () {
   let timer = null;
 
   function defaultProfile() {
-    return { v: 7, hp: null, resourcesV: 1, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: null, loc: 'marrow',
+    return { v: 8, hp: null, resourcesV: 1, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: null, loc: 'marrow',
       inventory: {}, equipment: {}, gearBag: [], qstats: {}, regions: {}, routes: {},
       milestones: [], bounties: { active: [], seq: 0, done: 0 }, beaten: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' }, flagged: {} };
   }
@@ -15,7 +15,7 @@ DD.save = (function () {
     const o = Object.assign(defaultProfile(), p); // bump v and migrate here when the shape changes
     if (!Array.isArray(o.beaten)) o.beaten = []; // v2 (2a): enemy ids beaten, for B Cell Memory
     if (!DD.data.classes[o.classId]) o.classId = 'macrophage';
-    o.v = 7;
+    o.v = 8;
     if (o.classId === 'basophil') o.classId = 'eosinophil';
     if (!p.resourcesV) { o.hp = null; o.atp = null; }
     o.resourcesV = 1;
@@ -28,6 +28,7 @@ DD.save = (function () {
     o.bounties.seq = o.bounties.seq | 0; o.bounties.done = o.bounties.done | 0;
     if (!Array.isArray(o.gearBag)) o.gearBag = [];
     // v6 (4b): gearBag is a list of gear ids (3b stored legendary stubs with the same ids); equipment is {weapon, armor, acc1, acc2} of gear ids.
+    if (DD.gear) DD.gear.prepare(o);
     const known = id => !!(DD.data.gearById && DD.data.gearById[id]);
     o.gearBag = o.gearBag.map(g => (g && typeof g === 'object' ? g.id : g)).filter(known);
     if (!o.equipment || typeof o.equipment !== 'object' || Array.isArray(o.equipment)) o.equipment = {};
@@ -71,6 +72,7 @@ DD.save = (function () {
   Object.assign(out, {
     loadLocal() {
       out.profile = migrate(lsGet(LS_P)) || defaultProfile();
+      DD.gear.prepare(out.profile);
       out.run = lsGet(LS_R);
       if (out.run && out.run.none) out.run = null;
     },
@@ -102,8 +104,8 @@ DD.save = (function () {
       else { lsDel(LS_R); out.run = null; queue('run', { none: true, updatedAt: Date.now() }); }
     },
     flush() { clearTimeout(timer); pushDoc('profile'); pushDoc('run'); },
-    replaceProfile(p) { out.profile = migrate(p) || defaultProfile(); lsSet(LS_P, out.profile); },
-    reset() { out.profile = defaultProfile(); out.save(); out.saveRun(null); out.flush(); },
+    replaceProfile(p) { out.profile = migrate(p) || defaultProfile(); DD.gear.prepare(out.profile); lsSet(LS_P, out.profile); },
+    reset() { out.profile = defaultProfile(); DD.gear.prepare(out.profile); out.save(); out.saveRun(null); out.flush(); },
     status() {
       return out.mode === 'cloud' ? 'Saved to your claude.ai account' : out.mode === 'local-error' ? 'Saving on this device only (cloud save failed)' : 'Saving on this device only';
     }

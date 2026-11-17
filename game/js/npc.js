@@ -115,12 +115,12 @@ DD.npc = (function () {
   // ---------- boss legendaries ----------
   // The first kill of a region's boss drops its legendary gear item into profile.gearBag. Returns the item if it was new.
   N.legendary = function (defId) {
-    const d = DD.data.enemy(defId), L = d && d.legendary; if (!L) return null;
-    const it = DD.data.gearById[L.id];
-    if (!it || DD.gear.owned(L.id)) return null;
-    if (DD.game.earnings().gear.includes(L.id)) return null;
-    DD.game.reward('gear', L.id);
-    return it;
+    const region=DD.game.run.regionId;
+    const pool=DD.data.activeGear.filter(it=>it.source==='boss'&&it.region===region);
+    const fallback=DD.data.activeGear.filter(it=>it.source==='deep'&&(!it.region||it.region===region));
+    const it=(pool.length?pool:fallback).find(it=>!DD.gear.owned(it.id)&&!DD.game.earnings().gear.includes(it.id));
+    if(!it)return null;
+    DD.game.reward('gear',it.id);return it;
   };
   N.markCleared = function (regionId) {
     const p = prof(), r = p.regions[regionId] || (p.regions[regionId] = { lastReviewed: 0, cleared: false, recent: [] });

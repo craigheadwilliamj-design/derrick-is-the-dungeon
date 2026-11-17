@@ -8,7 +8,7 @@ DD.game = (function () {
   G.stats = () => DD.stats.compute(prof());
 
   G.resources = function () {
-    const p = prof(), st = G.stats();
+    const p = prof(); DD.gear.prepare(p); const st = G.stats();
     p.hp = Number.isFinite(p.hp) ? Math.max(1, Math.min(p.hp, st.maxHP)) : st.maxHP;
     p.atp = Number.isFinite(p.atp) ? Math.max(0, Math.min(p.atp, st.maxATP)) : st.maxATP;
     return p;
@@ -27,10 +27,15 @@ DD.game = (function () {
     if (e && e.items[id] > 0) { if (--e.items[id] === 0) delete e.items[id]; }
     else if (--prof().inventory[id] <= 0) delete prof().inventory[id];
   };
-  G.settle = function (keep) {
+  G.settle = function (keep, reason = 'flee') {
     const r = G.run; if (!r) return;
     G.syncResources(r);
     const e = r.earned;
+    if(!keep&&e){
+      const perks=DD.gear.perks(prof());
+      if(reason==='death')G.gainXp(Math.floor(e.xp*(perks.deathXP||0)),true);
+      else prof().glucose+=Math.floor(e.glucose*(perks.fleeGlucose||0));
+    }
     if (keep && e) {
       prof().glucose += e.glucose;
       prof().gearBag.push(...e.gear);
@@ -136,7 +141,7 @@ DD.game = (function () {
 
   // Death: half the carried glucose is lost (rounded down), the run and its dungeon are gone, everything else stays.
   G.die = function (C) {
-    const run = G.run; G.settle(false);
+    const run = G.run; G.settle(false,'death');
     const lost = Math.floor(prof().glucose * S.economy.deathLossPct);
     prof().glucose -= lost;
     const info = { by: C.enemy.name, region: DD.data.region(run.regionId), missIds: run.miss.slice(), lost, kept: prof().glucose, killed: run.killed, trip: !!run.trip };
