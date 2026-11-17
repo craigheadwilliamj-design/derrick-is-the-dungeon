@@ -7,34 +7,63 @@ ctx.window=ctx;
 for(const [,src] of fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<script src="([^"]+)"/g))if(src!=='js/main.js')new vm.Script(fs.readFileSync(path.join(root,src),'utf8'),{filename:src}).runInContext(ctx);
 const D=ctx.DD; D.save.loadLocal(); D.render.draw=()=>{};
 let page;D.ui.mount=n=>{page=n;}; D.ui.game=()=>{D.ui.mode='map';};D.ui.refreshMap=()=>{};D.ui.banner=()=>{};D.ui.menu=id=>{D.ui.mode='menu';};D.ui.stopMap=()=>{};
-function finish(){const r=D.game.run,f=r.floor;f.enemies=[];f.traps=[];const y=f.g.findIndex(row=>row[f.L]==='>');r.px=f.L-1;r.py=y;D.travel.move(1,0);assert.equal(D.ui.mode,'junction');}
-function choose(id){D.explore.choose(id);assert.equal(D.explore.current(),id);}
-function resume(){const s=JSON.parse(JSON.stringify(D.save.run));D.game.run=null;assert.equal(D.travel.resume(s),true);}
-D.save.profile.loc='cervical';D.explore.start();assert.equal(D.ui.mode,'junction');assert.equal(D.game.run,null);
-D.explore.depart('thoracicDuct');assert.equal(D.game.run.trip.mode,'explore');
-const first=D.game.run;D.explore.choose('brain');assert.equal(D.game.run,first,'cannot change path mid-vessel');
-// Choose a reproducible generated segment containing loot; empty segments are valid gameplay.
-for(let seed=1; !first.floor.pickups.length && seed<1000; seed++){
-  first.seed=seed;first.floor=D.travel.generate(D.world.get('thoracicDuct'),seed,0,false);
+
+function pathTo(f,start,target){
+ const q=[start],seen=new Map([[start.join(','),null]]);
+ for(let i=0;i<q.length;i++){
+  const [x,y]=q[i];if(x===target.x&&y===target.y){const p=[];let key=x+','+y;while(seen.get(key)){const v=seen.get(key);p.unshift(v.d);key=v.key;}return p;}
+  for(const [dx,dy]of [[1,0],[0,1],[0,-1],[-1,0]]){
+   const nx=x+dx,ny=y+dy,key=nx+','+ny;
+   if(nx<0||ny<0||nx>=f.W||ny>=f.H||'#%=|'.includes(f.g[ny][nx])||seen.has(key))continue;
+   if(f.g[y][x]==='»'&&dx<=0)continue;
+   if((f.portals||[]).some(p=>p.x===nx&&p.y===ny)&&!(nx===target.x&&ny===target.y))continue;
+   if(f.visit&&nx===f.visit.x&&ny===f.visit.y&&!(nx===target.x&&ny===target.y))continue;
+   seen.set(key,{key:x+','+y,d:[dx,dy]});q.push([nx,ny]);
+  }
+ }
+ return null;
 }
-assert.ok(first.floor.pickups.length,'generated fixture contains a pickup');
-first.px=4;first.floor.pickups[0].taken=true;D.travel.persist();resume();assert.equal(D.game.run.px,4);assert.equal(D.game.run.floor.pickups[0].taken,true);
-finish();resume();assert.equal(D.game.run.trip.junction,true);assert.equal(D.explore.current(),'thoracicDuct');
-D.explore.choose('brain');assert.equal(D.explore.current(),'thoracicDuct','unconnected destination rejected');
-for(const id of ['lAngle','lBrach','svc','ra','tricuspid','rv','pulmValve','pulmTrunk','pulmArt','pulmCap']){choose(id);finish();}
-choose('lungs');assert.equal(D.game.run.trip.junction,true);
-resume();assert.equal(D.explore.current(),'lungs');assert.equal(D.game.run.trip.junction,true);
-choose('pulmVeins');finish();
-for(const id of ['la','mitral','lv','aorticValve','ascAorta']){choose(id);finish();}
-assert.deepEqual(Array.from(D.explore.exits('ascAorta'),n=>n.id),['coronaryA','arch']);
-choose('arch');finish();choose('thoracicAorta');finish();choose('abdAorta');finish();
-assert.ok(D.explore.exits('abdAorta').length>=4,'abdominal branches offered');
-choose('renalA');finish();choose('kidneys');
-D.game.reward('glucose',17);const before=D.save.profile.glucose;D.explore.stop();
-assert.equal(D.game.run,null);assert.equal(D.save.profile.loc,'kidneys');assert.equal(D.save.profile.glucose,before+17);assert.equal(D.save.run,null);
-D.explore.start();D.explore.depart('lvKidney');finish();choose('lumbar');D.explore.stop();assert.equal(D.save.profile.loc,'lumbar','lymphatic stop reaches town');
-D.explore.start();D.explore.depart('cisterna');D.travel.abort();assert.equal(D.save.profile.loc,'lumbar');
-for(const id of Object.keys(D.data.circ.nodes))assert.ok(D.explore.positions[id],'atlas maps '+id);
-D.save.profile.loc='lumbar';const atlas=D.ui.circulationMap();assert.ok(atlas.children.length);
-for(const dest of ['heart','brain','marrow','cervical'])assert.ok(D.world.plan('lumbar',dest),'planned routes preserved');
-console.log('Passed: lymph-node departure, full cardiac/pulmonary loop, branch choices, optional organ bypass, dungeon/town stops, rewards, abort, exact resume and atlas coverage.');
+function walkExit(id){
+ const run=D.game.run,f=run.floor,target=f.portals.find(p=>p.to===id);assert.ok(target,'physical exit to '+id);
+ const steps=pathTo(f,[run.px,run.py],target);assert.ok(steps,'reachable '+id);
+ f.enemies=[];f.traps=[];
+ for(const d of steps)D.travel.move(...d);
+ assert.equal(D.explore.current(),id);assert.equal(D.ui.mode,'map','no junction menu');assert.equal(D.game.run.trip.junction,false);
+}
+D.dungeon.enemiesAct=()=>null;D.derrick.pushEvery=()=>Infinity;
+D.save.profile.loc='cervical';D.explore.start();
+assert.equal(D.ui.mode,'map');assert.ok(D.game.run.floor.visit,'town starts as walkable plaza');
+for(const id of ['thoracicDuct','lAngle','lBrach','svc','ra','tricuspid','rv','pulmValve','pulmTrunk','pulmArt','pulmCap','lungs','pulmVeins','la','mitral','lv','aorticValve','ascAorta'])walkExit(id);
+assert.equal(D.game.run.floor.portals.length,6,'two physical artery branches, three tiles each');
+walkExit('arch');walkExit('thoracicAorta');walkExit('abdAorta');
+assert.ok(D.game.run.floor.portals.length>=12);
+walkExit('renalA');walkExit('kidneys');
+const old=D.game.run;old.px=2;D.travel.persist();const saved=JSON.parse(JSON.stringify(D.save.run));
+D.game.run=null;D.travel.resume(saved);assert.equal(D.game.run.px,2);assert.ok(D.game.run.floor.visit);assert.ok(D.game.run.floor.portals.length);
+walkExit('lvKidney');walkExit('lumbar');
+const run=D.game.run;const steps=pathTo(run.floor,[run.px,run.py],run.floor.visit);
+D.ui.town=({id})=>{D.ui.mode='town';assert.equal(id,'lumbar');};
+D.game.reward('glucose',17);const before=D.save.profile.glucose;
+for(const d of steps)D.travel.move(...d);
+assert.equal(D.ui.mode,'town');assert.equal(D.game.run,null);assert.equal(D.save.profile.glucose,before+17);
+D.ui.town=()=>{};
+for(const id of Object.keys(D.data.circ.nodes)){
+ const n=D.world.get(id),r={seed:1234,trip:{mode:'explore',amb:[],areas:{}}};
+ const floor=D.walkWorld.floor(n,r,0);
+ for(const exit of floor.portals)assert.ok(pathTo(floor,[floor.start.x,floor.start.y],exit),'reachable branch '+id+' > '+exit.to);
+ assert.ok(D.explore.positions[id]);
+}
+D.save.profile.loc='cervical';D.explore.start();
+D.game.run.floor.pickups.push({x:3,y:5,kind:'glucose',taken:true});
+D.walkWorld.capture(D.game.run);
+const cache=D.walkWorld.floor(D.world.get('cervical'),D.game.run,0);assert.equal(cache.pickups.at(-1).taken,true,'revisits retain pickup state');
+D.travel.abort();assert.equal(D.save.profile.loc,'cervical');
+D.save.profile.loc='spleen';D.explore.start();
+let loading=false,entered=false;
+D.ui.diapedesis=(_n,_o,done)=>{loading=true;D.ui.mode='dia';done();};
+D.ui.enter=(id)=>{assert.equal(id,'spleen');entered=true;};
+const entrance=D.game.run.floor.visit;
+const doorwayPath=pathTo(D.game.run.floor,[D.game.run.px,D.game.run.py],entrance);
+for(const d of doorwayPath)D.travel.move(...d);
+assert.ok(loading&&entered,'walking into organ doorway loads its separate dungeon through the entry screen');
+console.log('Passed: walking through all cardiac/pulmonary branches, organ bypass and town entrance, exact reload, area cache, and every graph exit physically reachable.');

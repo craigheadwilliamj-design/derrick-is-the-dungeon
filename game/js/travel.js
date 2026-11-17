@@ -194,11 +194,11 @@ DD.travel = (function () {
   function enter(idx, resumed) {
     const g = G(), run = g.run, t = run.trip, segs = X.segs(run), n = segs[idx];
     t.idx = idx; t.steps = 0;
-    if (n.kind === 'place') return null; // handled by advance()
+    if (n.kind === 'place' && t.mode !== 'explore') return null; // handled by advance()
     const blood = !(n.kind === 'lymph' || n.sub === 'nodeRoom');
     run.systems = blood ? T.systems.blood : T.systems.lymph;
-    run.accent = accentFor(n);
-    run.floor = X.generate(n, run.seed, idx, t.amb.includes(idx));
+    run.accent = n.kind === 'place' ? (DD.data.region(n.id)?.accent || T.accent.lymph) : accentFor(n);
+    run.floor = t.mode === 'explore' ? DD.walkWorld.floor(n, run, idx) : X.generate(n, run.seed, idx, t.amb.includes(idx));
     run.px = run.floor.start.x; run.py = run.floor.start.y;
     DD.dungeon.computeFov(run.floor, run.px, run.py);
     X.persist();
@@ -211,9 +211,10 @@ DD.travel = (function () {
   X.persist = function () {
     const run = G().run; if (!run || !run.trip) return;
     const t = run.trip;
+    if (t.mode === 'explore') DD.walkWorld.capture(run);
     G().syncResources(run); DD.save.save();
     DD.save.saveRun({ v: 1, kind: 'trip', seed: run.seed, hp: run.hp, atp: run.atp, earned: run.earned, battle: G().combat ? DD.combat.snapshot(G().combat) : null, glucose: run.glucose, killed: run.killed, miss: run.miss, genLevel: run.genLevel,
-      trip: { key: t.key, from: t.from, to: t.to, ids: t.ids, mode: t.mode, idx: t.idx, amb: t.amb, junction: !!t.junction },
+      trip: { key: t.key, from: t.from, to: t.to, ids: t.ids, mode: t.mode, idx: t.idx, amb: t.amb, areas: t.areas, junction: !!t.junction },
       segment: run.floor ? { px: run.px, py: run.py, grid: run.floor.g.map(row => row.join('')),
         explored: Array.from(run.floor.explored), taken: run.floor.pickups.map(p => p.taken),
         traps: run.floor.traps.map(t => t.state), enemies: run.floor.enemies.map(e => [e.x, e.y, e.alive]) } : null });
@@ -222,7 +223,7 @@ DD.travel = (function () {
     const g = G(), st = g.stats();
     const run = { v: 1, kind: 'trip', regionId: 'bloodstream', systems: null, seed: s.seed, hp: Math.min(s.hp, st.maxHP), atp: Math.min(s.atp, st.maxATP), glucose: s.glucose || 0,
       earned: s.earned, killed: s.killed || 0, miss: s.miss || [], genLevel: s.genLevel || prof().level, px: 0, py: 0, floor: null, accent: null,
-      trip: { key: s.trip.key, from: s.trip.from, to: s.trip.to, ids: s.trip.ids, mode: s.trip.mode, junction: !!s.trip.junction, idx: 0, steps: 0, amb: s.trip.amb || [], done: 0 } };
+      trip: { key: s.trip.key, from: s.trip.from, to: s.trip.to, ids: s.trip.ids, mode: s.trip.mode, junction: s.trip.mode === 'explore' ? false : !!s.trip.junction, areas: s.trip.areas || {}, idx: 0, steps: 0, amb: s.trip.amb || [], done: 0 } };
     g.run = run; g.combat = null; g.msgs = [];
     if (!s.trip.ids.every(id => DD.world.get(id))) { g.run = null; DD.save.saveRun(null); return false; }
     enter(Math.min(s.trip.idx, X.segs(run).length - 1));
@@ -256,7 +257,7 @@ DD.travel = (function () {
     if (land(f, run, nx, ny)) return;
     const flow = X.segs(run)[t.idx].flow, boots = DD.fx.gearSum(prof(), 'travelSpeed'); // Selectin Boots: arteries push more often, veins get a nudge
     const every = flow === 'artery' ? Math.max(1, DD.derrick.pushEvery(T.pushEvery) - boots) : flow === 'vein' && boots ? DD.S.gear.veinPushEvery : 0;
-    if (every && t.steps % every === 0) {
+    if (every && t.steps % every === 0 && !(t.mode === 'explore' && run.px >= f.branchStart)) {
       const px = run.px + 1;
       if (walkable(f, px, run.py) && !DD.dungeon.enemyAt(f, px, run.py)) {
         if (f.g[run.py][run.px] === '»') f.g[run.py][run.px] = '|';
@@ -273,6 +274,7 @@ DD.travel = (function () {
   // Returns true when the tile ended the segment or opened a screen.
   function land(f, run, x, y) {
     const g = G();
+    if (run.trip.mode === 'explore' && DD.walkWorld.land(run, x, y)) return true;
     const p = f.pickups.find(q => !q.taken && q.x === x && q.y === y);
     if (p) {
       p.taken = true;
@@ -287,7 +289,7 @@ DD.travel = (function () {
     }
     const trap = f.traps.find(q => q.state === 0 && q.x === x && q.y === y);
     if (trap) { DD.ui.refreshMap(); g.springTrap(trap); return true; }
-    if (x >= f.W - 2 && f.g[y][x] === '>') { advance(); return true; }
+    if (run.trip.mode !== 'explore' && x >= f.W - 2 && f.g[y][x] === '>') { advance(); return true; }
     return false;
   }
   X.afterKill = function () { // the ambush is over: it will not come back on a resume
@@ -316,12 +318,9 @@ DD.travel = (function () {
   }
   X.exploreNext = function (id) {
     const run = G().run, t = run.trip;
+    DD.walkWorld.capture(run);
     t.junction = false; t.ids.push(id); t.to = id;
     const idx = t.idx + 1, n = DD.world.get(id);
-    if (n.kind === 'place') {
-      t.idx = idx; taxNode(id); t.junction = true; X.persist();
-      return DD.ui.junction(id);
-    }
     // Plan each newly chosen segment once; combat and hazards use the normal travel systems.
     if (planAmbushes([n], Math.random).length) t.amb.push(idx);
     enter(idx); taxNode(id); DD.ui.game(); banner();

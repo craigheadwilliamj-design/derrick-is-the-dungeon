@@ -116,7 +116,7 @@ DD.ui = (function () {
     if (active && active.trip && active.trip.mode === 'explore' && active.trip.junction) return ui.junction(DD.explore.current());
     ui.mode = 'map';
     if (g.ro) g.ro.disconnect();
-    g = {};
+    stopTimer(); g = {};
     g.floor = el('div', { class: 'floorname' });
     g.hp = el('div', { class: 'stat' }); g.atp = el('div', { class: 'stat' }); g.xp = el('div', { class: 'stat' }); g.glu = el('div', { class: 'stat' });
     const trip = !!(DD.game.run && DD.game.run.trip);
@@ -147,13 +147,13 @@ DD.ui = (function () {
     const key = (label, dx, dy, cls) => {
       let timer = null; const stop = () => { clearInterval(timer); timer = null; };
       return el('button', { class: 'key ' + cls, 'aria-label': 'Move ' + label, onclick: e => { if (e.detail === 0) DD.game.move(dx, dy); },
-        onpointerdown: () => { DD.game.move(dx, dy); if (trip) { stop(); timer = setInterval(() => DD.game.move(dx, dy), 120); } },
+        onpointerdown: () => { DD.game.move(dx, dy); if (trip) { stop(); timer = g.moveTimer = setInterval(() => DD.game.move(dx, dy), 120); } },
         onpointerup: stop, onpointerleave: stop, onpointercancel: stop }, label);
     };
     const dpad = el('div', { class: 'dpad' }, key('↑', 0, -1, 'u'), key('←', -1, 0, 'l'), key('↓', 0, 1, 'd'), key('→', 1, 0, 'r'));
     const L = (cls, ch, label) => el('span', null, el('b', { class: cls }, ch), label);
     const legend = el('div', { class: 'legend' }, trip
-      ? [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gg', '$', 'glucose'), L('gg', '!', 'item'), L('gc', '%', 'clot'), L('gd', '=', 'plaque'), L('gv', '»', 'one-way valve'), L('gt', '^', 'trap'), L('gs', '>', 'onward')]
+      ? [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gg', '$', 'glucose'), L('gg', '!', 'item'), L('gc', '%', 'clot'), L('gd', '=', 'plaque'), L('gv', '»', 'one-way valve'), L('gt', '^', 'trap'), L('gs', '>', 'walk into branch'), L('gs', 'O', 'enter organ/town')]
       : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gg', '&', 'chest'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
       el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.gear, g.leave, g.abort),
@@ -212,7 +212,7 @@ DD.ui = (function () {
   };
 
   // ---------- group combat ----------
-  const stopTimer = () => {};
+  const stopTimer = () => { if (g.moveTimer) { clearInterval(g.moveTimer); g.moveTimer = null; } };
   let itemOpen = false;
   ui.openCombat = function () { ui.mode = 'combat'; g.combat.hidden = false; ui.renderCombat(); };
   ui.closeCombat = function () { itemOpen = false; ui.mode = 'map'; g.combat.hidden = true; g.combat.replaceChildren(); ui.refreshMap(); };
