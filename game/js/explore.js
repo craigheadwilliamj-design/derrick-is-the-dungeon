@@ -34,87 +34,81 @@
     }
   };
 
-  // Coordinates in the existing body silhouette's 40 by 44 grid. Vessel routes remain schematic.
-  const pos = Object.fromEntries(Object.entries(C.map).map(([id, p]) => [id, p.slice(0, 2)]));
-  const line = (ids, a, b) => ids.split(' ').forEach((id, i, list) => {
-    const t = list.length === 1 ? 0.5 : i / (list.length - 1);
-    pos[id] = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-  });
-  line('ra tricuspid rv pulmValve pulmTrunk pulmArt pulmCap', [17,16], [12,13]);
-  line('pulmVeins la mitral lv aorticValve ascAorta', [13,17], [23,13]);
-  line('coronaryA cardiacV coronarySinus', [25,14], [20,17]);
-  line('arch lCarotid intCarotid', [21,11], [22,4]);
-  line('cerebralV dural ijv lAngle lBrach svc', [17,4], [17,15]);
-  line('rAngle rBrach', [26,10], [24,12]);
-  line('lSubclavian axillaryA brachialA', [26,11], [34,18]);
-  line('armVeins axillaryV subclavianV', [33,23], [27,12]);
-  line('intThoracicA thymicV', [24,12], [18,13]);
-  line('thoracicAorta abdAorta', [22,18], [22,24]);
-  line('celiac splenicA splenicV', [24,18], [29,21]);
-  line('sma smv portalV liver hepaticV', [21,21], [14,22]);
-  line('renalA renalV', [25,22], [19,23]);
-  line('gonadalA gonadalV', [22,26], [17,27]);
-  line('commonIliacA intIliacA intIliacV commonIliacV', [24,26], [21,30]);
-  line('extIliacA femoralA deepFemA', [27,30], [28,37]);
-  line('femoralV extIliacV', [21,37], [20,31]);
-  pos.ivc = [16,25];
-  line('thoracicDuct cisterna', [15,12], [15,26]); pos.rDuct = [27,13];
-  Object.entries(C.lymphOf).forEach(([id, info]) => {
-    const a = pos[id], b = pos[info.town];
-    pos[info.vessel] = [(a[0]+b[0])/2-1, (a[1]+b[1])/2];
-  });
-  DD.explore.positions = pos;
-
-  ui.circulationMap = function () {
-    const here = current(), ns = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 520 660');
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', 'Circulation map. You are at ' + W.get(here).name + '. Red and blue blood vessels, green lymphatics. Arrows show flow.');
-    svg.style.cssText = 'display:block;width:100%;height:min(320px,45dvh);background:var(--map-bg);border-radius:6px';
-    const add = (tag, attrs, label) => {
-      const n = document.createElementNS(ns, tag);
-      Object.entries(attrs).forEach(([k,v]) => n.setAttribute(k,v));
-      if (label) n.textContent = label;
-      svg.append(n); return n;
-    };
-    const xy = id => { const p = pos[id]; return p && [p[0]*12+20,p[1]*14+15]; };
-    const color = n => n.kind === 'lymph' || n.lymph ? '#7fd6a2' : n.flow === 'vein' || ['ra','rv','tricuspid','pulmValve','pulmTrunk','pulmArt','pulmCap'].includes(n.id) ? '#76b4ed' : '#ed7e88';
-    const next = new Set(DD.explore.exits(here).map(n => n.id));
-    const r = DD.game.run, visited = new Set(r && r.trip ? r.trip.ids : []);
-    Object.entries(C.out).forEach(([id, edges]) => edges.forEach(e => {
-      const a = xy(id), b = xy(e.to); if (!a || !b) return;
-      const active = id === here;
-      add('line', { x1:a[0], y1:a[1], x2:b[0], y2:b[1], stroke:active?'#ffe39a':color(C.nodes[id]), 'stroke-width':active?3:1.5, opacity:active?1:0.4 });
-      const t=.64, x=a[0]+(b[0]-a[0])*t, y=a[1]+(b[1]-a[1])*t, ang=Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI;
-      add('path', { d:'M -4 -3 L 2 0 L -4 3', fill:'none', stroke:active?'#ffe39a':color(C.nodes[id]), 'stroke-width':1.5, transform:'translate('+x+' '+y+') rotate('+ang+')', opacity:active?1:.65 });
-    }));
-    Object.values(C.nodes).forEach(n => {
-      const p = xy(n.id); if (!p) return;
-      const place = n.kind === 'place', active = n.id === here;
-      const dot = add('circle', { cx:p[0], cy:p[1], r:active?8:place?5:3, fill:active?'#fff':next.has(n.id)?'#ffe39a':color(n), stroke:visited.has(n.id)?'#fff':'none', 'stroke-width':1 });
-      const title = document.createElementNS(ns, 'title'); title.textContent = n.name; dot.append(title);
-      if (place) {
-        const side = (C.map[n.id] || [0,0,'r'])[2], right = side === 'r';
-        add('text', { x:p[0]+(right?9:-9), y:p[1]-7, fill:active?'#fff':'#e7d9cb', 'text-anchor':right?'start':'end', 'font-size':11, 'font-family':'system-ui', stroke:'var(--map-bg)', 'stroke-width':3, 'paint-order':'stroke' }, n.short || n.name);
-      }
+  // Anatomical overview: regional vessel paths, organ silhouettes and separated callouts.
+  const pos={}, routes=[], routeOf={};
+  function route(ids,points,color){
+    const r={points,color};routes.push(r);
+    const names=ids.split(' ');
+    names.forEach((id,i)=>{const q=(names.length===1?.5:i/(names.length-1))*(points.length-1),j=Math.min(points.length-2,Math.floor(q)),t=q-j;
+      pos[id]=[points[j][0]+(points[j+1][0]-points[j][0])*t,points[j][1]+(points[j+1][1]-points[j][1])*t];routeOf[id]=r;});
+  }
+  const red='#cf7178',blue='#6b9fd0',green='#71bda0';
+  route('ra tricuspid rv pulmValve pulmTrunk pulmArt pulmCap pulmVeins la mitral lv aorticValve ascAorta coronaryA cardiacV coronarySinus',[[258,213],[235,180],[278,176],[282,207],[258,213]],red);
+  route('arch lCarotid intCarotid',[[276,207],[284,149],[272,65]],red);
+  route('cerebralV dural ijv lAngle lBrach svc',[[247,65],[240,151],[247,207]],blue);
+  route('lSubclavian axillaryA brachialA',[[281,149],[319,154],[338,207],[360,307]],red);
+  route('armVeins axillaryV subclavianV',[[350,309],[326,213],[309,165],[244,148]],blue);
+  route('intThoracicA thymicV',[[278,150],[260,164],[246,193]],red);
+  route('thoracicAorta abdAorta commonIliacA',[[280,218],[278,277],[278,338],[287,378]],red);
+  route('ivc commonIliacV intIliacV',[[246,218],[244,286],[245,345],[269,372]],blue);
+  route('celiac splenicA splenicV',[[278,257],[303,257],[302,272],[246,273]],red);
+  route('sma smv portalV liver hepaticV',[[278,291],[260,316],[236,307],[225,257],[244,268]],blue);
+  route('renalA renalV',[[278,282],[298,284],[286,296],[244,287]],red);
+  route('gonadalA gonadalV',[[278,323],[263,372],[245,333]],red);
+  route('intIliacA',[[285,356],[300,364]],red);
+  route('extIliacA femoralA deepFemA',[[287,378],[295,440],[294,527],[288,646]],red);
+  route('femoralV extIliacV',[[276,646],[281,524],[280,442],[270,379]],blue);
+  route('rAngle rBrach rDuct',[[240,132],[231,151],[249,188]],green);
+  route('thoracicDuct cisterna',[[240,133],[234,228],[246,334]],green);
+  const organs={brain:[260,62],thymus:[260,163],heart:[270,207],lungs:[228,196],skin:[158,291],spleen:[303,262],kidneys:[298,285],gut:[260,312],gonads:[260,376],marrow:[300,363],quads:[295,462],femur:[291,540],cervical:[250,121],axillary:[324,174],mediastinal:[251,233],mesenteric:[232,337],lumbar:[286,333],inguinal:[290,395]};
+  Object.assign(pos,organs);
+  Object.entries(C.lymphOf).forEach(([id,info])=>{const a=pos[id],b=pos[info.town];route(info.vessel,[a,b],green);});
+  DD.explore.positions=pos;
+  ui.circulationMap=function(full=false){
+    const here=current(),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+    svg.setAttribute('viewBox','0 0 520 740');svg.setAttribute('role','img');
+    svg.setAttribute('aria-label','Front view of the body. Current location: '+W.get(here).name);
+    svg.style.cssText='display:block;width:100%;height:'+(full?'76dvh':'min(480px,55dvh)')+';background:var(--map-bg);border-radius:6px';
+    function add(tag,attrs,text){const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));if(text)n.textContent=text;svg.append(n);return n;}
+    const body='M260 22 C222 22 219 60 228 84 L239 103 L239 121 C218 131 195 127 182 148 C170 174 164 203 157 239 L135 316 L117 351 L111 376 Q112 389 121 378 L135 356 L143 365 Q151 368 150 357 L152 337 L178 274 L196 213 L202 290 L196 336 Q196 359 208 384 L207 463 L197 563 L194 663 L184 693 Q184 705 214 704 L226 689 L230 579 L246 478 L260 408 L274 478 L290 579 L294 689 L306 704 Q336 705 336 693 L326 663 L323 563 L313 463 L312 384 Q324 359 324 336 L318 290 L324 213 L342 274 L368 337 L370 357 Q369 368 377 365 L385 356 L399 378 Q408 389 409 376 L403 351 L385 316 L363 239 C356 203 350 174 338 148 C325 127 302 131 281 121 L281 103 L292 84 C301 60 298 22 260 22 Z';
+    add('path',{d:body,fill:'#332a30',stroke:'#ab938a','stroke-width':2});
+    add('path',{d:'M239 124 L281 124 M203 244 Q260 261 317 244 M206 349 Q260 372 314 349',fill:'none',stroke:'#66565c'});
+    routes.forEach(r=>add('polyline',{points:r.points.map(p=>p.join(',')).join(' '),fill:'none',stroke:r.color,'stroke-width':r===routeOf[here]?5:2,opacity:r===routeOf[here]?1:.36,'stroke-linecap':'round','stroke-linejoin':'round'}));
+    const shape=(d,fill)=>add('path',{d,fill,stroke:'#c5aaa0','stroke-width':1});
+    shape('M259 43 C236 34 231 51 238 60 C225 72 242 86 258 79 C276 89 292 72 282 61 C288 44 271 36 259 43 Z','#ae839c');
+    add('path',{d:'M259 44 L259 77 M242 51 L252 55 M269 52 L280 56 M240 66 L252 69 M268 66 L280 70',stroke:'#73586e',fill:'none'});
+    shape('M251 160 Q233 156 220 174 Q205 194 214 224 Q235 238 250 217 Z','#a57585');
+    shape('M269 160 Q290 156 304 175 Q318 199 305 225 Q283 236 271 216 Z','#a57585');
+    shape('M261 191 C246 178 243 202 252 214 L273 233 L286 207 C290 188 272 184 268 198 Z','#d16d70');
+    shape('M219 247 Q242 236 269 248 L261 271 Q231 277 212 263 Z','#9f7463');
+    shape('M293 247 Q312 245 312 265 Q307 276 296 270 Z','#a77fa4');
+    shape('M219 277 Q205 278 211 296 Q222 308 229 297 Q216 291 225 282 Z','#b58278');
+    shape('M299 277 Q314 278 308 296 Q297 308 290 297 Q303 291 294 282 Z','#b58278');
+    shape('M239 291 Q226 292 229 314 L234 336 Q261 348 288 334 L291 304 Q286 289 278 294 L277 325 L242 326 Z','#a78372');
+    add('path',{d:'M245 299 Q275 292 275 303 Q239 303 246 311 Q277 306 274 317 L247 318',stroke:'#d3a18b','stroke-width':4,fill:'none'});
+    add('ellipse',{cx:260,cy:367,rx:13,ry:11,fill:'#b38f78'});
+    add('path',{d:'M293 413 L296 499',stroke:'#a76c77','stroke-width':14,'stroke-linecap':'round'});
+    add('path',{d:'M291 453 L291 569',stroke:'#d8c4a5','stroke-width':6,'stroke-linecap':'round'});
+    Object.entries(organs).filter(([id])=>W.isTown(id)).forEach(([id,p])=>add('ellipse',{cx:p[0],cy:p[1],rx:5,ry:7,fill:green}));
+    add('ellipse',{cx:260,cy:162,rx:6,ry:9,fill:'#b5a0cc'});
+    const labels=[['brain',62,'r'],['cervical',116,'l'],['thymus',151,'l'],['axillary',171,'r'],['lungs',198,'l'],['heart',221,'r'],['mediastinal',239,'l'],['spleen',263,'r'],['kidneys',287,'r'],['gut',310,'l'],['mesenteric',337,'l'],['lumbar',337,'r'],['marrow',365,'r'],['gonads',381,'l'],['inguinal',408,'r'],['skin',277,'l'],['quads',470,'r'],['femur',546,'r']];
+    labels.forEach(([id,y,side])=>{const p=pos[id],right=side==='r',x=right?374:146,end=right?367:153;
+      add('path',{d:'M'+p[0]+' '+p[1]+' L'+end+' '+y,fill:'none',stroke:id===here?'#ffe39a':'#8d7d7c','stroke-width':.8,opacity:.7});
+      add('text',{x,y:y+4,fill:id===here?'#ffe39a':'#e5d6c9','text-anchor':right?'start':'end','font-size':12,'font-family':'system-ui'},C.nodes[id].short||C.nodes[id].name);
     });
-    let p = xy(here);
-    if (p && r && r.trip && !r.trip.junction && r.floor) {
-      const a = xy(r.trip.ids[r.trip.idx]);
-      const t = DD.u.clamp(r.px / (r.floor.L || r.floor.W - 2), 0, 1);
-      if (a) p = [a[0] + (p[0] - a[0]) * t, a[1] + (p[1] - a[1]) * t];
-    }
-    if (p) {
-      add('circle', { cx:p[0], cy:p[1], r:12, fill:'none', stroke:'#ffe39a', 'stroke-width':2 });
-      add('text', { x:14,y:637,fill:'#fff','font-size':14,'font-family':'system-ui' }, 'YOU ARE HERE: ' + W.get(here).name);
-    }
-    return el('div', { class:'card circulation-atlas' },
-      el('b', null, 'Circulatory atlas'),
-      el('p', { class:'dim small' }, 'Red/blue: blood vessels · Green: lymph · White ring: you · Gold: next paths. Schematic routes; arrows show flow.'),
-      svg);
+    let p=pos[here];const run=DD.game.run;
+    if(p&&run&&run.trip&&!run.trip.junction&&run.floor){const a=pos[run.trip.ids[run.trip.idx]],t=DD.u.clamp(run.px/(run.floor.L||run.floor.W-2),0,1);if(a)p=[a[0]+(p[0]-a[0])*t,a[1]+(p[1]-a[1])*t];}
+    if(p){add('circle',{cx:p[0],cy:p[1],r:10,fill:'#ffe39a',opacity:.2});add('circle',{cx:p[0],cy:p[1],r:5,fill:'#fff',stroke:'#ffe39a','stroke-width':2});}
+    return el('div',{class:'card circulation-atlas'},el('b',null,'Body atlas'),el('p',{class:'dim small'},'Front view · simplified blood and lymph routes · gold/white marker: you'),svg,el('div',{class:'small',role:'status'},'You are here: '+W.get(here).name),full?null:el('button',{class:'btn small',onclick:ui.openBodyAtlas},'Enlarge body map'));
   };
 
+  ui.openBodyAtlas=function(){
+    const previous=ui.mode;
+    const dialog=el('dialog',{style:{width:'min(680px,95vw)',maxWidth:'95vw',maxHeight:'96dvh',padding:'12px',background:'var(--panel)',color:'var(--bone)',border:'1px solid var(--line)',borderRadius:'8px'}});
+    dialog.append(el('button',{class:'btn small',onclick:()=>dialog.close()},'Close map'),ui.circulationMap(true));
+    dialog.addEventListener('close',()=>{ui.mode=previous;dialog.remove();});
+    document.body.append(dialog);ui.mode='atlas';dialog.showModal();
+  };
   ui.junction = function (id, departing) {
     ui.stopMap(); ui.mode = 'junction';
     const n = W.get(id), exits = DD.explore.exits(id);
