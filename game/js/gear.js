@@ -23,6 +23,7 @@ DD.gear = (function () {
     if(slot==='weapon'&&it.hands===2)remove('offhand');
     if(slot==='offhand'&&by(eq.weapon)&&by(eq.weapon).hands===2)remove('weapon');
     if(it.slot==='acc'&&['boots','gloves','cloak'].includes(it.category))for(const s of ['acc1','acc2'])if(s!==slot&&by(eq[s])&&by(eq[s]).category===it.category)remove(s);
+    if(it.slot==='acc')for(const s of ['acc1','acc2'])if(s!==slot&&eq[s]===id)remove(s); // never the same accessory twice
     eq[slot]=id;return {eq,removed};
   };
   function clamp(){
@@ -72,11 +73,11 @@ DD.gear = (function () {
     profile.gearV=1;
   };
   out.perks=function(profile){
-    const result={damage:{},resist:{},convert:{},immune:[]};
+    const result={damage:{},vsType:{},basicVs:{},resist:{},convert:{},immune:[]};
     for(const slot of DD.data.gearSlots){
       const it=by((profile.equipment||{})[slot]);if(!it||!it.modern)continue;
       for(const [k,v]of Object.entries(it.perks||{})){
-        if(['damage'].includes(k)){for(const [t,n]of Object.entries(v))result[k][t]=(result[k][t]||0)+n;}
+        if(['damage','vsType','basicVs'].includes(k)){for(const [t,n]of Object.entries(v))result[k][t]=(result[k][t]||0)+n;}
         else if(['resist','convert'].includes(k)){for(const [t,n]of Object.entries(v))result[k][t]=Math.max(result[k][t]||0,n);}
         else if(k==='immune')result.immune.push(...v);
         else if(k==='costMult')result[k]=(result[k]||1)*v;
@@ -123,7 +124,7 @@ DD.gear = (function () {
     return lines.concat(it.rules||[]);
   };
   out.info=(it,extra)=>el('div',{class:'shopinfo ginfo',style:{'--rc':out.color(it.rarity)}},el('b',{class:'gname'},it.name),
-    el('div',{class:'chips'},el('span',{class:'chip'},it.rarity),el('span',{class:'chip'},it.slot==='weapon'?it.wtype+' · '+(it.hands||1)+' hand'+(it.hands===2?'s':''):it.weight||it.slot),it.legacy?el('span',{class:'chip warn'},'Legacy vault'):null),
+    el('div',{class:'chips'},el('span',{class:'chip'},it.rarity),el('span',{class:'chip'},it.slot==='weapon'?it.wtype+' · '+(it.hands||1)+' hand'+(it.hands===2?'s':''):it.weight||it.category||it.slot),it.legacy?el('span',{class:'chip warn'},'Legacy vault'):null),
     extra,el('ul',{class:'fxl'},out.fxLines(it).map(t=>el('li',null,t))),el('div',{class:'small dim'},it.desc));
   out.diff=function(id,slot){
     const plan=out.plan(p(),id,slot),a=DD.stats.compute(p()),b=DD.stats.compute(Object.assign({},p(),{equipment:plan.eq}));

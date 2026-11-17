@@ -253,19 +253,26 @@ DD.ui = (function () {
         button('Flee', () => act('flee'), '', 'Leave now · lose expedition XP and loot'));
       if (C.menu === 'abilities') body.append(el('h3', null, 'ATP abilities'), el('p', { class: 'small dim' }, 'ATP is spent when the question appears. Correct activates the ability; wrong spends the turn without an effect.'),
         ...combat.skills().map(s => button(s.name + ' · ' + s.cost + ' ATP', () => act('ability', s.id), combat.skillWhy(C, s), s.tip + (s.type ? ' [' + s.type + ']' : ''))));
-      else if (C.menu === 'items') body.append(el('h3', null, 'Supplies'), ...DD.data.itemOrder.filter(id => combat.count(id)).map(id => {
-        const d = DD.data.items[id]; return button(d.name + ' ×' + combat.count(id), () => act('item', id), combat.itemWhy(C, id), d.tip);
-      }));
+      else if (C.menu === 'items') {
+        // Tabs (Heal, Cure, Throw, Buff, Utility) list only what you carry.
+        const tabs = Object.entries(DD.data.itemTabs).filter(([, ids]) => ids.some(id => combat.count(id)));
+        if (!tabs.some(([t]) => t === C.itemTab)) C.itemTab = tabs.length ? tabs[0][0] : null;
+        body.append(el('h3', null, 'Supplies'), tabs.length ? el('div', { class: 'toolrow2', role: 'tablist' }, tabs.map(([t]) =>
+          el('button', { class: 'btn small' + (t === C.itemTab ? ' on' : ''), type: 'button', role: 'tab', 'aria-selected': String(t === C.itemTab), onclick: () => { C.itemTab = t; ui.renderCombat(); } }, t))) : el('p', { class: 'small dim' }, 'You are not carrying any supplies.'),
+          ...(tabs.find(([t]) => t === C.itemTab) || [null, []])[1].filter(id => combat.count(id)).map(id => {
+            const d = DD.data.items[id]; return button(d.name + ' ×' + combat.count(id), () => act('item', id), combat.itemWhy(C, id), d.tip);
+          }));
+      }
       else body.append(el('h3', null, 'Choose your action'), el('p', null, 'Read enemy intentions, then choose a command. Attack and Block are always free.'),
         el('div', { class: 'small dim' }, 'Armor ' + Math.round(C.st.defense) + ' · ' + Math.round(C.st.defense / (100 + C.st.defense) * 100) + '% Physical protection'),
         el('div', { class: 'small dim' }, 'Pending: ' + ((C.run.earned || {}).xp || 0) + ' XP · ' + ((C.run.earned || {}).glucose || 0) + ' glucose · ' + (((C.run.earned || {}).gear || []).length) + ' gear. Clear or use Lymph Drain to keep them.'));
     } else if (C.phase === 'target') {
-      body.append(el('h3', null, C.pending.name), el('p', null, C.pending.hits ? 'Choose strike ' + (C.selection.length + 1) + ' of ' + C.pending.hits + '. You may choose the same target again.' : 'Choose an enemy on the battlefield.'), button('Back', () => act('cancel')));
+      body.append(el('h3', null, C.pending.name), el('p', null, C.pending.hits ? 'Choose strike ' + (C.selection.length + 1) + ' of ' + C.pending.hits + '. You may choose the same target again.' : (C.pending.item ? 'Choose an enemy to throw it at.' : 'Choose an enemy on the battlefield.')), button('Back', () => act('cancel')));
     } else if (C.phase === 'choose' && C.drill) {
       body.append(button('Next question', () => act('heavy')), button('Stop practice', DD.game.endDrill));
     } else if (C.phase === 'question' || C.phase === 'explain') {
       const q = C.q, ans = C.answer;
-      body.append(el('div', { class: 'qtag' }, C.drill ? 'Practice' : C.pending.name + ' · ' + C.pending.cost + ' ATP spent'),
+      body.append(el('div', { class: 'qtag' }, C.drill ? 'Practice' : C.pending.name + ' · ' + (C.paidCost != null ? C.paidCost : C.pending.cost) + ' ATP spent'),
         el('div', { class: 'qrow' }, el('p', { class: 'q' }, q.q), DD.review.flagBtn(q)));
       if (q.img) body.append(DD.img.view(q.img, !!ans));
       body.append(el('div', { class: 'opts' }, C.opts.map((o, i) => el('button', {

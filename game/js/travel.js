@@ -213,7 +213,7 @@ DD.travel = (function () {
     const t = run.trip;
     if (t.mode === 'explore') DD.walkWorld.capture(run);
     G().syncResources(run); DD.save.save();
-    DD.save.saveRun({ v: 1, kind: 'trip', seed: run.seed, hp: run.hp, atp: run.atp, earned: run.earned, battle: G().combat ? DD.combat.snapshot(G().combat) : null, glucose: run.glucose, killed: run.killed, miss: run.miss, genLevel: run.genLevel,
+    DD.save.saveRun({ v: 1, kind: 'trip', seed: run.seed, hp: run.hp, atp: run.atp, earned: run.earned, shroud: run.shroud, cheats: run.cheats, battle: G().combat ? DD.combat.snapshot(G().combat) : null, glucose: run.glucose, killed: run.killed, miss: run.miss, genLevel: run.genLevel,
       trip: { key: t.key, from: t.from, to: t.to, ids: t.ids, mode: t.mode, idx: t.idx, amb: t.amb, areas: t.areas, junction: !!t.junction },
       segment: run.floor ? { px: run.px, py: run.py, grid: run.floor.g.map(row => row.join('')),
         explored: Array.from(run.floor.explored), taken: run.floor.pickups.map(p => p.taken),
@@ -222,7 +222,7 @@ DD.travel = (function () {
   X.resume = function (s) {
     const g = G(), st = g.stats();
     const run = { v: 1, kind: 'trip', regionId: 'bloodstream', systems: null, seed: s.seed, hp: Math.min(s.hp, st.maxHP), atp: Math.min(s.atp, st.maxATP), glucose: s.glucose || 0,
-      earned: s.earned, killed: s.killed || 0, miss: s.miss || [], genLevel: s.genLevel || prof().level, px: 0, py: 0, floor: null, accent: null,
+      earned: s.earned, shroud: s.shroud, cheats: s.cheats, killed: s.killed || 0, miss: s.miss || [], genLevel: s.genLevel || prof().level, px: 0, py: 0, floor: null, accent: null,
       trip: { key: s.trip.key, from: s.trip.from, to: s.trip.to, ids: s.trip.ids, mode: s.trip.mode, junction: s.trip.mode === 'explore' ? false : !!s.trip.junction, areas: s.trip.areas || {}, idx: 0, steps: 0, amb: s.trip.amb || [], done: 0 } };
     g.run = run; g.combat = null; g.msgs = [];
     if (!s.trip.ids.every(id => DD.world.get(id))) { g.run = null; DD.save.saveRun(null); return false; }
@@ -248,10 +248,11 @@ DD.travel = (function () {
   X.move = function (dx, dy) {
     const g = G(), run = g.run, f = run.floor, t = run.trip;
     const nx = run.px + dx, ny = run.py + dy;
+    if (f.g[ny] && f.g[ny][nx] === '%' && DD.combat.count('tpa') > 0) { g.consumeItem('tpa'); f.g[ny][nx] = '.'; g.say(DD.data.items.tpa.use.msg); X.persist(); DD.ui.refreshMap(); return; } // tPA Injection: walk into a clot
     if (!walkable(f, nx, ny)) return;
     if (f.g[run.py][run.px] === '»' && dx <= 0) return; // a valve only opens downstream
     const foe = DD.dungeon.enemyAt(f, nx, ny);
-    if (foe) return g.startCombat(foe);
+    if (foe) return g.startCombat(foe, { firstStrike: true });
     if (f.g[run.py][run.px] === '»') f.g[run.py][run.px] = '|'; // it closes behind you
     run.px = nx; run.py = ny; t.steps++;
     if (land(f, run, nx, ny)) return;

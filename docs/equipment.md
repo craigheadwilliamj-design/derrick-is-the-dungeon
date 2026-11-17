@@ -1,6 +1,6 @@
 # Approved equipment catalogue
 
-Implemented November 17, 2026. 74 active items: 32 weapons, 22 body armors, 10 shields, 10 Head items. Existing accessories and all other old gear remain owned in a legacy vault and are excluded from new stock and loot. Accessory designs were approved later the same day (see Accessories below) and are not built yet.
+Implemented November 17, 2026. 99 active items: 32 weapons, 22 body armors, 10 shields, 10 Head items, 25 accessories. Existing accessories and all other old gear remain owned in a legacy vault and are excluded from new stock and loot. Accessories were approved and built later the same day (see Accessories below).
 
 ## Rules
 
@@ -37,14 +37,14 @@ Wizard gets two spells from the main-hand staff and always retains Membrane Barr
 | mold | Spore Cloud | 8 | Light Toxin group damage and 1 Poison stack each. |
 | mold | Culture Bloom | 5 | Add 3 Poison stacks to an already-Poisoned enemy. |
 
-## Accessories (approved design, not yet built)
+## Accessories
 
-Approved November 17, 2026. 25 accessories replace the legacy accessory pool for new loot and shops; the 79 legacy accessories stay owned in the vault. Accessories avoid raw stat bloat and the Head slot's large multipliers. Each category has a job: boots move and explore, gloves change your attacks, cloaks resist statuses and keep you alive, rings are small stackable effects. Boots, gloves and cloaks cannot be doubled; two different rings or charms can. No sets, no class-locked accessories. Status-duration effects never reach immunity. Numbers are initial playtest values. "New" marks effects that need engine work.
+Approved November 17, 2026. 25 accessories replace the legacy accessory pool for new loot and shops; the 79 legacy accessories stay owned in the vault. Accessories avoid raw stat bloat and the Head slot's large multipliers. Each category has a job: boots move and explore, gloves change your attacks, cloaks resist statuses and keep you alive, rings are small stackable effects. Boots, gloves and cloaks cannot be doubled; two different rings or charms can. No sets, no class-locked accessories. Status-duration effects never reach immunity. Numbers are initial playtest values. "New rule" marks effects that needed a new engine hook. Uncommons are ordinary shop and chest stock, rares are field finds, deep items come from later floors, and the three legendaries drop from their bosses (marrow, eyes & ears, spleen).
 
-| Item | Category | Quality | Effect | Card fact | New |
+| Item | Category | Quality | Effect | Card fact | New rule |
 |---|---|---|---|---|---|
 | Selectin Boots | boots | uncommon | Arteries push every 2nd step; veins nudge every 6th. | Selectins let white blood cells roll along a vessel wall. | |
-| Boots of the Endothelium | boots | uncommon | Vessel hazards deal 50% less damage. | Endothelial cells line every blood vessel. | ✓ |
+| Boots of the Endothelium | boots | uncommon | Traps deal 50% less damage. | Endothelial cells line every blood vessel. | ✓ |
 | Greaves of Ranvier | boots | rare | Starting a fight by walking into an enemy gives a free basic Attack before round 1. | Myelinated axons conduct faster because the signal jumps between nodes of Ranvier. | ✓ |
 | Lymph Waders | boots | deep | Keep found gear on Flee or Leave. | Lymphatic vessels carry fluid, and what is in it, to lymph nodes. | ✓ |
 | Tear-Soaked Gloves | gloves | uncommon | Basic Attack +20% against bacteria. | Tears contain lysozyme, which breaks down peptidoglycan in bacterial cell walls. | |
@@ -72,6 +72,41 @@ Approved November 17, 2026. 25 accessories replace the legacy accessory pool for
 Kept from legacy under new definitions: Selectin Boots, Chemokine Compass, Hundred-Strain Charm, Elementary Body, Latent Genome (now a Ring), and the Toll-like Receptor, Fas Ligand and Cortisol ideas. Muscle Cyst and the other old boss accessories go to a later boss-loot pass.
 
 Saved for future names: Circle of Willis (a circlet), Arbor Vitae (a legendary charm), Islets of Langerhans, Crypts of Lieberkühn, Bundle of His, Organ of Corti, Locus Coeruleus.
+
+## Consumables
+
+Approved November 17, 2026. 26 consumables (25 sold, plus the Defibrillator). Using one takes your turn. The combat Item menu is split into tabs: Heal, Cure, Throw, Buff, Utility. Prices are glucose and initial playtest values. All are built in `game/data/items.js` ("new" marks the 18 added November 17; O-Neg Bag, Creatine Shake and Opsonin Glaze were renamed from Recovery Tonic, ATP Shot and Complement, IDs unchanged). Throws use your Power but skip ability-only triggers. tPA and the Defibrillator are used automatically; the Defibrillator has a 20% chance to drop from a boss (carry cap 1). Specialty stock may favor region-themed items (gut node: Antacid Tablet, Jar of Gastric Juice; brain-draining node: neurotransmitters).
+
+| Item | Tab | Price | Effect | Card fact | Status |
+|---|---|---:|---|---|---|
+| O-Neg Bag | Heal | 15 | Heal 40% max HP. Carry cap 3. | O-negative red blood cells can be given to almost any patient, so emergency rooms keep them on hand. | built |
+| Creatine Shake | Heal | 30 | Restore 60% max ATP. | Muscle uses creatine phosphate to rebuild ATP within seconds. | built |
+| Serotonin Snack | Heal | 14 | Heal 5% max HP each turn for 4 turns. | About 90% of the body's serotonin is made in the gut. | new |
+| Clotting Gauze | Cure | 10 | End Bleed on you. | Gauze plus pressure helps a wound clot. | new |
+| Antacid Tablet | Cure | 10 | End Corrode on you. | Antacids neutralize stomach acid. | new |
+| Activated Charcoal | Cure | 12 | Remove all Poison stacks on you. | Activated charcoal binds some swallowed toxins in the gut. | new |
+| Antioxidant Smoothie | Cure | 10 | End Weaken on you. | Antioxidants neutralize reactive oxygen species. | new |
+| Smelling Salts | Cure | 12 | You cannot be Stunned next round. | Smelling salts release ammonia, which triggers a sharp inhalation reflex. | new |
+| Bottle of Bleach | Throw | 18 | Oxidative damage to all enemies, plus Weaken. | Neutrophils make hypochlorous acid, the active ingredient in bleach. | new |
+| Hand Sanitizer | Throw | 15 | Damage to all enemies, ×2 against bacteria. | Alcohol sanitizer works poorly on norovirus, a virus with no envelope. | new |
+| Jar of Gastric Juice | Throw | 16 | Heavy Acid damage to one enemy, plus Corrode for 3 turns. | Stomach acid is hydrochloric acid at about pH 1.5–3.5; it turns pepsinogen into pepsin. | new |
+| Opsonin Glaze | Buff | 12 | Your next damaging ATP ability deals ×1.5. | Opsonins coat a pathogen so phagocytes can grab it; "opsonize" comes from Greek for preparing food. | built |
+| Mucus Flask | Buff | 14 | The next hit you take does 0. | Mucus traps microbes and debris on airway and gut surfaces. | built |
+| Fever | Buff | 10 | ×1.3 damage for the fight; lose 4% max HP each turn (never kills). | Fever can slow some pathogens and speed immune responses, at a cost in energy. | built |
+| Interferon | Buff | 12 | ×1.6 against viruses for the fight. Check against Head-item multipliers. | Virus-infected cells release interferons that warn neighbors to strengthen antiviral defenses. | built |
+| Antibiotic | Buff | 12 | ×1.6 against bacteria for the fight; nothing against viruses. Check against Head-item multipliers. | Antibiotics treat bacterial infections only; they do not work on viruses. | built |
+| Liquid Courage | Buff | 12 | +25% damage for the fight; lose 10% max HP after it (dehydration). | Alcohol is a CNS depressant that boosts GABA-A receptors, and it suppresses ADH, so you lose water. | new |
+| EpiPen | Buff | 18 | End Stun and Weaken on you; +20% damage for 2 turns. | Epinephrine raises heart rate and opens the airways, which is why it treats anaphylaxis. | new |
+| Hit of Dopamine | Buff | 16 | For the fight, each correct ability answer refunds 2 ATP. | Dopamine neurons fire for unexpected rewards, a signal that helps the brain learn. | new |
+| Acetylcholine Ampoule | Buff | 12 | Your next basic Attack strikes twice. | At the neuromuscular junction, acetylcholine makes a muscle fiber contract. | new |
+| GABA Gummy | Buff | 14 | The enemy's next telegraphed heavy attack becomes a normal attack (existing `tameBig` rule). | GABA is the brain's main inhibitory neurotransmitter. | new |
+| Endorphin Rush | Buff | 14 | 30% less direct damage taken for 2 turns. | Endorphins are the body's own opioids, released during pain and stress. | new |
+| Cheat Sheet | Utility | 40 | Your next ability question shows only 2 options (you still answer it). Max 2 per expedition. | Testing yourself strengthens memory more than rereading. | new |
+| tPA Injection | Utility | 15 | Walk into a clot in a vessel to dissolve it (used automatically). | tPA is a drug that breaks down blood clots. | new |
+| Lymph Drain | Utility | 20 | Escape to the draining lymph node, keeping expedition earnings. | Lymphatic vessels carry fluid through lymph nodes before it returns to the blood. | built |
+| Defibrillator | Utility | not sold | Revive once at 30% HP when killed. Very rare deep loot; carry cap 1. Consumable twin of the Don't-Eat-Me Shroud. | Defibrillators shock dangerous rhythms like ventricular fibrillation back to normal. | new |
+
+Cut during design: THC items (too much stoner humor for the tone).
 
 ## Catalogue
 
@@ -131,7 +166,7 @@ Numbers not explicitly chosen in the conversation are initial test values. Stabl
 | Insulin Hood | rare / field | Maximum ATP +25%. | eq-insulin-hood |
 | Helm of the Pericardium | rare / field | Armor +25%; maximum HP +10%. | eq-myocardium-helm |
 | Anti-Scurvy Hat | rare / field | A pirate tricorne. Recruit Basophil heals the companion for 50% more. | eq-ascorbic-helm |
-| Bowman’s Helm | rare / field | Recovery Tonics remove one Poison stack. Basic attacks with bows deal +15% damage. | eq-renal-helm |
+| Bowman’s Helm | rare / field | O-Neg Bags remove one Poison stack. Basic attacks with bows deal +15% damage. | eq-renal-helm |
 | Marrow Helm | rare / field | +8 Armor; Retain 25% of expedition-earned XP on death. | eq-marrow-helm |
 
 ### weapon
@@ -179,4 +214,4 @@ Coat of Mucous retains 25% of escrowed glucose on Flee/Leave, not XP or found it
 
 ## Validation
 
-Run `node tests/equipment.cjs`, `node tests/combat-rework.cjs`, and `node tests/content-unlocks.cjs`. These cover the catalogue, ownership and migration, hand constraints, per-copy enchanting, spell kits, wrong-answer costs, shields, armor/head/weapon effects, reward retention, and DOM menu rendering. Browser visual QA is not included.
+Run `node tests/equipment.cjs`, `node tests/combat-rework.cjs`, `node tests/content-unlocks.cjs` and `node tests/accessories-consumables.cjs`. These cover the catalogue, ownership and migration, hand constraints, per-copy enchanting, spell kits, wrong-answer costs, shields, armor/head/weapon effects, reward retention, and DOM menu rendering. Browser visual QA is not included.

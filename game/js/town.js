@@ -199,7 +199,7 @@ DD.town = (function () {
   const msgEl = () => T.msg ? el('div', { class: 'fb good', role: 'status' }, T.msg) : null;
   function shopPanel() {
     const p = prof();
-    const rows = DD.data.itemOrder.map(id => {
+    const rows = DD.data.shopItems.map(id => {
       const d = DD.data.items[id], have = inv(id), full = have >= cap(id), poor = p.glucose < d.price;
       return el('div', { class: 'shoprow' },
         el('div', { class: 'shopinfo' }, el('b', null, d.name), el('span', { class: 'chip' }, 'owned ' + have + (d.cap ? '/' + d.cap : '')),

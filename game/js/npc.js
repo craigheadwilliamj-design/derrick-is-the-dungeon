@@ -14,7 +14,7 @@ DD.npc = (function () {
   // Rotates through the region's cells floor by floor, so back-to-back floors differ.
   N.nativeFor = (regionId, floorIdx, seed) => { const l = N.natives(regionId); return l.length ? l[(floorIdx + (seed % l.length)) % l.length] : null; };
   N.makeStock = function (r) {
-    const M = S.merchant, ids = DD.u.shuffle(r, DD.data.itemOrder), n = DD.u.int(r, M.stockMin, M.stockMax);
+    const M = S.merchant, ids = DD.u.shuffle(r, DD.data.shopItems), n = DD.u.int(r, M.stockMin, M.stockMax);
     return ids.slice(0, n).map(id => ({ id, price: Math.round(DD.data.items[id].price * M.priceMult), qty: DD.u.int(r, 1, M.qtyMax) }));
   };
   N.saveState = f => (f.npcs || []).map(n => n.kind === 'merchant' ? { q: n.stock.map(s => s.qty), t: n.tip ? 1 : 0, g: n.rare && n.rare.sold ? 1 : 0 } : n.done ? 1 : 0);

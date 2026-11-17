@@ -14,8 +14,8 @@ function battle(eq={},id='neutrophil',enemies=[foe()]){const p=profile(id);p.equ
 function attack(C,i=0){D.combat.attack(C);D.combat.target(C,i);}
 function cast(C,id,ok=true,targets=[0]){D.combat.ability(C,id);for(const i of targets)if(C.phase==='target')D.combat.target(C,i);assert.equal(C.phase,'question',id);D.combat.answer(C,C.opts.findIndex(o=>o.correct===ok));D.combat.cont(C);}
 const active=D.data.activeGear;
-assert.equal(active.length,74);assert.equal(active.filter(x=>x.slot==='weapon').length,32);assert.equal(active.filter(x=>x.slot==='armor').length,22);assert.equal(active.filter(x=>x.slot==='shield').length,10);assert.equal(active.filter(x=>x.slot==='head').length,10);
-assert.equal(new Set(active.map(x=>x.id)).size,74);
+assert.equal(active.length,99);assert.equal(active.filter(x=>x.slot==="acc").length,25);assert.equal(active.filter(x=>x.slot==='weapon').length,32);assert.equal(active.filter(x=>x.slot==='armor').length,22);assert.equal(active.filter(x=>x.slot==='shield').length,10);assert.equal(active.filter(x=>x.slot==='head').length,10);
+assert.equal(new Set(active.map(x=>x.id)).size,99);
 // Once-per-class starters, persistent ownership and no selling exploits.
 let p=profile();p.startersIssued={};D.gear.prepare(p,true);assert.equal(p.equipment.weapon,'eq-starter-osteon-axe');const count=p.gearBag.length;D.gear.prepare(p);assert.equal(p.gearBag.length,count);assert.equal(D.gear.canSell(D.data.gearById[p.equipment.weapon]),false);
 p.classId='bcell';D.gear.prepare(p,true);assert.equal(p.equipment.weapon,'eq-starter-pepsin-staff');assert.ok(p.gearBag.includes('eq-starter-osteon-axe'));assert.equal(p.equipment.armor,'eq-faded-robes');
@@ -57,7 +57,7 @@ C=battle({weapon:'eq-nephrolith-star'},'bcell',[foe({hp:1,def:0})]);C.enemies[0]
 // Flee perk banks only glucose; death perk banks only a quarter of XP.
 C=battle({armor:'eq-mucous-coat'});D.game.reward('glucose',100);D.game.reward('xp',40);D.game.settle(false);assert.equal(D.save.profile.glucose,25);assert.equal(D.save.profile.xp,0);
 C=battle({head:'eq-marrow-helm'});D.game.reward('glucose',100);D.game.reward('xp',40);D.game.settle(false,'death');assert.equal(D.save.profile.glucose,0);assert.equal(D.save.profile.xp,10);
-console.log('Passed: 74-item roster, starters, hands, vault, loot, per-copy enchanting/migration, five staff kits, ATP on failure, immunities/resistance, shield/weapon/head/armor effects, flee/death retention.');
+console.log('Passed: 99-item roster, starters, hands, vault, loot, per-copy enchanting/migration, five staff kits, ATP on failure, immunities/resistance, shield/weapon/head/armor effects, flee/death retention.');
 
 // Exercise gear and town workshop panels with the actual DOM builders.
 function dom(tag='div',text=''){return {nodeType:1,tag,textContent:text,children:[],style:{},scrollTop:0,append(...xs){this.children.push(...xs);},replaceChildren(...xs){this.children=xs;},setAttribute(k,v){this[k]=v;},addEventListener(k,fn){this['on'+k]=fn;},querySelector(){return null;},classList:{toggle(){}},getContext(){return {};}};}
