@@ -69,6 +69,15 @@ DD.render = (function () {
       if (!e.alive || !f.vis[e.y * f.W + e.x]) continue;
       put(e.glyph, e.x - x0, e.y - y0, colors.mon, 1, e.boss ? colors.mon : null);
     }
+    for (const s of f.signs || []) {
+      if (!f.explored[s.y * f.W + s.x]) continue;
+      const i=s.x-x0,j=s.y-y0;
+      if(i < -12 || i > cam.cols+12 || j<0 || j>=cam.rows)continue;
+      ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.fillStyle='#ffe39a';
+      ctx.font='600 '+Math.max(9,Math.round(ts*.55))+'px ui-monospace,monospace';
+      ctx.fillText(s.label || DD.world.get(s.to).name,ox+(i+.5)*ts,oy+(j+.2)*ts);
+    }
+    ctx.font='800 '+Math.round(ts*.82)+'px "JetBrains Mono",ui-monospace,monospace';
     put('@', run.px - x0, run.py - y0, colors.player, 1, 'rgba(255,255,255,.6)');
     ctx.globalAlpha = 1; ctx.shadowBlur = 0;
   }

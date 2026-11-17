@@ -11,7 +11,7 @@
     start() {
       if (DD.game.run || (DD.save.run && DD.save.run.kind !== 'town')) return ui.menu();
       const from = DD.save.profile.loc;
-      ui.junction(from, true);
+      DD.travel.start({ key: from + '>explore', from, to: from, ids: [from, from], mode: 'explore' });
     },
     depart(id) {
       const from = DD.save.profile.loc;
