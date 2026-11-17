@@ -137,7 +137,10 @@ DD.ui = (function () {
     g.strip = trip ? el('div', { class: 'strip', 'aria-label': 'Route' }) : null;
     g.canvas = el('canvas', { 'aria-label': trip ? 'Vessel map' : 'Dungeon map' });
     g.banner = el('div', { class: 'banner', hidden: true, role: 'status' });
-    g.mapbox = el('div', { class: 'mapbox' }, g.canvas, g.banner);
+    g.atlasPanel = trip ? el('details', { class: 'travel-atlas', ontoggle: () => {
+      if (g.atlasPanel && g.atlasPanel.open) g.atlas.replaceChildren(ui.circulationMap());
+    } }, el('summary', null, 'Body map'), (g.atlas = el('div'))) : null;
+    g.mapbox = el('div', { class: 'mapbox' }, g.canvas, g.banner, g.atlasPanel);
     g.log = el('div', { class: 'log', 'aria-live': 'polite' });
     g.combat = el('div', { class: 'overlay', hidden: true });
     // Holding a d-pad key keeps walking on trips (vessels are long). A tap fires on pointerdown; click only handles keyboard activation.
@@ -154,7 +157,7 @@ DD.ui = (function () {
       : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gg', '&', 'chest'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
       el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.gear, g.leave, g.abort),
-      g.bounties, g.strip, g.mapbox, trip ? el('details', { class: 'travel-atlas', open: true }, el('summary', null, 'Body map · current location and organs'), (g.atlas = el('div', null, ui.circulationMap()))) : null, g.log,
+      g.bounties, g.strip, g.mapbox, g.log,
       el('div', { class: 'controls' }, dpad, legend),
       g.combat));
     if (window.ResizeObserver) { g.ro = new ResizeObserver(() => ui.refreshMap(true)); g.ro.observe(g.mapbox); }
@@ -204,7 +207,7 @@ DD.ui = (function () {
     g.xp.replaceChildren('Lv ' + p.level + ' XP ', el('b', null, p.xp + '/' + st.xpToNext + (run.earned ? ' · +' + run.earned.xp + ' pending' : '')), bar('xp', pct(p.xp, st.xpToNext)));
     hudGlucose(); hudBounties();
     const atlas = g.atlas;
-    if (run.trip && atlas) atlas.replaceChildren(ui.circulationMap());
+    if (run.trip && atlas && g.atlasPanel.open) atlas.replaceChildren(ui.circulationMap());
     g.log.replaceChildren(...DD.game.msgs.slice(-S.log.lines).reverse().map(t => el('div', null, t)));
   };
 

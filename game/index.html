@@ -65,6 +65,13 @@ kbd{font-family:var(--mono);color:var(--bile);margin-right:8px}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--dim);flex:1;min-width:200px}
 .legend b{font-family:var(--mono);margin-right:4px}
 .gp{color:#fff}.gm{color:var(--art)}.gg{color:var(--bile)}.gd{color:var(--bile)}.gs{color:var(--bone)}
+/* The travel atlas floats over one corner; it never consumes the playable canvas's flex height. */
+.travel-atlas{position:absolute;top:8px;right:8px;z-index:2;width:max-content;max-width:calc(100% - 16px);color:var(--bone)}
+.travel-atlas summary{cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:5px 10px;font-size:12px;min-height:30px}
+.travel-atlas[open]{width:250px}
+.travel-atlas .circulation-atlas{padding:6px;margin-top:4px;gap:0}
+.travel-atlas .circulation-atlas>b,.travel-atlas .circulation-atlas>p{display:none}
+.travel-atlas .circulation-atlas svg{height:min(180px,28dvh);max-height:180px}
 /* combat */
 .overlay{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:12px;z-index:5}
 /* Derrick's life (5b): event cards, place notes, the chart */
