@@ -71,7 +71,7 @@
     svg.setAttribute('viewBox', '0 0 520 660');
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', 'Circulation map. You are at ' + W.get(here).name + '. Red and blue blood vessels, green lymphatics. Arrows show flow.');
-    svg.style.cssText = 'width:100%;max-height:65vh;background:var(--map-bg);border-radius:6px';
+    svg.style.cssText = 'display:block;width:100%;height:min(320px,45dvh);background:var(--map-bg);border-radius:6px';
     const add = (tag, attrs, label) => {
       const n = document.createElementNS(ns, tag);
       Object.entries(attrs).forEach(([k,v]) => n.setAttribute(k,v));
