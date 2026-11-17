@@ -61,7 +61,7 @@ console.log('Passed: 74-item roster, starters, hands, vault, loot, per-copy ench
 
 // Exercise gear and town workshop panels with the actual DOM builders.
 function dom(tag='div',text=''){return {nodeType:1,tag,textContent:text,children:[],style:{},scrollTop:0,append(...xs){this.children.push(...xs);},replaceChildren(...xs){this.children=xs;},setAttribute(k,v){this[k]=v;},addEventListener(k,fn){this['on'+k]=fn;},querySelector(){return null;},classList:{toggle(){}},getContext(){return {};}};}
-c.document.createElement=tag=>dom(tag);c.document.createTextNode=text=>dom('#text',text);D.render.draw=()=>{};D.ui.banner=()=>{};
+c.document.createElement=tag=>dom(tag);c.document.createElementNS=(_ns,tag)=>dom(tag);c.document.createTextNode=text=>dom('#text',text);D.render.draw=()=>{};D.ui.banner=()=>{};
 const page=dom();D.ui.init(page);const text=n=>typeof n==='object'?[n.textContent||'',...(n.children||[]).map(text)].join(' '):String(n);
 p=profile();p.gearBag=['eq-fine-vest','eq-axon-bow'];p.glucose=1000;D.gear.screen(()=>{});assert.match(text(page),/Main hand/);assert.match(text(page),/Axon Bow/);
 D.game.run=null;D.game.combat=null;realTownUI({id:'cervical',via:'hev'});D.town.open('enchant');assert.match(text(page),/Golgi Workshop/);assert.match(text(page),/acid resistance/);D.town.open('specialty');assert.match(text(page),/Specialty outfitter/);
