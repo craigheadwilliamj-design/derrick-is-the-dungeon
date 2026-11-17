@@ -269,7 +269,8 @@ DD.town = (function () {
       chain.length ? el('div', { class: 'tag' }, 'Lymphocyte shortcut: along the node chain') : null,
       chain.length ? el('div', { class: 'stack' }, chain.map(p => el('button', { class: 'btn', type: 'button', onclick: () => go(p) },
         'To the ' + DD.data.town(p.to).name + (W.fastStatus(p).code === 'unlocked' ? ' (fast travel)' : '')))) : null,
-      el('button', { class: 'btn' + (chain.length ? '' : ' primary'), type: 'button', onclick: () => leave(id => DD.ui.menu(id)) }, 'Rejoin the blood: pick a destination')];
+      el('button', { class: 'btn primary', type: 'button', onclick: () => leave(() => DD.explore.start()) }, 'Leave town: explore the circulation'),
+      el('button', { class: 'btn', type: 'button', onclick: () => leave(id => DD.ui.menu(id)) }, 'Plan a route on the body map')];
   }
   function specialtyPanel(){
     const ids=DD.gear.specialtyStock(town().regions).filter(id=>!T.gearBought.has(id));

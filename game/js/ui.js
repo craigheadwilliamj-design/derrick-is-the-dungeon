@@ -112,6 +112,8 @@ DD.ui = (function () {
 
   // ---------- game screen ----------
   ui.game = function () {
+    const active = DD.game.run;
+    if (active && active.trip && active.trip.mode === 'explore' && active.trip.junction) return ui.junction(DD.explore.current());
     ui.mode = 'map';
     if (g.ro) g.ro.disconnect();
     g = {};
@@ -152,7 +154,7 @@ DD.ui = (function () {
       : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gg', '&', 'chest'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
       el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.gear, g.leave, g.abort),
-      g.bounties, g.strip, g.mapbox, g.log,
+      g.bounties, g.strip, g.mapbox, trip ? el('details', { class: 'travel-atlas', open: true }, el('summary', null, 'Body map · current location and organs'), (g.atlas = el('div', null, ui.circulationMap()))) : null, g.log,
       el('div', { class: 'controls' }, dpad, legend),
       g.combat));
     if (window.ResizeObserver) { g.ro = new ResizeObserver(() => ui.refreshMap(true)); g.ro.observe(g.mapbox); }
@@ -190,7 +192,7 @@ DD.ui = (function () {
     if (run.trip) {
       const segs = DD.travel.segs(run), n = segs[run.trip.idx], last = segs.length - 1;
       const kind = n.kind === 'vessel' ? (n.flow === 'artery' ? 'artery · the current pushes you on' : 'vein') : n.kind === 'lymph' ? 'lymphatic vessel' : n.kind === 'capillary' ? 'capillary bed' : n.sub === 'nodeRoom' ? 'lymph node' : n.kind;
-      g.floor.replaceChildren(el('b', null, n.name), el('small', null, 'Stop ' + (run.trip.idx + 1) + ' of ' + last + ' · ' + kind));
+      g.floor.replaceChildren(el('b', null, n.name), el('small', null, (run.trip.mode === 'explore' ? 'Free exploration · ' : 'Stop ' + (run.trip.idx + 1) + ' of ' + last + ' · ') + kind));
       if (g.stripIdx !== run.trip.idx) {
         g.stripIdx = run.trip.idx;
         g.strip.replaceChildren(...segs.map((s, i) => el('span', { class: 'stop' + (i < run.trip.idx ? ' past' : i === run.trip.idx ? ' now' : ''), 'aria-current': i === run.trip.idx ? 'step' : null }, s.name)));
@@ -201,6 +203,8 @@ DD.ui = (function () {
     stat(g.hp, 'HP', run.hp, st.maxHP, 'hp'); stat(g.atp, 'ATP', run.atp, st.maxATP, 'atp');
     g.xp.replaceChildren('Lv ' + p.level + ' XP ', el('b', null, p.xp + '/' + st.xpToNext + (run.earned ? ' · +' + run.earned.xp + ' pending' : '')), bar('xp', pct(p.xp, st.xpToNext)));
     hudGlucose(); hudBounties();
+    const atlas = g.atlas;
+    if (run.trip && atlas) atlas.replaceChildren(ui.circulationMap());
     g.log.replaceChildren(...DD.game.msgs.slice(-S.log.lines).reverse().map(t => el('div', null, t)));
   };
 

@@ -213,17 +213,30 @@ DD.travel = (function () {
     const t = run.trip;
     G().syncResources(run); DD.save.save();
     DD.save.saveRun({ v: 1, kind: 'trip', seed: run.seed, hp: run.hp, atp: run.atp, earned: run.earned, battle: G().combat ? DD.combat.snapshot(G().combat) : null, glucose: run.glucose, killed: run.killed, miss: run.miss, genLevel: run.genLevel,
-      trip: { key: t.key, from: t.from, to: t.to, ids: t.ids, mode: t.mode, idx: t.idx, amb: t.amb } });
+      trip: { key: t.key, from: t.from, to: t.to, ids: t.ids, mode: t.mode, idx: t.idx, amb: t.amb, junction: !!t.junction },
+      segment: run.floor ? { px: run.px, py: run.py, grid: run.floor.g.map(row => row.join('')),
+        explored: Array.from(run.floor.explored), taken: run.floor.pickups.map(p => p.taken),
+        traps: run.floor.traps.map(t => t.state), enemies: run.floor.enemies.map(e => [e.x, e.y, e.alive]) } : null });
   };
   X.resume = function (s) {
     const g = G(), st = g.stats();
     const run = { v: 1, kind: 'trip', regionId: 'bloodstream', systems: null, seed: s.seed, hp: Math.min(s.hp, st.maxHP), atp: Math.min(s.atp, st.maxATP), glucose: s.glucose || 0,
       earned: s.earned, killed: s.killed || 0, miss: s.miss || [], genLevel: s.genLevel || prof().level, px: 0, py: 0, floor: null, accent: null,
-      trip: { key: s.trip.key, from: s.trip.from, to: s.trip.to, ids: s.trip.ids, mode: s.trip.mode, idx: 0, steps: 0, amb: s.trip.amb || [], done: 0 } };
+      trip: { key: s.trip.key, from: s.trip.from, to: s.trip.to, ids: s.trip.ids, mode: s.trip.mode, junction: !!s.trip.junction, idx: 0, steps: 0, amb: s.trip.amb || [], done: 0 } };
     g.run = run; g.combat = null; g.msgs = [];
     if (!s.trip.ids.every(id => DD.world.get(id))) { g.run = null; DD.save.saveRun(null); return false; }
     enter(Math.min(s.trip.idx, X.segs(run).length - 1));
-    if (s.battle) { g.combat = DD.combat.create(run, null, { saved: s.battle }); X.persist(); }
+    const f = run.floor, snap = s.segment;
+    if (f && snap && snap.grid && snap.grid.length === f.H && snap.grid.every(row => row.length === f.W)) {
+      f.g = snap.grid.map(row => row.split('')); run.px = snap.px; run.py = snap.py;
+      f.explored.set(snap.explored || []);
+      f.pickups.forEach((p, i) => { p.taken = !!(snap.taken || [])[i]; });
+      f.traps.forEach((t, i) => { t.state = (snap.traps || [])[i] || 0; });
+      f.enemies.forEach((e, i) => { const a = (snap.enemies || [])[i]; if (a) { e.x = a[0]; e.y = a[1]; e.alive = a[2]; } });
+      DD.dungeon.computeFov(f, run.px, run.py);
+    }
+    if (s.battle) { g.combat = DD.combat.create(run, null, { saved: s.battle }); }
+    X.persist();
     g.say('You rejoin the flow.');
     return true;
   };
@@ -284,6 +297,10 @@ DD.travel = (function () {
   // ---- between segments ----
   function advance() {
     const g = G(), run = g.run, t = run.trip, segs = X.segs(run);
+    if (t.mode === 'explore') {
+      t.junction = true; X.persist();
+      return DD.ui.junction(t.ids[t.idx + 1]);
+    }
     const i = t.idx + 1, n = segs[i];
     if (!n) return arrive(run, segs[segs.length - 1]);
     if (n.kind === 'place') {
@@ -297,6 +314,18 @@ DD.travel = (function () {
     }
     enter(i); g.say(n.name + '.'); taxNode(n.id); DD.ui.refreshMap(); banner();
   }
+  X.exploreNext = function (id) {
+    const run = G().run, t = run.trip;
+    t.junction = false; t.ids.push(id); t.to = id;
+    const idx = t.idx + 1, n = DD.world.get(id);
+    if (n.kind === 'place') {
+      t.idx = idx; taxNode(id); t.junction = true; X.persist();
+      return DD.ui.junction(id);
+    }
+    // Plan each newly chosen segment once; combat and hazards use the normal travel systems.
+    if (planAmbushes([n], Math.random).length) t.amb.push(idx);
+    enter(idx); taxNode(id); DD.ui.game(); banner();
+  };
   // Diabetes: passing the renal vein or the kidneys costs glucose (glycosuria).
   function taxNode(id) {
     const lost = DD.derrick.glycosuria(id);
