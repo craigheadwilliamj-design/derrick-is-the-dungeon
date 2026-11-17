@@ -11,11 +11,7 @@ DD.fx = (function () {
     for (const slot of DD.data.gearSlots || []) { const it = DD.data.gearById && DD.data.gearById[eq[slot]]; if (it && !ids.has(it.id)) { ids.add(it.id); if (it.set) n[it.set] = (n[it.set] || 0) + 1; } }
     return n;
   }
-  function setEffects(profile) {
-    const n = setCounts(profile), out = [];
-    for (const s of DD.data.sets || []) if ((n[s.id] || 0) >= s.pieces.length) for (const e of s.bonus) out.push(e);
-    return out;
-  }
+  function setEffects(profile) { return []; } // Legacy sets remain stored, pending redesign.
   // Static rule effects ({type:'rule', rule, value}) from class, subclass, gear and sets: the values for one rule name.
   function rules(profile, name) {
     return classEffects(profile).concat(gearEffects(profile), setEffects(profile)).filter(e => e.result.type === 'rule' && e.result.rule === name).map(e => e.result.value);
@@ -24,13 +20,10 @@ DD.fx = (function () {
   const ruleMin = (profile, name, def) => { const v = rules(profile, name); return v.length ? Math.min.apply(null, v) : def; };
   // Equipped gear (4b) as effects, plus the soft weapon-type bonus (own class weapon type: x1.15 damage). Gear is data; equipping just changes this list.
   function gearEffects(profile) {
-    const eq = profile.equipment || {}, out = [], cls = DD.data.classes[profile.classId];
+    const eq = profile.equipment || {}, out = [];
     for (const slot of DD.data.gearSlots || []) {
-      const it = DD.data.gearById && DD.data.gearById[eq[slot]]; if (!it) continue;
+      const it = DD.data.gearById && DD.data.gearById[eq[slot]]; if (!it || it.modern) continue;
       for (const e of it.effects) out.push(e);
-      if (slot === 'weapon' && cls && it.wtype && it.wtype === cls.weaponType) {
-        out.push({ id: 'wtype-' + it.id, src: 'gear', trigger: 'static', result: { type: 'damageMult', mult: DD.S.gear.weaponTypeMult } });
-      }
     }
     return out;
   }

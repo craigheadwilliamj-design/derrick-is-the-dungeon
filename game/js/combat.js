@@ -1,6 +1,9 @@
 // Turn-based group combat. Plain serializable state supports reloads during questions and battles.
 DD.combat = (function () {
   const S = DD.S.rpg, p = () => DD.save.profile;
+  const equipped = slot => DD.data.gearById[(p().equipment||{})[slot]];
+  const weaponPerks = w => w && w.modern ? w.perks : {};
+  function equipState(C){ C.gear=DD.gear.perks(p()); C.streak=C.streak||0; C.usedBasics=C.usedBasics||0; return C; }
   const say = (C, t) => C.log.push(t);
   const living = C => C.enemies.filter(e => e.hp > 0);
   const armorDamage = (raw, armor) => Math.max(1, Math.round(raw * S.armorScale / (S.armorScale + Math.max(0, armor))));
@@ -17,7 +20,7 @@ DD.combat = (function () {
   function create(run, enemy, opts) {
     if (opts && opts.saved) {
       const C = JSON.parse(JSON.stringify(opts.saved)); C.run = run; C.st = DD.stats.compute(p());
-      C.cls = DD.data.classes[p().classId]; C.enemy = C.enemies[0]; return C;
+      C.cls = DD.data.classes[p().classId]; C.enemy = C.enemies[0]; return equipState(C);
     }
     let enemies = Array.isArray(enemy) ? enemy : [enemy];
     if (!(opts && opts.drill) && !Array.isArray(enemy)) {
@@ -35,6 +38,7 @@ DD.combat = (function () {
       buffs: [], log: [], status: {}, shield: false, rage: 0, coating: 0, wind: false, mark: null,
       ally: null, firstHeavy: true, drop: 0, over: null, answer: null, q: null, opts: null, menu: 'commands',
       drill: opts && opts.drill ? { left: [...opts.drill], total: opts.drill.length } : null };
+    equipState(C);
     if (!C.drill) {
       const x = context(C, C.enemy); DD.fx.fire('fightStart', x); gain(C, x); C.shield = !!x.shield;
       rollIntents(C); say(C, enemies.length + ' pathogen' + (enemies.length === 1 ? '' : 's') + ' approach.');
@@ -54,6 +58,7 @@ DD.combat = (function () {
   }
   function applyStatus(C, target, kind, sourcePower, turns = 3, stacks = 1, chance = 1) {
     if (!kind || Math.random() >= chance) return;
+    if(target===C && (C.gear.immune||[]).includes(kind)){say(C,kind+' immunity prevents the effect.');return;}
     const st = target.status;
     if (kind === 'stun') {
       if (target.stunGuard || st.stun || (target.boss && Math.random() >= S.stunBossChance)) { say(C, 'Stun resisted.'); return; }
@@ -71,11 +76,20 @@ DD.combat = (function () {
     for (const kind of ['bleed', 'poison']) {
       const s = target.status[kind]; if (!s) continue;
       const d = Math.max(1, s.damage * (s.stacks || 1));
-      if (player) C.run.hp = Math.max(0, C.run.hp - d); else target.hp = Math.max(0, target.hp - d);
+      if (player) hurtPlayer(C,d); else target.hp = Math.max(0, target.hp - d);
       say(C, (player ? 'You take ' : target.name + ' takes ') + d + ' ' + kind + ' damage.');
       if (s.turns && --s.turns <= 0) delete target.status[kind];
     }
   }
+  function hurtPlayer(C,d){
+    const before=C.run.hp; C.run.hp=Math.max(0,before-d);
+    if(d>0&&C.gear.phago)C.phagoReady=true;
+    if(C.gear.adipose&&!C.adiposeUsed&&before>=C.st.maxHP*.5&&C.run.hp<C.st.maxHP*.5&&C.run.hp>0){
+      C.adiposeUsed=true;gain(C,{atp:Math.floor((C.st.maxATP-C.run.atp)*.5)});say(C,'Adipose reserves release ATP.');
+    }
+  }
+  function beginAttack(C){C.healEligible=!!C.phagoReady;C.phagoReady=false;C.actionDamage=0;C.actionKilled=false;}
+  function endAttack(C){if(C.healEligible&&C.actionKilled)gain(C,{heal:C.actionDamage});C.healEligible=false;}
   function durationTick(st) {
     for (const key of ['corrode', 'weaken']) if (st[key] && --st[key].turns <= 0) delete st[key];
   }
@@ -83,6 +97,9 @@ DD.combat = (function () {
     for (const e of C.enemies) if (e.hp <= 0 && !e.killTriggered) {
       e.killTriggered = true;
       const x = context(C, e); DD.fx.fire('onKill', x); gain(C, x);
+      gain(C,{heal:C.st.maxHP*(C.gear.killHP||0),atp:Math.round(C.st.maxATP*(C.gear.killATP||0))});
+      if(C.gear.corrodeKillATP&&e.status.corrode)C.run.atp=C.st.maxATP;
+      if(C.gear.bleedKill&&e.status.bleed)C.nextAttackBonus=C.gear.bleedKill;
     }
   }
   function finish(C) {
@@ -94,28 +111,61 @@ DD.combat = (function () {
     }
     return false;
   }
-  function strike(C, e, skill, basic = false) {
-    if (!e || e.hp <= 0) return;
-    const x = context(C, e, { mult: skill.mult || 1 });
-    DD.fx.fire('static', x); DD.fx.fire(basic ? 'onLight' : 'onHeavyCorrect', x);
-    let raw = C.st.power * x.mult + (x.dmg || 0);
-    if (C.rage) raw *= S.rageDamage;
-    if (C.status.weaken) raw *= 1 - S.weaken;
-    if (C.mark === C.enemies.indexOf(e)) raw *= 1.25;
-    if (skill.finisher && e.hp < e.maxHP * .5) raw *= skill.finisher;
-    if (basic && C.wind) { raw *= 1.5; C.wind = false; }
-    if (e.intent === 'defend') raw *= .5;
-    const type = skill.type || 'physical', armor = type === 'physical' ? e.def * (e.status.corrode ? 1 - S.corrode : 1) : 0;
-    const resistance = (e.resistances || {})[type] || 0;
-    const d = armorDamage(raw * (1 - resistance), armor);
-    e.hp = Math.max(0, e.hp - d); say(C, skill.name + ' hits ' + e.name + ' for ' + d + ' (' + type + ').');
-    applyStatus(C, e, skill.status, C.st.power, skill.turns, skill.stacks, skill.chance == null ? 1 : skill.chance);
-    if (C.coating && (basic || skill.id === 'chain')) applyStatus(C, e, 'poison', C.st.power);
-    if (x.poison) applyStatus(C, e, 'poison', C.st.power);
-    if (x.execute && e.hp / e.maxHP < x.execute) e.hp = 0;
-    for (let i = 0; i < (x.repeat || 0) && e.hp > 0; i++) e.hp = Math.max(0, e.hp - d);
-    if (skill.healKill && e.hp <= 0) gain(C, { heal: C.st.maxHP * skill.healKill });
-    gain(C, x); C.firstHeavy = false;
+  function strike(C,e,skill,basic=false,w=null,scale=1){
+    if(!e||e.hp<=0)return;
+    const wp=weaponPerks(w),x=context(C,e,{mult:skill.mult||1});
+    DD.fx.fire('static',x);DD.fx.fire(basic?'onLight':'onHeavyCorrect',x);
+    const type=basic?(w&&w.damageType||'physical'):(skill.type||'physical');
+    let raw=(C.st.power+(basic&&w?w.attack||0:0))*x.mult+(x.dmg||0);
+    raw*=scale*(1+((C.gear.damage||{})[type]||0));
+    if(C.gear.answerStreak)raw*=1+Math.min(.25,C.streak*.05);
+    if(C.rage)raw*=S.rageDamage;
+    if(C.status.weaken)raw*=1-S.weaken;
+    if(C.mark===C.enemies.indexOf(e))raw*=1.25;
+    if(skill.finisher&&e.hp<e.maxHP*.5)raw*=skill.finisher;
+    if(!basic&&C.run.hp<C.st.maxHP*.5)raw*=1+(C.gear.lowHPAbility||0);
+    if(!basic&&e.exposed){raw*=1+e.exposed;e.exposed=0;}
+    if(!basic&&C.spellBonus)raw*=1+C.spellBonus;
+    if(C.actionBonus)raw*=1+C.actionBonus;
+    if(basic){
+      if(C.wind){raw*=1.5;C.wind=false;}
+      if(e.status.corrode)raw*=1+(wp.vsCorrode||0);
+      if(e.status.weaken)raw*=1+(wp.vsWeaken||0);
+      if(e.hp<e.maxHP*.5)raw*=1+(wp.finisher||0);
+      if(C.lastBlock)raw*=1+(wp.afterBlock||0);
+    }
+    if(e.intent==='defend')raw*=.5;
+    const armor=type==='physical'?e.def*(e.status.corrode?1-S.corrode:1)*(basic?1-(wp.pierce||0):1):0;
+    const d=armorDamage(raw*(1-((e.resistances||{})[type]||0)),armor),actual=Math.min(e.hp,d);
+    e.hp=Math.max(0,e.hp-d);C.actionDamage=(C.actionDamage||0)+actual;
+    if(e.hp<=0)C.actionKilled=true;
+    say(C,skill.name+' hits '+e.name+' for '+actual+' ('+type+').');
+    applyStatus(C,e,skill.status,C.st.power,skill.turns,skill.stacks,skill.chance==null?1:skill.chance);
+    if(basic){
+      if(wp.corrode)applyStatus(C,e,'corrode',C.st.power,3);
+      if(wp.stun)applyStatus(C,e,'stun',C.st.power,1,1,wp.stun);
+      if(wp.expose&&!e.wasExposed){e.wasExposed=true;e.exposed=wp.expose;}
+      if(wp.attackArmor)C.attackArmor=wp.attackArmor;
+    }
+    if(C.coating&&(basic||skill.id==='chain'))applyStatus(C,e,'poison',C.st.power);
+    if(x.poison)applyStatus(C,e,'poison',C.st.power);
+    if(x.execute&&e.hp/e.maxHP<x.execute){C.actionDamage+=e.hp;e.hp=0;C.actionKilled=true;}
+    for(let i=0;i<(x.repeat||0)&&e.hp>0;i++){const n=Math.min(e.hp,d);e.hp-=n;C.actionDamage+=n;if(!e.hp)C.actionKilled=true;}
+    if(skill.healKill&&e.hp<=0)gain(C,{heal:C.st.maxHP*skill.healKill});
+    gain(C,x);C.firstHeavy=false;processDeaths(C);
+  }
+  function basicAttack(C,e){
+    beginAttack(C);C.actionBonus=C.nextAttackBonus||0;C.nextAttackBonus=0;
+    const main=equipped('weapon'),off=equipped('offhand');
+    strike(C,e,{name:'Attack'},true,main);
+    const wp=weaponPerks(main);
+    if(e.hp>0&&((wp.firstDouble&&!C.usedBasics)||(wp.extraShot&&Math.random()<wp.extraShot)))strike(C,e,{name:'Follow-up'},true,main,wp.firstDouble?1:.5);
+    if(e.hp>0&&off&&off.slot==='weapon'){
+      strike(C,e,{name:'Off-hand attack'},true,off,.5);
+      const op=weaponPerks(off);
+      if(e.hp>0&&((op.firstDouble&&!C.usedBasics)||(op.extraShot&&Math.random()<op.extraShot)))strike(C,e,{name:'Off-hand follow-up'},true,off,op.firstDouble?.5:.25);
+    }
+    C.usedBasics++;C.actionBonus=0;endAttack(C);afterPlayer(C);
   }
   function companion(C) {
     if (!C.ally || C.ally.hp <= 0) return;
@@ -124,22 +174,23 @@ DD.combat = (function () {
     const d = Math.max(1, Math.round(C.st.power * S.companion.power * (C.mark === C.enemies.indexOf(e) ? 1.25 : 1)));
     e.hp = Math.max(0, e.hp - d); say(C, 'Basophil hits ' + e.name + ' for ' + d + ' (Toxin).');
   }
-  function enemyAttack(C, e) {
-    if (C.shield) { C.shield = false; say(C, 'One-hit Shield negates ' + e.name + "'s attack and effect."); return; }
-    let raw = e.atk * (e.intent === 'big' ? 1.8 : 1) * (e.status.weaken ? 1 - S.weaken : 1);
-    const type = e.damageType || 'physical';
-    let d = armorDamage(raw, type === 'physical' ? C.st.defense * (C.status.corrode ? 1 - S.corrode : 1) : 0);
-    if (C.blocking) d = Math.max(1, Math.round(d * (1 - C.st.blockCut)));
-    if (C.rage) d = Math.max(1, Math.round(d * (1 - S.rageCut)));
-    if (C.ally && C.ally.hp > 0) {
-      const shared = Math.min(C.ally.hp, Math.round(d * S.companion.share)); C.ally.hp -= shared; d -= shared;
-      if (shared) say(C, 'Basophil takes ' + shared + ' damage for you.');
+  function enemyAttack(C,e){
+    if(C.shield){C.shield=false;say(C,'One-hit Shield negates '+e.name+"'s attack and effect.");return;}
+    const raw=e.atk*(e.intent==='big'?1.8:1)*(e.status.weaken?1-S.weaken:1),type=e.damageType||'physical';
+    const armor=(C.st.defense+(C.attackArmor||0))*(C.status.corrode?1-S.corrode:1);
+    let d=armorDamage(raw*(1-((C.gear.resist||{})[type]||0)),type==='physical'?armor:0),prevented=0;
+    if(C.blocking){const before=d;d=Math.max(1,Math.round(d*(1-C.st.blockCut)));prevented=before-d;}
+    if(C.rage)d=Math.max(1,Math.round(d*(1-S.rageCut)));
+    const converted=Math.floor(d*((C.gear.convert||{})[type]||0));
+    d-=converted;if(converted)gain(C,{atp:converted});
+    if(C.ally&&C.ally.hp>0){const shared=Math.min(C.ally.hp,Math.round(d*S.companion.share));C.ally.hp-=shared;d-=shared;if(shared)say(C,'Basophil takes '+shared+' damage for you.');}
+    hurtPlayer(C,d);say(C,e.name+' hits you for '+d+' ('+type+').');
+    if(e.applies)applyStatus(C,C,e.applies,e.atk,e.applies==='bleed'?2:3,1,e.applies==='stun'?.15:1);
+    if(C.blocking){
+      if(C.gear.blockCorrode)applyStatus(C,e,'corrode',C.st.power,3,1,C.gear.blockCorrode);
+      if(C.gear.thorns&&prevented>0){const reflection=armorDamage(prevented*C.gear.thorns,e.def*(e.status.corrode?.5:1));e.hp=Math.max(0,e.hp-reflection);say(C,'Bite Back deals '+reflection+' Physical damage.');}
     }
-    C.run.hp = Math.max(0, C.run.hp - d); say(C, e.name + ' hits you for ' + d + ' (' + type + ').');
-    if (e.applies) applyStatus(C, C, e.applies, e.atk, e.applies === 'bleed' ? 2 : 3, 1, e.applies === 'stun' ? .15 : 1);
-    const x = context(C, e, { blocked: !!C.blocking });
-    if (C.blocking) DD.fx.fire('onBlock', x);
-    DD.fx.fire(e.intent === 'big' ? 'onBigHit' : 'onHit', x); gain(C, x);
+    const fx=context(C,e,{blocked:!!C.blocking});if(C.blocking)DD.fx.fire('onBlock',fx);DD.fx.fire(e.intent==='big'?'onBigHit':'onHit',fx);gain(C,fx);
   }
   function afterPlayer(C) {
     companion(C);
@@ -153,7 +204,8 @@ DD.combat = (function () {
     }
     tickDamage(C, C, true);
     if (finish(C)) return;
-    durationTick(C.status); C.blocking = false;
+    durationTick(C.status); C.lastBlock=!!C.blocking;C.blocking=false;C.attackArmor=0;
+    if(C.regen&&C.regen.turns>0){gain(C,{heal:C.st.maxHP*C.regen.pct});if(--C.regen.turns<=0)C.regen=null;}
     if (C.rage) C.rage--; if (C.coating) C.coating--;
     DD.fx.tick(C.buffs);
     const ts = context(C, living(C)[0]); DD.fx.fire('turnStart', ts); gain(C, ts);
@@ -172,27 +224,34 @@ DD.combat = (function () {
     C.q = C.drill ? DD.u.pick(Math.random, qs) : DD.q.pick(systems);
     if (!C.q) { C.phase = 'choose'; C.pending = null; say(C, 'No usable questions are available. Add study material first.'); return; }
     const x = context(C, C.enemies[C.target] || C.enemies[0]); DD.fx.fire('onQuestionAsk', x);
+    if(!C.drill){C.run.atp-=C.pending.cost;C.paid=true;}
     C.opts = DD.q.options(C.q, x.removeWrong); C.removed = x.removeWrong; C.answer = null; C.phase = 'question';
   }
   function resolve(C, s) {
-    if (s.id === 'rage') C.rage = s.turns + 1;
+    const hpBefore=C.run.hp;
+    if (s.id === 'oxygen') C.spellBonus=.5;
+    else if(s.id==='serving'){gain(C,{heal:C.st.maxHP*s.heal});C.regen={pct:s.regen,turns:s.turns};}
+    else if (s.id === 'rage') C.rage = s.turns + 1;
     else if (s.id === 'wind') { gain(C, { heal: C.st.maxHP * s.heal }); C.wind = true; }
     else if (s.id === 'barrier' || s.id === 'aegis') C.shield = true;
     else if (s.id === 'coating') C.coating = s.turns + 1;
     else if (s.id === 'companion') {
       const maxHP = Math.round(C.st.maxHP * S.companion.hp);
       if (!C.ally || C.ally.hp <= 0) C.ally = { hp: maxHP, maxHP };
-      else C.ally.hp = Math.min(maxHP, C.ally.hp + Math.round(maxHP * S.companion.heal));
+      else C.ally.hp = Math.min(maxHP, C.ally.hp + Math.round(maxHP * S.companion.heal*(1+(C.gear.companionHeal||0))));
     } else {
+      beginAttack(C);C.actionBonus=C.nextAttackBonus||0;C.nextAttackBonus=0;
       const targets = s.target === 'all' ? living(C).map(e => C.enemies.indexOf(e)) : C.selection;
       for (const i of targets) {
         const e = C.enemies[i];
         if (e && e.hp > 0) strike(C, e, s);
       }
+      C.actionBonus=0;endAttack(C);if(s.type)C.spellBonus=0;
       if (s.id === 'mark') C.mark = C.selection[0];
       if (s.block) C.blocking = true;
     }
     for (let i = C.buffs.length - 1; i >= 0; i--) if (s.type && C.buffs[i].expires === 'heavy') C.buffs.splice(i, 1);
+    if(C.run.hp>hpBefore&&C.gear.healAbilityATP)gain(C,{atp:C.gear.healAbilityATP});
     say(C, s.name + ' activated.');
   }
   const A = {
@@ -224,9 +283,10 @@ DD.combat = (function () {
     },
     target(C, i) {
       if (C.phase !== 'target' || !C.enemies[i] || C.enemies[i].hp <= 0) return;
+      if(C.pending.id==='culture'&&!C.enemies[i].status.poison){say(C,'Culture Bloom needs a Poisoned target.');return;}
       C.target = i; C.selection.push(i);
       if (C.pending.id === 'attack') {
-        strike(C, C.enemies[i], { name: 'Attack', type: 'physical', mult: 1 }, true); afterPlayer(C);
+        basicAttack(C,C.enemies[i]);
       } else if (C.selection.length >= (C.pending.hits || 1)) ask(C);
     },
     cancel(C) { if (C.phase === 'target' || C.phase === 'choose') { C.phase = 'choose'; C.pending = null; C.selection = []; C.menu = 'commands'; } },
@@ -236,13 +296,14 @@ DD.combat = (function () {
       DD.q.record(C.q, ok, C.run.trip ? DD.q.regionOf(C.q) : C.run.regionId);
       if (!ok && !C.run.miss.includes(C.q.id)) C.run.miss.push(C.q.id);
       C.answer = { i, ok };
+      if(!C.drill){if(!C.paid)C.run.atp=Math.max(0,C.run.atp-C.pending.cost);C.paid=false;C.streak=ok?Math.min(5,C.streak+1):0;}
       if (C.drill) {
         if (ok) C.drill.left = C.drill.left.filter(id => id !== C.q.id);
         C.enemies[0].hp = C.drill.left.length;
       } else if (ok) {
-        C.run.atp -= C.pending.cost; resolve(C, C.pending);
+        resolve(C, C.pending);
         const x = context(C, C.enemies[C.target] || C.enemies[0]); DD.fx.fire('onQuestionCorrect', x); x.atp *= DD.fx.ruleMax(p(), 'atpMult', 1); gain(C, x);
-      } else say(C, 'The ability fails. ATP is preserved, but your turn is spent.');
+      } else { if(C.pending.type)C.phagoReady=false; say(C, 'The ability fails. ATP and your turn are spent.'); }
       C.phase = 'explain';
     },
     cont(C) {
@@ -270,6 +331,7 @@ DD.combat = (function () {
       if (id === 'lymphDrain') { C.over = 'return'; C.phase = 'end'; return; }
       const x = context(C, C.enemies[C.target] || C.enemies[0]);
       if (d.use.cast) DD.fx.apply(d.use.cast, x); gain(C, x);
+      if(id==='tonic'&&C.gear.tonicPoison&&C.status.poison){C.status.poison.stacks--;if(C.status.poison.stacks<=0)delete C.status.poison;}
       if (id === 'mucusWard') C.shield = true;
       else if (d.use.effect) { C.buffs.push(Object.assign({}, d.use.effect)); if (d.tick) C.buffs.push(Object.assign({}, d.tick)); }
       say(C, d.use.msg); afterPlayer(C);

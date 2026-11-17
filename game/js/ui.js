@@ -89,13 +89,13 @@ DD.ui = (function () {
       return el('div', { class: 'card cls' + (cur ? ' current' : '') },
         el('div', { class: 'rhead' }, el('h3', null, c.name), el('span', { class: 'chip ' + (cur ? 'ok' : '') }, cur ? 'Current · ' + c.role : c.role)),
         el('div', { class: 'ratings' }, rows),
-        el('div', { class: 'small' }, el('b', null, 'Weapon: '), c.weapon + ' (an equipped weapon of this type does ×' + S.gear.weaponTypeMult + ' damage)'),
+        el('div', { class: 'small' }, el('b', null, 'Weapon: '), c.weapon + ' · any class can use any weapon'),
 
         el('div', { class: 'small' }, el('b', null, c.passive.name + ' (passive): '), c.passive.desc),
         el('div', { class: 'small' }, el('b', null, 'ATP skills: '), DD.skills.list(Object.assign({}, p, { classId: id })).map(s => s.name + ' (' + s.cost + ' ATP)').join(' · ')),
         el('p', { class: 'codex small dim' }, c.codex),
         el('button', { class: 'btn' + (cur ? '' : ' primary'), type: 'button', disabled: cur || locked,
-          onclick: () => { p.classId = id; DD.game.resources(); DD.save.save(); ui.classes(); } }, cur ? 'Your current class' : 'Become a ' + c.name));
+          onclick: () => { p.classId = id; DD.gear.prepare(p,true); DD.game.resources(); DD.save.save(); ui.classes(); } }, cur ? 'Your current class' : 'Become a ' + c.name));
     });
     mount(el('div', { class: 'screen menu' },
       el('div', { class: 'tag' }, 'Bone Marrow'),
@@ -238,7 +238,7 @@ DD.ui = (function () {
         button('Abilities [A]', () => act('abilities'), C.rage ? 'Locked during Protein Rage' : '', 'ATP · answer a question'),
         button('Items [I]', () => act('items'), C.rage ? 'Locked during Protein Rage' : '', 'Uses your turn'),
         button('Flee', () => act('flee'), '', 'Leave now · lose expedition XP and loot'));
-      if (C.menu === 'abilities') body.append(el('h3', null, 'ATP abilities'), el('p', { class: 'small dim' }, 'Correct: activate and spend ATP. Wrong: lose the turn, keep ATP.'),
+      if (C.menu === 'abilities') body.append(el('h3', null, 'ATP abilities'), el('p', { class: 'small dim' }, 'ATP is spent when the question appears. Correct activates the ability; wrong spends the turn without an effect.'),
         ...combat.skills().map(s => button(s.name + ' · ' + s.cost + ' ATP', () => act('ability', s.id), combat.skillWhy(C, s), s.tip + (s.type ? ' [' + s.type + ']' : ''))));
       else if (C.menu === 'items') body.append(el('h3', null, 'Supplies'), ...DD.data.itemOrder.filter(id => combat.count(id)).map(id => {
         const d = DD.data.items[id]; return button(d.name + ' ×' + combat.count(id), () => act('item', id), combat.itemWhy(C, id), d.tip);
@@ -252,7 +252,7 @@ DD.ui = (function () {
       body.append(button('Next question', () => act('heavy')), button('Stop practice', DD.game.endDrill));
     } else if (C.phase === 'question' || C.phase === 'explain') {
       const q = C.q, ans = C.answer;
-      body.append(el('div', { class: 'qtag' }, C.drill ? 'Practice' : C.pending.name + ' · ' + C.pending.cost + ' ATP on success'),
+      body.append(el('div', { class: 'qtag' }, C.drill ? 'Practice' : C.pending.name + ' · ' + C.pending.cost + ' ATP spent'),
         el('div', { class: 'qrow' }, el('p', { class: 'q' }, q.q), DD.review.flagBtn(q)));
       if (q.img) body.append(DD.img.view(q.img, !!ans));
       body.append(el('div', { class: 'opts' }, C.opts.map((o, i) => el('button', {
@@ -261,7 +261,7 @@ DD.ui = (function () {
       if (ans) body.append(el('div', { class: 'fb ' + (ans.ok ? 'good' : 'bad') }, el('b', null, ans.ok ? 'Correct. ' : 'The answer is ' + q.answer + '. '), q.explain), button('Continue [Enter]', () => act('cont')));
     } else if (C.phase === 'end') {
       const title = C.over === 'win' ? 'Victory' : C.over === 'return' ? 'Lymphatic return' : C.over === 'flee' ? 'Expedition abandoned' : 'Your cell was defeated';
-      body.append(el('h2', null, title), el('p', null, C.over === 'return' ? 'Return to the lymph node with your earnings. HP and ATP stay depleted.' : C.over === 'flee' ? 'Run earnings are forfeited. Your original belongings remain yours.' : C.over === 'win' ? 'Continue exploring, or return safely to keep the expedition rewards.' : 'You will reform in the marrow.'), button('Continue [Enter]', () => act('cont')));
+      body.append(el('h2', null, title), el('p', null, C.over === 'return' ? 'Return to the lymph node with your earnings. HP and ATP stay depleted.' : C.over === 'flee' ? 'Run earnings are forfeited; Coat of Mucous retains 25% of earned glucose. Your original belongings remain yours.' : C.over === 'win' ? 'Continue exploring, or return safely to keep the expedition rewards.' : 'You will reform in the marrow.'), button('Continue [Enter]', () => act('cont')));
     }
     g.combat.replaceChildren(el('div', { class: 'cbox battle-box', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Combat', style: { '--accent': DD.data.region(C.run.regionId).accent } },
       el('div', { class: 'rhead' }, el('b', null, DD.data.region(C.run.regionId).name), el('span', null, 'Round ' + C.round)),

@@ -223,6 +223,7 @@ DD.town = (function () {
         el('span', { class: 'chip' }, 'you own ' + GR.owned(it.id) + (GR.owned(it.id) > 1 ? ' (extra copy)' : ''))),
         el('button', { class: 'btn small', type: 'button', onclick: () => T.sellGear(it.id) }, 'Sell ' + GR.sellPrice(it) + ' g')));
     return ['Plasma cell · shop', talk('plasma'), chips(), msgEl(), rows,
+      el('div',{class:'toolrow2'},el('button',{class:'btn',onclick:()=>T.open('specialty')},'Specialty equipment'),el('button',{class:'btn',onclick:()=>T.open('enchant')},'The Golgi Workshop')),
       el('h3', null, 'Gear'), note('Stock changes every visit. Equip what you buy from the gear screen.'),
       el('div', { class: 'toolrow2' }, el('button', { class: 'btn small primary', type: 'button', onclick: () => { savePos(); DD.gear.screen(() => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Open gear screen')),
       gearRows.length ? gearRows : note('Sold out for this visit.'),
@@ -270,7 +271,20 @@ DD.town = (function () {
         'To the ' + DD.data.town(p.to).name + (W.fastStatus(p).code === 'unlocked' ? ' (fast travel)' : '')))) : null,
       el('button', { class: 'btn' + (chain.length ? '' : ' primary'), type: 'button', onclick: () => leave(id => DD.ui.menu(id)) }, 'Rejoin the blood: pick a destination')];
   }
-  const PANELS = { shop: shopPanel, inn: innPanel, resp: respPanel, bounty: bountyPanel, talk: talkPanel, hev: hevPanel, hilum: hilumPanel };
+  function specialtyPanel(){
+    const ids=DD.gear.specialtyStock(town().regions).filter(id=>!T.gearBought.has(id));
+    return ['Specialty outfitter',note('Distinctive equipment for specific builds.'),chips(),msgEl(),
+      ...ids.map(id=>{const it=DD.data.gearById[id];return el('div',{class:'shoprow'},DD.gear.info(it),el('button',{class:'btn',disabled:prof().glucose<DD.gear.price(it),onclick:()=>T.buyGear(id)},'Buy '+DD.gear.price(it)+' g'));})];
+  }
+  function enchantPanel(){
+    const ids=[...new Set(DD.gear.equippedIds().concat(prof().gearBag))].filter(id=>{const it=DD.data.gearById[id];return it&&it.modern&&it.slot==='armor';});
+    return ['The Golgi Workshop · Fibroblast',note('One added resistance per armor copy. Built-in properties remain. Replacing an enchantment costs the full price; identical resistance never stacks.'),chips(),msgEl(),
+      note('Each enchantment costs '+DD.gear.enchantCost()+' glucose and halves direct damage of its type. It does not grant status immunity.'),
+      ...ids.map(id=>el('div',{class:'card'},DD.gear.info(DD.data.gearById[id]),el('div',{class:'toolrow2'},['acid','electrical','oxidative','toxin'].map(type=>{
+        const why=DD.gear.enchantWhy(id,type);return el('button',{class:'btn small',disabled:!!why,title:why,onclick:()=>{if(DD.gear.enchant(id,type)){T.msg='Enchantment applied.';T.open('enchant');}}},type+' resistance');
+      }))))];
+  }
+  const PANELS = { enchant:enchantPanel,specialty:specialtyPanel, shop: shopPanel, inn: innPanel, resp: respPanel, bounty: bountyPanel, talk: talkPanel, hev: hevPanel, hilum: hilumPanel };
   T.open = function (name, arg) {
     if (!g.over) return;
     if (T.panel !== name) T.msg = '';
@@ -336,7 +350,7 @@ DD.town = (function () {
       el('div', { class: 'controls' },
         el('div', { class: 'dpad' }, key('↑', 0, -1, 'u'), key('←', -1, 0, 'l'), key('↓', 0, 1, 'd'), key('→', 1, 0, 'r')),
         el('div', { class: 'legend' }, L('@', 'you', '#fff'), L('☺', 'town cell', '#7fd6c2'), L('b t o f r', 'resident cells', '#9fc4ba'), L('¥', 'merchant', '#e0c060'),
-          L('+', 'building', 'var(--bile)'), L('!', 'bounty board', 'var(--bile)'), L('=', 'counter', 'var(--bile)'), L('≈', 'HEV gate', '#ff6b6b'), L('<', 'hilum exit', 'var(--bone)'), L('∗', 'germinal center', '#e6a3c8'))),
+          L('+', 'building', 'var(--bile)'), L('✧','enchanter','#c09aff'), L('!', 'bounty board', 'var(--bile)'), L('=', 'counter', 'var(--bile)'), L('≈', 'HEV gate', '#ff6b6b'), L('<', 'hilum exit', 'var(--bone)'), L('∗', 'germinal center', '#e6a3c8'))),
       g.over));
     zoneCheck(true);
     savePos();

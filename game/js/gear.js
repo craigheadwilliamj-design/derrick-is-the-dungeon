@@ -1,262 +1,163 @@
-// Gear (phase 4b): ownership, equipping, chests, shop and merchant stock, item cards and the equipment screen.
-// Item data is in data/gear.js; equipped items reach combat through DD.fx.gearEffects, so equipping only changes profile.equipment.
+// Equipment ownership, hand rules, per-copy enchantments, drops, shops and review UI.
 DD.gear = (function () {
-  const { el } = DD.u, G = DD.S.gear, E = DD.S.economy;
-  const gear = {};
-  const prof = () => DD.save.profile;
-  const by = id => DD.data.gearById[id];
-  const inCourse = it => !['eyesears', 'glands'].includes(it.region);
-  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-  const pc = x => Math.round(x * 100) + '%';
-  const SLOT_NAME = { weapon: 'Weapon', armor: 'Armor', acc1: 'Accessory 1', acc2: 'Accessory 2' };
-  const KIND_NAME = { weapon: 'Weapon', armor: 'Armor', acc: 'Accessory' };
-  const TYPE_NAME = { axe: 'Axe', staff: 'Staff', dagger: 'Dagger', mace: 'Mace', bow: 'Bow', instrument: 'Instrument' };
-  const TYPE_PL = { bacteria: 'bacteria', virus: 'viruses', fungus: 'fungi', protozoa: 'protozoa', worm: 'worms' };
-  const STATS = [['maxHP', 'HP', 0], ['power', 'Power', 1], ['defense', 'Armor', 1], ['maxATP', 'ATP', 0]];
-
-  gear.slotsFor = it => it.slot === 'acc' ? ['acc1', 'acc2'] : [it.slot];
-  gear.color = rarity => G.colors[rarity];
-  gear.price = it => G.price[it.rarity] || 0;           // legendaries have no price: never bought or sold
-  gear.sellPrice = it => Math.floor(gear.price(it) * E.sellPct);
-  gear.canSell = it => it.rarity !== 'legendary';
-
-  // ---------- ownership ----------
-  const bag = () => prof().gearBag;
-  gear.equippedIds = () => DD.data.gearSlots.map(s => prof().equipment[s]).filter(Boolean);
-  gear.bagCount = id => bag().filter(x => x === id).length;
-  gear.owned = id => gear.bagCount(id) + gear.equippedIds().filter(x => x === id).length;
-  gear.give = function (id) { if (by(id)) bag().push(id); };
-  function takeFromBag(id) { const i = bag().indexOf(id); if (i >= 0) bag().splice(i, 1); return i >= 0; }
-  // A saved run (or town visit) keeps its HP and ATP, so they can't sit above a lowered maximum.
-  function clampRun() {
+  const {el}=DD.u, out={}, p=()=>DD.save.profile;
+  const names={weapon:'Main hand',offhand:'Off hand',armor:'Armor',head:'Head',acc1:'Accessory 1',acc2:'Accessory 2'};
+  const by=id=>DD.data.gearById[id];
+  const active=()=>DD.data.activeGear;
+  const rank={common:0,uncommon:1,rare:2,veryrare:3,legendary:4};
+  out.slotsFor=it=>it.slot==='weapon'?(it.hands===2?['weapon']:['weapon','offhand']):it.slot==='shield'?['offhand']:it.slot==='acc'?['acc1','acc2']:[it.slot];
+  out.color=r=>DD.S.gear.colors[r]||'#aaa';
+  out.price=it=>it.source==='starter'?0:(DD.S.gear.price[it.rarity]||({legendary:0}[it.rarity]))||0;
+  out.sellPrice=it=>Math.floor(out.price(it)*DD.S.economy.sellPct);
+  out.canSell=it=>it.source!=='starter'&&it.rarity!=='legendary';
+  out.equippedIds=()=>DD.data.gearSlots.map(s=>p().equipment[s]).filter(Boolean);
+  out.bagCount=id=>p().gearBag.filter(x=>x===id).length;
+  out.owned=id=>out.bagCount(id)+out.equippedIds().filter(x=>x===id).length;
+  out.give=id=>{if(by(id))p().gearBag.push(id);};
+  out.locked=()=>!!(DD.game&&DD.game.combat)||!!(DD.save.run&&DD.save.run.battle);
+  out.plan=function(profile,id,slot){
+    const it=by(id);if(!it||!out.slotsFor(it).includes(slot))return null;
+    const eq=Object.assign({},profile.equipment),removed=[];
+    const remove=s=>{if(eq[s])removed.push(eq[s]);delete eq[s];};
+    remove(slot);
+    if(slot==='weapon'&&it.hands===2)remove('offhand');
+    if(slot==='offhand'&&by(eq.weapon)&&by(eq.weapon).hands===2)remove('weapon');
+    if(it.slot==='acc'&&['boots','gloves','cloak'].includes(it.category))for(const s of ['acc1','acc2'])if(s!==slot&&by(eq[s])&&by(eq[s]).category===it.category)remove(s);
+    eq[slot]=id;return {eq,removed};
+  };
+  function clamp(){
     DD.game.resources();
-    const r = DD.save.run; if (!r || typeof r.hp !== 'number') return;
-    const st = DD.stats.compute(prof());
-    r.hp = Math.max(1, Math.min(r.hp, st.maxHP)); r.atp = Math.min(r.atp || 0, st.maxATP);
-    DD.save.saveRun(r);
-  }
-  gear.equip = function (id, slot) {
-    const it = by(id); if (!it || !gear.slotsFor(it).includes(slot) || !takeFromBag(id)) return false;
-    const old = prof().equipment[slot]; if (old) bag().push(old);
-    prof().equipment[slot] = id;
-    clampRun(); DD.save.save(); return true;
-  };
-  gear.unequip = function (slot) {
-    const old = prof().equipment[slot]; if (!old) return false;
-    bag().push(old); delete prof().equipment[slot];
-    clampRun(); DD.save.save(); return true;
-  };
-  // Stats with some slots swapped, for the comparison on item cards. changes = {slot: id | null}.
-  gear.preview = function (changes) {
-    const eq = Object.assign({}, prof().equipment, changes);
-    return DD.stats.compute(Object.assign({}, prof(), { equipment: eq }));
-  };
-
-  // ---------- plain-language effects ----------
-  const STAT_TEXT = {
-    maxHP: v => '+' + Math.round(v) + ' max HP', power: v => '+' + (+v.toFixed(1)) + ' Power', defense: v => '+' + (+v.toFixed(1)) + ' Armor',
-    maxATP: v => '+' + Math.round(v) + ' max ATP', blockCut: v => '+' + pc(v) + ' damage cut when you block'
-  };
-  const WHEN = { onKill: 'When you destroy an enemy', onBlock: 'When you block', onHeavyCorrect: 'On a correct damaging ATP ability', onQuestionCorrect: 'On every correct answer',
-    fightStart: 'At the start of a fight', turnStart: 'At the start of each turn', onQuestionAsk: 'Whenever a question is asked', onBigHit: 'When an enemy’s big attack lands',
-    onHit: 'When an enemy hits you', onLight: 'On a light attack' };
-  const RULE_TEXT = {
-    poisonSpread: 'If an enemy dies while poisoned, the poison carries over to the next enemy you fight',
-    questionBuff: 'The buff for answering an enemy’s question correctly is doubled',
-    forgive: 'The first wrong answer in each fight has no penalty (it still counts as wrong in your stats)',
-    wrongHeavy: v => 'A wrong heavy attack still lands for ' + pc(v) + ' of a correct heavy’s damage',
-    atpMult: v => 'Correct answers restore ×' + v + ' ATP',
-    atpCost: v => 'Your active costs ' + pc(1 - v) + ' less ATP',
-    tameBig: 'Enemy big attacks become normal attacks',
-    poisonStacks: v => 'Your poison can stack up to ' + v + ' times',
-    reflect: v => 'A block reflects ' + pc(v) + ' of the hit back at the enemy'
-  };
-  function condText(c) {
-    if (!c) return '';
-    if (c.enemyType) return ' against ' + [].concat(c.enemyType).map(t => TYPE_PL[t] || t).join(' and ');
-    if (c.isBoss) return ' against bosses';
-    if (c.hpBelow != null) return ' while the enemy is under ' + pc(c.hpBelow) + ' HP';
-    if (c.beatenBefore) return ' against species you have beaten before';
-    if (c.poisoned) return ' against poisoned enemies';
-    if (c.allyActive) return ' while your ally is out';
-    return '';
-  }
-  gear.fxText = function (e) {
-    const r = e.result;
-    if (e.trigger === 'static') {
-      if (r.type === 'stat') return STAT_TEXT[r.stat](r.add);
-      if (r.type === 'damageMult') return '×' + r.mult + ' damage' + condText(e.cond);
-      if (r.type === 'rule') { const t = RULE_TEXT[r.rule]; return typeof t === 'function' ? t(r.value) : t || r.rule; }
-      if (r.type === 'travelSpeed') return 'The current carries you along vessels more often';
-      if (r.type === 'revealNPCs') return 'Shows native cells and merchants on the dungeon map before you find them';
+    for(const r of [DD.game.run,DD.save.run])if(r&&typeof r.hp==='number'){
+      const s=DD.stats.compute(p());r.hp=Math.min(r.hp,s.maxHP);r.atp=Math.min(r.atp,s.maxATP);
     }
-    const when = WHEN[e.trigger] || e.trigger;
-    if (r.type === 'repeatHit') return when + ': the blow lands ' + (r.n === 1 ? 'a second time' : r.n + ' more times');
-    if (e.chance != null && r.type === 'damageMult') return when + ': ' + pc(e.chance) + ' chance to crit for ×' + r.mult + ' damage';
-    if (r.type === 'removeWrong') return when + ': ' + r.n + ' wrong option removed';
-    if (r.type === 'summonAlly') return when + ': a neutrophil ally attacks for ' + r.turns + ' turns';
-    if (r.type === 'heal' && e.cond && e.cond.blocked) return when + ' and you blocked it: heal ' + (r.pct >= 1 ? 'to full HP' : pc(r.pct) + ' of max HP');
-    if (r.type === 'heal') return when + ': heal ' + pc(r.pct) + ' of max HP';
-    if (r.type === 'atp') return when + ': +' + r.amount + ' ATP';
-    if (r.type === 'shield') return when + ': the first hit you take does 0 damage';
-    if (r.type === 'poison') return when + ': poison for ' + pc(r.pct) + ' of its max HP per turn, ' + r.turns + ' turns';
-    if (r.type === 'execute') return when + ': finishes an enemy left under ' + pc(r.threshold) + ' HP';
-    return when;
-  };
-  // Stat lines merge into one row; the rest stay one per line.
-  gear.fxLines = function (it) {
-    const stats = it.effects.filter(e => e.result.type === 'stat').map(gear.fxText), rest = it.effects.filter(e => e.result.type !== 'stat').map(gear.fxText);
-    return (stats.length ? [stats.join(', ')] : []).concat(rest);
-  };
-
-  // ---------- chests, shops, merchant ----------
-  const TIERS = ['common', 'uncommon', 'rare'];
-  // Rolled with the floor's seeded rng so a reload shows the same chest. Boss floors shift the roll one tier up (rare stays rare).
-  gear.rollChest = function (r, regionId, boss) {
-    const C = G.chest;
-    let tier = DD.u.weightedPick(r, TIERS, t => C.odds[t]);
-    if (boss) tier = TIERS[Math.min(TIERS.length - 1, TIERS.indexOf(tier) + C.bossShift)];
-    tier = TIERS[Math.max(TIERS.indexOf(tier), DD.derrick.chestMinTier())]; // Reinfection (5b): common chests become uncommon, then rare
-    const w = it => it.region === regionId ? C.regionWeight : !it.region ? C.genericWeight : 0;
-    for (const t of [tier].concat(TIERS.filter(x => x !== tier))) {
-      const pool = DD.data.gear.filter(it => inCourse(it) && it.rarity === t && w(it) > 0);
-      if (pool.length) return DD.u.weightedPick(r, pool, w).id;
-    }
-    return DD.data.gear.find(it => it.rarity === 'common').id;
-  };
-  gear.openChest = function (chest) {
-    const it = by(chest.item); chest.taken = true; DD.game.reward('gear', chest.item);
-    DD.game.say('You open a chest: ' + it.name + ' (' + it.rarity + '). Return safely to keep it.');
-    DD.save.save(); DD.game.persist();
-  };
-  // Town shop: some commons and a few uncommons, favoring gear from the regions that drain to this node. Same seed, same stock.
-  gear.shopStock = function (seed, regions) {
-    const r = DD.rng((seed ^ 0x6ea7) >>> 0), S = G.shop;
-    const w = it => (regions || []).includes(it.region) ? S.regionWeight : 1;
-    const take = (tier, n) => {
-      const pool = DD.data.gear.filter(it => inCourse(it) && it.rarity === tier), out = [];
-      while (out.length < n && pool.length) { const it = DD.u.weightedPick(r, pool, w); pool.splice(pool.indexOf(it), 1); out.push(it.id); }
-      return out;
-    };
-    return take('common', S.commons).concat(take('uncommon', S.uncommons));
-  };
-  // The dendritic merchant's rare slot: one rare item, at the merchant's markup.
-  gear.rareStock = function (r) {
-    const pool = DD.data.gear.filter(it => inCourse(it) && it.rarity === 'rare'), it = DD.u.pick(r, pool);
-    return { id: it.id, price: Math.round(G.price.rare * DD.S.merchant.priceMult), sold: false };
-  };
-  gear.buyRare = function (npc) {
-    const s = npc.rare; if (!s || s.sold || prof().glucose < s.price) return false;
-    prof().glucose -= s.price; s.sold = true; gear.give(s.id); return true;
-  };
-
-  // ---------- cards ----------
-  const ownType = it => it.wtype && it.wtype === DD.data.classes[prof().classId].weaponType;
-  function chips(it) {
-    return el('div', { class: 'chips' },
-      el('span', { class: 'chip rc' }, cap(it.rarity)),
-      el('span', { class: 'chip' }, it.slot === 'weapon' ? TYPE_NAME[it.wtype] : KIND_NAME[it.slot]),
-      it.region ? el('span', { class: 'chip' }, DD.data.region(it.region).name) : null,
-      it.set ? el('span', { class: 'chip ok', title: DD.data.setById[it.set].concept }, DD.data.setById[it.set].name + ' set ' + (DD.fx.setCounts(prof())[it.set] || 0) + '/' + DD.data.setById[it.set].pieces.length) : null,
-      ownType(it) ? el('span', { class: 'chip ok', title: 'Your class’s weapon type: this weapon does ×' + G.weaponTypeMult + ' damage' }, 'own type ×' + G.weaponTypeMult) : null);
+    if(DD.game.run)DD.game.persist();else if(DD.save.run)DD.save.saveRun(DD.save.run);
   }
-  // Name, rarity, effects and the real fact. Used in shops, the merchant and the equipment screen.
-  gear.info = function (it, extra) {
-    return el('div', { class: 'shopinfo ginfo', style: { '--rc': gear.color(it.rarity) } },
-      el('b', { class: 'gname' }, it.name), chips(it), extra || null,
-      it.wtype === 'staff' ? el('div', { class: 'small' }, 'Wizard spell: ' + ((DD.data.staffSpells[it.id] || {}).name || 'Acid Bolt')) : null,
-      el('ul', { class: 'fxl' }, gear.fxLines(it).map(t => el('li', null, t))),
-      el('div', { class: 'small dim' }, it.desc));
+  out.equip=function(id,slot){
+    if(out.locked())return false;
+    const i=p().gearBag.indexOf(id),plan=out.plan(p(),id,slot);if(i<0||!plan)return false;
+    p().gearBag.splice(i,1);p().gearBag.push(...plan.removed);p().equipment=plan.eq;clamp();DD.save.save();return true;
   };
-  const fmt = (v, d) => d ? v.toFixed(1) : String(Math.round(v));
-  // Stat comparison if `id` replaced whatever is in `slot`.
-  gear.diff = function (id, slot) {
-    const it = by(id), oldId = prof().equipment[slot], old = oldId ? by(oldId) : null;
-    const a = DD.stats.compute(prof()), b = gear.preview({ [slot]: id }), rows = [];
-    STATS.forEach(([k, label, d]) => {
-      const dv = b[k] - a[k]; if (Math.abs(dv) < 0.05) return;
-      rows.push(el('div', { class: dv > 0 ? 'up' : 'down' }, label + ' ' + fmt(a[k], d) + ' → ' + fmt(b[k], d) + ' (' + (dv > 0 ? '+' : '') + (d ? dv.toFixed(1) : Math.round(dv)) + ')'));
+  out.unequip=function(slot){if(out.locked()||!p().equipment[slot])return false;p().gearBag.push(p().equipment[slot]);delete p().equipment[slot];clamp();DD.save.save();return true;};
+  out.preview=changes=>DD.stats.compute(Object.assign({},p(),{equipment:Object.assign({},p().equipment,changes)}));
+  out.restoreInstances=function(profile){
+    const src=profile.gearInstances||{},clean={};
+    for(const [id,v] of Object.entries(src)){
+      const base=v&&by(v.baseId);if(!id.startsWith('instance-')||!base||!base.modern||base.slot!=='armor'||!['acid','electrical','oxidative','toxin'].includes(v.enchant))continue;
+      const it=JSON.parse(JSON.stringify(base));it.id=id;it.baseId=base.id;it.enchant=v.enchant;
+      it.perks.resist=Object.assign({},it.perks.resist,{[v.enchant]:Math.max(.5,(it.perks.resist||{})[v.enchant]||0)});
+      DD.data.gearById[id]=it;clean[id]={baseId:base.id,enchant:v.enchant};
+    }
+    profile.gearInstances=clean;
+  };
+  out.prepare=function(profile, equipNewKit=false){
+    profile.equipment=profile.equipment||{};profile.gearBag=profile.gearBag||[];
+    profile.startersIssued=profile.startersIssued||{};out.restoreInstances(profile);
+    // Move older head/shield pieces into their actual slots without losing copies.
+    const eq=profile.equipment,armor=by(eq.armor);
+    if(armor&&armor.slot==='head'&&!eq.head){eq.head=eq.armor;delete eq.armor;}
+    if(armor&&armor.slot==='shield'&&!eq.offhand){eq.offhand=eq.armor;delete eq.armor;}
+    for(const s of Object.keys(eq))if(!DD.data.gearSlots.includes(s)||!by(eq[s])||!out.slotsFor(by(eq[s])).includes(s)){
+      if(by(eq[s]))profile.gearBag.push(eq[s]);delete eq[s];
+    }
+    if(by(eq.weapon)&&by(eq.weapon).hands===2&&eq.offhand){profile.gearBag.push(eq.offhand);delete eq.offhand;}
+    if(!profile.startersIssued[profile.classId]){
+      if(equipNewKit){for(const s of ['weapon','offhand','armor']){if(eq[s])profile.gearBag.push(eq[s]);delete eq[s];}}
+      for(const id of DD.data.starterKits[profile.classId]||[]){
+        const it=by(id),slot=out.slotsFor(it)[0];
+        if(!eq[slot]&&!(slot==='offhand'&&by(eq.weapon)&&by(eq.weapon).hands===2))eq[slot]=id;
+        else profile.gearBag.push(id);
+      }
+      profile.startersIssued[profile.classId]=true;
+    }
+    profile.gearV=1;
+  };
+  out.perks=function(profile){
+    const result={damage:{},resist:{},convert:{},immune:[]};
+    for(const slot of DD.data.gearSlots){
+      const it=by((profile.equipment||{})[slot]);if(!it||!it.modern)continue;
+      for(const [k,v]of Object.entries(it.perks||{})){
+        if(['damage'].includes(k)){for(const [t,n]of Object.entries(v))result[k][t]=(result[k][t]||0)+n;}
+        else if(['resist','convert'].includes(k)){for(const [t,n]of Object.entries(v))result[k][t]=Math.max(result[k][t]||0,n);}
+        else if(k==='immune')result.immune.push(...v);
+        else if(k==='costMult')result[k]=(result[k]||1)*v;
+        else if(typeof v==='number')result[k]=(result[k]||0)+v;
+        else result[k]=v;
+      }
+    }return result;
+  };
+  out.enchantCost=()=>250+DD.save.profile.level*10;
+  out.enchantWhy=function(id,type){
+    const it=by(id);if(out.locked()||(DD.save.run&&DD.save.run.kind!=='town'))return 'Finish the expedition first';
+    if(!it||!it.modern||it.slot!=='armor'||!out.owned(id))return 'Choose owned body armor';
+    if(!['acid','electrical','oxidative','toxin'].includes(type))return 'Choose a resistance';
+    const base=by(it.baseId)||it;
+    if((base.perks.resist||{})[type]>=.5||it.enchant===type)return 'This resistance is already present';
+    if(p().glucose<out.enchantCost())return 'Not enough glucose';return '';
+  };
+  out.enchant=function(id,type){
+    if(out.enchantWhy(id,type))return false;
+    const base=by(id).baseId||id,uid='instance-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+    const slot=DD.data.gearSlots.find(s=>p().equipment[s]===id);
+    p().glucose-=out.enchantCost();p().gearInstances[uid]={baseId:base,enchant:type};out.restoreInstances(p());
+    if(slot)p().equipment[slot]=uid;else p().gearBag[p().gearBag.indexOf(id)]=uid;
+    DD.save.save();return true;
+  };
+  out.rollChest=function(r,region,boss){
+    const floor=(DD.game.run&&DD.game.run.floorIdx)||0;
+    const pool=active().filter(it=>!['starter','specialty','boss'].includes(it.source)&&(!it.region||it.region===region)&&
+      (it.source!=='deep'||boss||floor>=1||DD.derrick.chestMinTier()>0));
+    return DD.u.weightedPick(r,pool,it=>(it.region===region?3:1)*(it.rarity==='veryrare'?(boss?2:.4):2)).id;
+  };
+  out.openChest=function(c){if(c.taken)return;c.taken=true;DD.game.reward('gear',c.item);DD.game.say('Found '+by(c.item).name+'. Return safely to keep it.');DD.game.persist();};
+  out.shopStock=function(seed,regions){const rng=DD.rng(seed^0x6ea7);return DD.u.shuffle(rng,active().filter(it=>it.source==='basic')).slice(0,9).map(it=>it.id);};
+  out.specialtyStock=function(regions){return active().filter(it=>it.source==='specialty'&&(!it.region||regions.includes(it.region))).map(it=>it.id);};
+  out.rareStock=function(r){const it=DD.u.pick(r,active().filter(it=>['field','specialty'].includes(it.source)&&it.rarity==='rare'));return {id:it.id,price:Math.round(out.price(it)*DD.S.merchant.priceMult),sold:false};};
+  out.buyRare=function(n){const s=n.rare;if(!s||s.sold||p().glucose<s.price)return false;p().glucose-=s.price;s.sold=true;out.give(s.id);return true;};
+  out.fxLines=function(it){
+    if(!it.modern)return ['Legacy item: retained for existing saves; no longer found in new loot.'];
+    const lines=[];for(const [k,n]of Object.entries(it.stats))lines.push((n>=0?'+':'')+n+' '+({defense:'Armor',power:'Power',maxHP:'max HP',maxATP:'max ATP'}[k]||k));
+    if(it.attack)lines.push('+'+it.attack+' basic attack power');
+    if(it.perks.block)lines.push('Block +'+Math.round(it.perks.block*100)+' percentage points');
+    if(it.staffKit)lines.push('Wizard spells: '+DD.data.staffKits[it.staffKit].map(s=>s.name).join(' / '));
+    if(it.enchant)lines.push('Golgi enchantment: half '+it.enchant+' damage');
+    return lines.concat(it.rules||[]);
+  };
+  out.info=(it,extra)=>el('div',{class:'shopinfo ginfo',style:{'--rc':out.color(it.rarity)}},el('b',{class:'gname'},it.name),
+    el('div',{class:'chips'},el('span',{class:'chip'},it.rarity),el('span',{class:'chip'},it.slot==='weapon'?it.wtype+' · '+(it.hands||1)+' hand'+(it.hands===2?'s':''):it.weight||it.slot),it.legacy?el('span',{class:'chip warn'},'Legacy vault'):null),
+    extra,el('ul',{class:'fxl'},out.fxLines(it).map(t=>el('li',null,t))),el('div',{class:'small dim'},it.desc));
+  out.diff=function(id,slot){
+    const plan=out.plan(p(),id,slot),a=DD.stats.compute(p()),b=DD.stats.compute(Object.assign({},p(),{equipment:plan.eq}));
+    const rows=['maxHP','maxATP','power','defense','blockCut'].filter(k=>a[k]!==b[k]).map(k=>el('div',{class:b[k]>a[k]?'up':'down'},k+': '+(+a[k].toFixed(2))+' → '+(+b[k].toFixed(2))));
+    const item=by(id);
+    if(item.slot==='weapon')rows.push(el('div',null,'Basic weapon: '+(item.damageType||'physical')+' · +'+(item.attack||0)+' attack power'+(slot==='offhand'?' · 50% strike strength':'')));
+    return el('div',{class:'diff'},el('div',null,plan.removed.length?'Replaces '+plan.removed.map(x=>by(x).name).join(' and '):'Empty '+names[slot]),...rows);
+  };
+  let filter='all',back=null;
+  out.screen=function(fn){
+    if(fn)back=fn;const ui=DD.ui,profile=p();ui.mode='gear';const rerender=()=>out.screen();
+    const locked=out.locked(),counts={};profile.gearBag.forEach(id=>{if(by(id))counts[id]=(counts[id]||0)+1;});
+    const cards=Object.keys(counts).map(by).filter(it=>filter==='all'?!it.legacy:(filter==='legacy'?it.legacy:it.slot===filter&&!it.legacy)).sort((a,b)=>a.name.localeCompare(b.name));
+
+    const slotCards=DD.data.gearSlots.map(slot=>{
+      const it=by(profile.equipment[slot]);
+      const empty=slot==='offhand'&&by(profile.equipment.weapon)&&by(profile.equipment.weapon).hands===2?'Occupied by two-handed weapon':'Empty';
+      return el('div',{class:'gearcard'},el('b',null,names[slot]),it?out.info(it):el('div',null,empty),
+        it?el('button',{class:'btn',disabled:locked,onclick:()=>{out.unequip(slot);rerender();}},'Unequip'):null);
     });
-    if (Math.abs(b.blockCut - a.blockCut) > 0.001) rows.push(el('div', { class: b.blockCut > a.blockCut ? 'up' : 'down' }, 'Block cut ' + pc(a.blockCut) + ' → ' + pc(b.blockCut)));
-    if (slot === 'weapon') {
-      const oldOwn = old && ownType(old), newOwn = ownType(it);
-      if (newOwn && !oldOwn) rows.push(el('div', { class: 'up' }, 'Own weapon type: ×' + G.weaponTypeMult + ' damage'));
-      if (oldOwn && !newOwn) rows.push(el('div', { class: 'down' }, 'Loses the own-weapon-type bonus (×' + G.weaponTypeMult + ')'));
-    }
-    const lose = old ? old.effects.filter(e => e.result.type !== 'stat').map(gear.fxText) : [];
-    lose.forEach(t => rows.push(el('div', { class: 'down' }, 'Loses: ' + t)));
-    if (!rows.length) rows.push(el('div', { class: 'dim' }, 'No change to your stats.'));
-    return el('div', { class: 'diff' }, el('div', { class: 'dim' }, (old ? 'Replaces ' + old.name : 'Empty slot') + (it.slot === 'acc' ? ' (' + SLOT_NAME[slot] + ')' : '') + ':'), rows);
-  };
+    const bagCards=cards.map(it=>{
+      const choices=out.slotsFor(it).map(slot=>el('div',null,out.diff(it.id,slot),
+        el('button',{class:'btn',disabled:locked,onclick:()=>{out.equip(it.id,slot);rerender();}},'Equip: '+names[slot])));
+      return el('div',{class:'gearcard'},out.info(it,el('small',null,'In bag ×'+counts[it.id])),...choices);
+    });
+    const filters=[['all','All'],['weapon','Weapons'],['shield','Shields'],['armor','Armor'],['head','Head'],['acc','Accessories'],['legacy','Legacy vault']]
+      .map(([v,label])=>el('button',{class:'btn small',onclick:()=>{filter=v;rerender();}},label));
+    ui.mount(el('div',{class:'screen menu'},el('h1',null,'Equipment'),
+      el('p',{class:'small dim'},'Any class can use any equipment. Two-handed weapons occupy both hands. Off-hand weapons strike at 50% strength.'),
+      el('button',{class:'btn',onclick:()=>(back||ui.menu)()},'Back'),
+      locked?el('p',{class:'warn'},'Equipment cannot change during an active or saved battle.'):null,
+      el('div',{class:'gslots'},slotCards),el('div',{class:'toolrow2'},filters),el('div',{class:'gslots'},bagCards)));
 
-  // ---------- sets (5a) ----------
-  gear.setsPanel = function () {
-    const n = DD.fx.setCounts(prof()), eq = gear.equippedIds();
-    return el('div', { class: 'stack', style: { alignItems: 'stretch' } }, DD.data.sets.map(s => {
-      const have = n[s.id] || 0, on = have >= s.pieces.length;
-      return el('div', { class: 'card' + (on ? ' sel' : '') },
-        el('div', { class: 'rhead' }, el('h3', null, s.name + ' set'), el('span', { class: 'chip' + (on ? ' ok' : '') }, on ? 'active' : have + '/' + s.pieces.length)),
-        el('div', { class: 'small' }, el('b', null, 'Bonus (all ' + s.pieces.length + '): '), s.bonusText),
-        el('div', { class: 'dim small' }, s.concept),
-        el('ul', { class: 'fxl' }, s.pieces.map(id => {
-          const it = by(id), mine = eq.includes(id), own = gear.owned(id) > 0;
-          return el('li', { class: mine ? '' : 'dim' }, it.name + ' (' + (it.slot === 'weapon' ? TYPE_NAME[it.wtype] : KIND_NAME[it.slot]).toLowerCase() + ')' + (mine ? ' · equipped' : own ? ' · in your bag' : ''));
-        })));
-    }));
   };
-
-  // ---------- the equipment screen ----------
-  let filter = 'all', back = null;
-  const RANK = { legendary: 0, rare: 1, uncommon: 2, common: 3 };
-  gear.screen = function (backFn) {
-    const ui = DD.ui, p = prof();
-    if (backFn) back = backFn;
-    ui.mode = 'gear';
-    const sc = document.querySelector('.screen'), top = sc ? sc.scrollTop : 0;
-    const st = DD.stats.compute(p), cls = DD.data.classes[p.classId];
-    const rerender = () => gear.screen();
-    const slotCard = slot => {
-      const id = p.equipment[slot], it = id && by(id);
-      return el('div', { class: 'gearcard' + (it ? ' ' + it.rarity : ''), style: { '--rc': it ? gear.color(it.rarity) : 'var(--line)' } },
-        el('div', { class: 'tag' }, SLOT_NAME[slot]),
-        it ? gear.info(it) : el('div', { class: 'dim small' }, 'Empty'),
-        it ? el('button', { class: 'btn small', type: 'button', onclick: () => { gear.unequip(slot); rerender(); } }, 'Unequip') : null);
-    };
-    const counts = {};
-    bag().forEach(id => { counts[id] = (counts[id] || 0) + 1; });
-    const ids = Object.keys(counts).map(by).filter(it => filter === 'all' || it.slot === filter)
-      .sort((a, b) => ['weapon', 'armor', 'acc'].indexOf(a.slot) - ['weapon', 'armor', 'acc'].indexOf(b.slot) || RANK[a.rarity] - RANK[b.rarity] || a.name.localeCompare(b.name));
-    const bagCard = it => {
-      const n = counts[it.id], extra = gear.owned(it.id) > 1;
-      const slots = gear.slotsFor(it);
-      return el('div', { class: 'gearcard ' + it.rarity, style: { '--rc': gear.color(it.rarity) } },
-        gear.info(it, extra || n > 1 ? el('div', { class: 'chips' }, el('span', { class: 'chip warn' }, 'you own ' + gear.owned(it.id)),
-          gear.canSell(it) ? el('span', { class: 'chip' }, 'extra copies sell at a plasma cell shop for ' + gear.sellPrice(it) + ' g') : null) : null),
-        slots.map(s => gear.diff(it.id, s)),
-        el('div', { class: 'toolrow2' }, slots.map(s => el('button', { class: 'btn small primary', type: 'button', onclick: () => { gear.equip(it.id, s); rerender(); } },
-          slots.length > 1 ? 'Equip in ' + SLOT_NAME[s].toLowerCase() : 'Equip'))));
-    };
-    const chip = ([v, label]) => el('button', { class: 'btn small' + (filter === v ? ' primary' : ''), type: 'button', 'aria-pressed': String(filter === v),
-      onclick: () => { filter = v; rerender(); } }, label);
-    ui.mount(el('div', { class: 'screen menu' },
-      el('div', { class: 'tag' }, 'Gear'),
-      el('h1', null, 'Equipment'),
-      el('p', { class: 'dim small' }, cls.name + ' · ' + cls.weapon + ' are your own weapon type: an equipped one does ×' + G.weaponTypeMult + ' damage. Any class can equip any item.'),
-      el('div', { class: 'toolrow2' }, el('button', { class: 'btn', type: 'button', onclick: () => (back || ui.menu)() }, 'Back')),
-      el('div', { class: 'card' },
-        el('div', { class: 'stats small' }, 'HP ' + st.maxHP + ' · Power ' + st.power.toFixed(1) + ' · Defense ' + st.defense.toFixed(1) + ' · ATP ' + st.maxATP + ' · Block cut ' + pc(st.blockCut)),
-        DD.save.run ? el('div', { class: 'dim small' }, 'A run is in progress: HP and ATP are capped to the new maximums when you swap.') : null),
-      el('p', { class: 'dim small' }, 'Equipment review pending: legacy rules tied to heavy attacks or enemy quizzes are suspended. Stats, ordinary triggers and travel effects remain active.'),
-      el('div', { class: 'gslots' }, DD.data.gearSlots.map(slotCard)),
-      el('div', { class: 'toolrow2' }, el('b', null, 'Bag (' + bag().length + ')'), [['all', 'All'], ['weapon', 'Weapons'], ['armor', 'Armor'], ['acc', 'Accessories']].map(chip)),
-      ids.length ? el('div', { class: 'gslots' }, ids.map(bagCard)) : el('p', { class: 'dim small' }, bag().length ? 'Nothing in the bag for this filter.' : 'Your bag is empty. Gear comes from dungeon chests (&), plasma cell shops, the dendritic merchant and boss drops.'),
-      el('details', { class: 'card', open: true }, el('summary', null, el('b', null, 'Gear sets'), ' (' + DD.data.sets.filter(x => (DD.fx.setCounts(p)[x.id] || 0) >= x.pieces.length).length + ' active)'), gear.setsPanel())));
-    const sc2 = document.querySelector('.screen'); if (sc2) sc2.scrollTop = top;
-  };
-  gear.summary = function () {
-    const ids = gear.equippedIds();
-    return ids.length ? ids.map(id => by(id).name).join(', ') : 'nothing equipped';
-  };
-
-  return gear;
+  out.summary=()=>out.equippedIds().map(id=>by(id).name).join(', ')||'nothing equipped';
+  return out;
 })();

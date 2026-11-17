@@ -12,13 +12,13 @@ const D=ctx.DD; const realGameUI=D.ui.game, realCombatUI=D.ui.openCombat; D.save
 D.data.questions[D.data.region('marrow').systems[0]]=[{id:'synthetic-combat',system:D.data.region('marrow').systems[0],q:'Synthetic?',answer:'A',wrong:['B','C','D'],explain:'Synthetic test.'}];
 D.ui.openCombat=()=>{}; D.ui.closeCombat=()=>{}; D.ui.menu=()=>{}; D.ui.town=()=>{}; D.ui.stopMap=()=>{};
 D.ui.showCleared=()=>{}; D.ui.showDeath=()=>{}; D.ui.game=()=>{}; D.ui.banner=()=>{}; D.ui.review=()=>{};
-function reset(id='macrophage') { D.game.run=null; D.game.combat=null; D.save.reset(); D.save.profile.classId=id; D.game.resources(); }
+function reset(id='macrophage') { D.game.run=null; D.game.combat=null; D.save.reset(); D.save.profile.classId=id; D.gear.prepare(D.save.profile); D.save.profile.equipment={}; D.game.resources(); }
 function enemy(o={}){return Object.assign({uid:0,defId:'rhinovirus',name:'Synthetic foe',type:'virus',glyph:'v',boss:false,lvl:1,atk:10,def:0,hp:500,maxHP:500,x:0,y:0,alive:true,damageType:'physical'},o);}
 function battle(id='macrophage',foes=[enemy()]){reset(id); const st=D.game.stats(),r={seed:1,floorIdx:0,regionId:'marrow',hp:st.maxHP,atp:st.maxATP,miss:[],glucose:0,killed:0};D.game.run=r; const C=D.combat.create(r,foes); D.game.combat=C; for(const e of C.enemies)e.intent='attack';return C;}
 function skill(C,id,targets=[0],ok=true){D.combat.ability(C,id);for(const i of targets)if(C.phase==='target')D.combat.target(C,i); assert.equal(C.phase,'question',id+' asks');D.combat.answer(C,C.opts.findIndex(o=>o.correct===ok));assert.equal(C.phase,'explain');D.combat.cont(C);}
 for(const id of D.data.classOrder){reset(id);const st=D.game.stats(),base=D.S.rpg.bases[id];for(const k of Object.keys(base))assert.equal(st[k],base[k],id+' '+k);assert.equal(D.skills.list(D.save.profile).length,3);}
 assert.equal(D.combat.armorDamage(40,25),32);assert.equal(D.combat.armorDamage(40,100),20);
-let C=battle('bcell');const atp=C.run.atp;skill(C,'bolt',[0],false);assert.equal(C.run.atp,atp);assert.equal(C.enemies[0].hp,500);assert.equal(C.round,2);
+let C=battle('bcell');const atp=C.run.atp;skill(C,'bolt',[0],false);assert.equal(C.run.atp,atp-6);assert.equal(C.enemies[0].hp,500);assert.equal(C.round,2);
 C=battle('bcell');skill(C,'bolt');assert.equal(C.run.atp,34);assert.ok(C.enemies[0].status.corrode);
 // Blocking covers the entire round. Armor=0 isolates the 50% Block multiplier.
 C=battle('macrophage',[enemy(),enemy({uid:1})]);C.st.defense=0;D.combat.block(C);assert.equal(C.run.hp,120);
