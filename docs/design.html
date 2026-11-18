@@ -110,8 +110,8 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <p>One permanent companion identity, recruited for a battle. HP = 50% Ranger max HP. Attacks immediately on recruitment and once per round for 40% Ranger Power; follows Antibody Mark, otherwise the selected living target. Receives 25% of direct damage that would otherwise hit Ranger, capped by its remaining HP; damage is redirected, not duplicated or reduced a second time. Recasting heals 50% companion max HP, or summons it again after defeat. No recast at full HP. The mark strengthens both Ranger and companion damage. Companion ends with the encounter.</p>
 
 <h2>Character art: real cells, floating gear (2026-11-18)</h2>
-<p><b>Supersedes the SVG rig plan and the toon Blob Editor renders.</b> Hand-drawn SVG rigs did not scale past one character, and cute mascots are not the joke. Every character is now a realistic, translucent cell rendered in Blender, with its equipped gear floating inside the cytoplasm. The cell is deadpan; the gear does the acting. The existing Eosinophil and Basophil SVG rigs in <code>js/anim.js</code> stay in the game only until their replacements land. The map stays glyphs.</p>
-<p>Biology is the point: every cell must show its real identifying features, because players learn from them.</p>
+<p><b>Supersedes the SVG rig plan and the toon Blob Editor renders.</b> Hand-drawn SVG rigs did not scale past one character, and cute mascots are not the joke. Every character is now a realistic, translucent cell made in the Blob Editor, with its equipped gear floating inside the cytoplasm. The cell is deadpan; the gear does the acting. The existing Eosinophil and Basophil SVG rigs in <code>js/anim.js</code> stay in the game only until their replacements land. The map stays glyphs.</p>
+<p>Biology is the point: every cell must show its real identifying features (nucleus shape, granule pattern, size, outline), because players learn from them. <b>Body color is personality, not stain accuracy:</b> each character keeps its own color (the Macrophage is mint) so the cells look and feel different.</p>
 <div class="t"><table><tr><th>Cell</th><th>Must show</th></tr>
 <tr><td>Neutrophil · Berserker</td><td>3–5-lobed nucleus, faint pale lilac granules, pseudopods.</td></tr>
 <tr><td>Eosinophil · Ranger</td><td>Bilobed nucleus, coral-orange granules.</td></tr>
@@ -120,19 +120,18 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <tr><td>Cytotoxic T · Rogue</td><td>Small lymphocyte: round, mostly nucleus.</td></tr>
 <tr><td>Basophil (companion)</td><td>Dense dark purple granules mostly hiding the nucleus. Stays the pup through behavior, not anatomy.</td></tr>
 </table></div>
-<h3>Cell render (Blender)</h3>
+<h3>Cell render (Blob Editor)</h3>
 <ul>
-<li>Shape from metaball blobs in the <a href="https://claude.ai/artifact/8Eow14GXstrGUg3wuoQajn">Blob Editor</a> (<code>tools/blob-editor/</code>, outside the game), converted to mesh with low noise displacement so the membrane is irregular, never geometric.</li>
-<li>Membrane: Transparent BSDF mixed with a tinted shader by Fresnel/Layer Weight, so the rim is dense and colored and the middle is clear, as under a microscope. Optional faint pink-lavender Principled Volume for cytoplasm depth.</li>
-<li>Nucleus: separate inner mesh, shape per cell, dense purple, mostly opaque. Granules: small spheres scattered by Geometry Nodes (Distribute Points in Volume), slow drift.</li>
-<li>Film Transparent; in Cycles also Transparent Glass. Output has a real alpha channel.</li>
-<li>Each cell renders as two layers with the same camera: <b>back</b> (cytoplasm, nucleus, granules, far membrane) and <b>front</b> (near membrane, mostly transparent with a tinted rim). Outputs per class: an idle-wobble sprite sheet of both layers for combat, and one high-resolution still of both layers for the equipment menu.</li>
-<li><code>render.py</code> builds both from the committed character files. Renders are generated assets and may be committed under <code>game/assets/</code>; nothing derived from lab images or study materials.</li>
+<li>The user shapes each cell from metaball blobs in the <a href="https://claude.ai/artifact/8Eow14GXstrGUg3wuoQajn">Blob Editor</a> (<code>tools/blob-editor/editor.html</code>, outside the game) and saves it to the artifact's <code>characters</code> collection. Look: <b>Translucent cell</b>; face off.</li>
+<li>The editor's WebGL shader draws the look: a looping noise wobble keeps the membrane irregular; the cytoplasm is a grainy haze, denser where the cell is thicker; the membrane rim is dense and tinted with a small highlight. Nucleus (bean, round, two or three lobes) has chromatin texture; granules are soft-edged. Shaders write straight alpha with blending off.</li>
+<li>Each cell exports two sheets with the same frame: <b>back</b> (cytoplasm, nucleus, granules) and <b>front</b> (membrane rim and highlight), 256 px frames, 8 per row, transparent. The editor's test axe previews gear placement and is never exported.</li>
+<li><b>“Render &lt;name&gt;”:</b> a session reads the character from the editor artifact's database, loads it into the editor headlessly (Playwright, no installs) and returns an idle GIF plus both sheets. The equipment menu's high-resolution still comes from the same export at a larger frame size. Renders may be committed under <code>game/assets/</code>; nothing derived from lab images or study materials.</li>
+<li>Blender (<code>render.py</code>) is no longer part of the pipeline; it stays only as an optional higher-quality route.</li>
 </ul>
 <h3>Gear images</h3>
 <ul>
 <li>One transparent PNG/WebP per item, square, rendered at 512 and shipped at 512 (the menu shows it large). Path <code>game/assets/gear/&lt;itemId&gt;.png</code>; item IDs never change. Same image in the equipment menu and in combat.</li>
-<li>Rendered in Blender with the cells' lighting, so gear looks like an object in the same world.</li>
+<li>Drawn to sit in the same world as the cells (consistent light direction from the upper left).</li>
 <li>Per-item data in the catalogue, not baked into the image: <b>anchor</b> (grip or pivot point), <b>angle</b> (resting rotation inside the cell) and <b>scale</b> (relative to the cell).</li>
 <li>Quality pairs (Chipped/Fine, Worn/Fine, etc.) share one mesh with different materials.</li>
 <li>Art is optional per item: items without an image keep their current text display. Starters first.</li>
@@ -159,7 +158,7 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 </ul>
 <h3>Rollout</h3>
 <ol>
-<li>Prototype: <code>render.py</code> outputs a translucent Neutrophil (back and front layers) and an Osteon Axe image; the user judges the look before anything else is built.</li>
+<li>Prototype (done 2026-11-18): the Macrophage in the translucent look with a test Osteon Axe, approved by the user.</li>
 <li>Layered sprite player in <code>js/anim.js</code> and the equipment menu preview.</li>
 <li>Remaining cells, then gear images, starters first. Replace the Eosinophil and Basophil SVG rigs.</li>
 </ol>
