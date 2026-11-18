@@ -24,6 +24,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;max-width:1
 @media (max-width:860px){#stageWrap{position:static}}
 #stage canvas,#stage svg{position:absolute;inset:0;width:100%;height:100%}
 #stage svg{touch-action:none;cursor:default}
+#stage #front{pointer-events:none}
 #stage.adding svg{cursor:crosshair}
 .toolbar{display:flex;flex-wrap:wrap;gap:6px;margin:8px auto 0;max-width:720px;align-items:center}
 .hint{color:var(--dim);font-size:12.5px;margin:6px auto 0;max-width:720px}
@@ -68,7 +69,7 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
   <div id="stageWrap">
     <div id="stage">
       <canvas id="gl"></canvas>
-      <svg id="svg" aria-label="Character stage"><g id="root" transform="scale(1 -1)">
+      <svg id="svg" aria-label="Character stage"><defs id="defs"></defs><g id="root" transform="scale(1 -1)">
         <ellipse id="shadow" fill="#a87880" opacity=".85"></ellipse>
         <g id="bodyHit"></g>
         <image id="trace" pointer-events="none" preserveAspectRatio="xMidYMid meet" opacity=".4"></image>
@@ -76,6 +77,7 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
         <g id="decals"></g>
         <g id="knobs"></g>
       </g></svg>
+      <canvas id="front"></canvas>
     </div>
     <div class="toolbar">
       <button class="btn" id="addMode" aria-pressed="false">+ Add blob</button>
@@ -153,6 +155,11 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
         <span class="sw"><input type="color" id="c_granule" aria-label="Granule color"> Granules</span>
         <span class="sw"><input type="color" id="c_ribosome" aria-label="Ribosome color"> Ribosomes</span>
       </div>
+      <div class="row">
+        <label class="sw">Look <select id="look"><option value="toon">Toon</option><option value="cell">Translucent cell</option></select></label>
+        <label class="sw" id="gearToggle"><input type="checkbox" id="testGear"> Test gear (axe)</label>
+      </div>
+      <label class="sl" id="wobControl">Membrane wobble <input type="range" id="c_wob" min="0" max="0.4" step="0.01"><output></output></label>
     </section>
 
     <section>
@@ -202,7 +209,7 @@ const SAMPLE = {"v":1,"id":"macrophage","name":"Macrophage","colors":{"body":"#7
 const BLANK = {v:1, id:'', name:'', colors:{body:'#9fd6f0', nucleus:'#6a3fa0', granule:'#f2c230', ribosome:'#704c9d'},
   blobs:[{x:0,y:1.6,r:1.3,group:'body'},{x:-0.45,y:0.5,r:0.55,group:'leg'},{x:0.45,y:0.5,r:0.55,group:'leg'}],
   face:{x:0.1,y:2.0,s:1,mood:'calm'}, nucleus:{x:0,y:1.35,w:0.8,h:0.55,rot:0,dent:0.3}, granules:[],
-  anim:{...ANIM}, view:{...VIEW}};
+  anim:{...ANIM}, view:{...VIEW}, look:'toon', cell:{wobble:0.15, gear:true}};
 
 const $ = id => document.getElementById(id);
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -220,6 +227,7 @@ function normalize(c) {
   c = {...clone(BLANK), ...c};
   c.anim = {...ANIM, ...(c.anim || {})}; c.view = {...VIEW, ...(c.view || {})};
   c.colors = {...BLANK.colors, ...(c.colors || {})};
+  c.cell = {...BLANK.cell, ...(c.cell || {})};
   c.surge = {...SURGE, ...(c.surge || {})};
   c.nucleus = {...BLANK.nucleus, shape: 'bean', ...c.nucleus};
   c.face = c.face === null ? {...BLANK.face, show: false} : {...BLANK.face, ...c.face};
@@ -316,16 +324,46 @@ let prog, uni = {};
 const FS = `precision highp float;
 uniform vec4 uB[32]; uniform vec2 uS[32]; uniform int uN; uniform vec3 uView; uniform vec2 uRes;
 uniform vec3 cSh, cBa, cHi, cInk;
+uniform float uLook, uLayer, uAmp, uT;
+float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+float vn(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(mix(h3(i),h3(i+vec3(1.,0.,0.)),f.x),mix(h3(i+vec3(0.,1.,0.)),h3(i+vec3(1.,1.,0.)),f.x),f.y),
+             mix(mix(h3(i+vec3(0.,0.,1.)),h3(i+vec3(1.,0.,1.)),f.x),mix(h3(i+vec3(0.,1.,1.)),h3(i+vec3(1.,1.,1.)),f.x),f.y),f.z);}
+vec3 loopOff(){return vec3(cos(6.2832*uT),sin(6.2832*uT),0.)*.35;}
+float wob(vec3 p){vec3 o=loopOff();return uAmp*((vn(p*2.2+o)-.5)+.5*(vn(p*5.3+o*1.7)-.5));}
 const float TH=${TH.toFixed(3)}, ST=${STIFF.toFixed(3)}, DEP=${DEPTH.toFixed(3)};
 void field(vec3 p, out float f, out vec3 g){ f=0.; g=vec3(0.);
   for(int i=0;i<32;i++){ if(i>=uN) break; vec4 b=uB[i]; vec2 s=uS[i];
     vec3 d=vec3((p.x-b.x)/s.x,(p.y-b.y)/s.y,p.z/DEP); float r2=b.z*b.z; float q=1.-dot(d,d)/r2;
-    if(q>0.){ f+=ST*q*q*q; g+=ST*3.*q*q*(-2./r2)*vec3(d.x/s.x,d.y/s.y,d.z/DEP); } } }
+    if(q>0.){ f+=ST*q*q*q; g+=ST*3.*q*q*(-2./r2)*vec3(d.x/s.x,d.y/s.y,d.z/DEP); } }
+  if(uLook>.5 && f>0.) f+=wob(p); }
 void main(){
   vec2 uv=gl_FragCoord.xy/uRes; vec2 w=uView.xy+(uv-.5)*uView.z; float px=uView.z/uRes.x;
   float f; vec3 g; field(vec3(w,0.),f,g);
   float dist=(f-TH)/max(length(g.xy),1e-4); float hw=1.6*uView.z/512.;
   float ink=1.-smoothstep(hw-px,hw,abs(dist)); float inside=smoothstep(-px*.5,px*.5,dist);
+  if(uLook>.5){
+    if(dist<-px){ gl_FragColor=vec4(0.); return; }
+    float lo=0., hi=1.8;
+    for(int k=0;k<12;k++){ float m=(lo+hi)*.5; float fm; vec3 gm; field(vec3(w,m),fm,gm); if(fm>TH) lo=m; else hi=m; }
+    float f2; vec3 g2; field(vec3(w,lo),f2,g2); vec3 n=normalize(-g2);
+    float th=clamp(lo/1.1,0.,1.), fres=pow(1.-clamp(n.z,0.,1.),1.6);
+    float edge=1.-smoothstep(hw*.35,hw*1.1,dist);
+    vec3 o=loopOff();
+    if(uLayer<.5){
+      float grain=vn(vec3(w*16.,0.)+o*3.)*.6+vn(vec3(w*41.,1.)+o*5.)*.4;
+      vec3 col=mix(cBa,cHi,.35)*(.9+.2*grain);
+      gl_FragColor=vec4(col,(.30+.32*th)*(.85+.3*grain)*inside);
+    } else {
+      vec3 col=mix(cBa,cSh,.75);
+      float rim=1.-smoothstep(.02,.42,lo);
+      float a=max(max(rim*.8,fres*.3),edge*.95);
+      float sp=pow(max(dot(n,normalize(vec3(-.3,.45,1.))),0.),60.);
+      col=mix(col,vec3(1.),clamp(sp*1.2,0.,1.)); a=max(a,sp*.7);
+      gl_FragColor=vec4(col,a*inside);
+    }
+    return;
+  }
   vec3 col=cBa;
   if(dist>0.){ float lo=0., hi=1.8;
     for(int k=0;k<12;k++){ float m=(lo+hi)*.5; float fm; vec3 gm; field(vec3(w,m),fm,gm); if(fm>TH) lo=m; else hi=m; }
@@ -344,10 +382,10 @@ function initGL() {
   const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  for (const n of ['uB','uS','uN','uView','uRes','cSh','cBa','cHi','cInk']) uni[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uB','uS','uN','uView','uRes','cSh','cBa','cHi','cInk','uLook','uLayer','uAmp','uT']) uni[n] = gl.getUniformLocation(prog, n);
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 }
-function drawGL(blobs, size) {
+function drawGL(blobs, size, layer = 0) {
   if (!gl) return;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const W = size ?? Math.round(cv.clientWidth * dpr);
@@ -359,7 +397,19 @@ function drawGL(blobs, size) {
   gl.uniform3f(uni.uView, ch.view.cx, ch.view.cy, ch.view.size); gl.uniform2f(uni.uRes, W, W);
   const [s, b, h] = tones(ch.colors.body);
   gl.uniform3fv(uni.cSh, hexRgb(s)); gl.uniform3fv(uni.cBa, hexRgb(b)); gl.uniform3fv(uni.cHi, hexRgb(h)); gl.uniform3fv(uni.cInk, hexRgb(INK));
+  gl.uniform1f(uni.uLook, ch.look === 'cell' ? 1 : 0); gl.uniform1f(uni.uLayer, layer);
+  gl.uniform1f(uni.uAmp, ch.cell.wobble); gl.uniform1f(uni.uT, curT);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+// Translucent look: the front membrane goes on its own canvas above the SVG, so nucleus and gear sit between the layers.
+const fcv = $('front'), fctx = fcv.getContext('2d');
+let curT = 0;
+function renderBody(blobs, size) {
+  if (ch.look !== 'cell' || !gl) { fctx.clearRect(0, 0, fcv.width, fcv.height); drawGL(blobs, size); return; }
+  drawGL(blobs, size, 1);
+  if (fcv.width !== cv.width) fcv.width = fcv.height = cv.width;
+  fctx.clearRect(0, 0, fcv.width, fcv.height); fctx.drawImage(cv, 0, 0);
+  drawGL(blobs, size, 0);
 }
 
 // ---------- SVG layers ----------
@@ -367,9 +417,17 @@ const NS = 'http://www.w3.org/2000/svg', svg = $('svg'), root = $('root');
 function mk(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
 const pts2 = p => p.map(([x,y]) => `${x.toFixed(4)},${y.toFixed(4)}`).join(' ');
 const LW = 0.03;
+const DEFS = `<filter id="dd-nuc" x="-20%" y="-20%" width="140%" height="140%">
+<feTurbulence type="fractalNoise" baseFrequency="9" numOctaves="2" seed="4" result="n"/>
+<feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.3 -0.45" result="m"/>
+<feComposite in="m" in2="SourceGraphic" operator="in" result="spots"/>
+<feComposite in="spots" in2="SourceGraphic" operator="over" result="tex"/>
+<feGaussianBlur in="tex" stdDeviation="0.014"/></filter>
+<filter id="dd-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.012"/></filter>`;
+$('defs').innerHTML = DEFS;
 function setView() {
   const v = ch.view; svg.setAttribute('viewBox', `${v.cx-v.size/2} ${-(v.cy+v.size/2)} ${v.size} ${v.size}`);
-  const sh = $('shadow'); sh.setAttribute('cx', v.cx); sh.setAttribute('cy', 0); sh.setAttribute('rx', v.size*0.36); sh.setAttribute('ry', v.size*0.03);
+  const sh = $('shadow'); sh.setAttribute('opacity', ch.look === 'cell' ? 0 : 0.85); sh.setAttribute('cx', v.cx); sh.setAttribute('cy', 0); sh.setAttribute('rx', v.size*0.36); sh.setAttribute('ry', v.size*0.03);
   const t = $('trace'), sc = +$('t_sc').value;
   t.setAttribute('x', v.cx - v.size*sc/2); t.setAttribute('y', -(v.cy + v.size*sc/2)); t.setAttribute('width', v.size*sc); t.setAttribute('height', v.size*sc);
   t.setAttribute('transform', 'scale(1 -1)');
@@ -377,13 +435,16 @@ function setView() {
 function drawDecals(f, blink, g = $('decals')) {
   g.textContent = '';
   const n = ch.nucleus;
+  const cell = ch.look === 'cell';
   if (n) { const [x, y] = f(n.x, n.y, 'body');
-    mk('polygon', {points: pts2(outline(n.w/2, n.h/2, n.shape, n.dent)), fill: ch.colors.nucleus, stroke: INK, 'stroke-width': LW,
+    mk('polygon', {points: pts2(outline(n.w/2, n.h/2, n.shape, n.dent)), fill: ch.colors.nucleus,
+      ...(cell ? {filter: 'url(#dd-nuc)', opacity: 0.9} : {stroke: INK, 'stroke-width': LW}),
       'stroke-linejoin': 'round', transform: `translate(${x} ${y}) rotate(${n.rot || 0})`, 'data-kind': 'nuc', class: 'hit'}, g); }
   ch.granules.forEach((gr, i) => { const [x, y] = f(gr.x, gr.y, 'body');
-    mk('polygon', {points: pts2(particleOutline(gr)), transform: `translate(${x} ${y})`,
-      fill: ch.colors[gr.kind], stroke: INK, 'stroke-width': gr.kind === 'ribosome' ? LW/2 : LW,
+    mk('polygon', {points: pts2(particleOutline(gr)), transform: `translate(${x} ${y})`, fill: ch.colors[gr.kind],
+      ...(cell ? {filter: 'url(#dd-soft)', opacity: 0.85} : {stroke: INK, 'stroke-width': gr.kind === 'ribosome' ? LW/2 : LW}),
       'stroke-linejoin': 'round', 'data-kind': 'gran', 'data-i': i, class: 'hit'}, g); });
+  if (cell && ch.cell.gear && n && g === $('decals')) drawTestAxe(f, g);
   const fc = ch.face;
   if (fc.show !== false) { const [x, y] = f(fc.x, fc.y, 'body'), s = fc.s || 1, P = faceParts(fc.mood);
     const fg = mk('g', {transform: `translate(${x} ${y}) scale(${s})`, 'data-kind': 'face', class: 'hit'}, g);
@@ -395,6 +456,17 @@ function drawDecals(f, blink, g = $('decals')) {
     for (const b of P.brows) mk('polygon', {points: pts2(b), fill: INK, stroke: INK, 'stroke-width': LW/s, 'stroke-linejoin': 'round'}, fg);
     mk('polyline', {points: pts2(P.mouth), fill: 'none', stroke: INK, 'stroke-width': 0.035, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'}, fg);
   }
+}
+// Placeholder main-hand item (Osteon Axe) drifting in the cytoplasm, drawn between the cell's back and front layers.
+function drawTestAxe(f, g) {
+  const n = ch.nucleus, [x, y] = f(n.x + n.w * 0.55, n.y + n.h * 0.35, 'body');
+  const ph = 2 * Math.PI * (curT - 0.12), bob = Math.sin(ph) * 0.04, tilt = -28 + Math.sin(ph) * 4;
+  const a = mk('g', {transform: `translate(${x} ${y + bob}) rotate(${tilt}) scale(0.62)`, opacity: 0.92, 'pointer-events': 'none'}, g);
+  const st = {stroke: INK, 'stroke-width': LW * 1.6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round'};
+  mk('rect', {x: -0.06, y: -0.75, width: 0.12, height: 1.45, rx: 0.05, fill: '#a8794f', ...st}, a);
+  mk('path', {d: 'M0.04 0.62 C0.32 0.78 0.58 0.62 0.62 0.32 C0.5 0.38 0.38 0.30 0.36 0.22 C0.3 0.22 0.18 0.30 0.04 0.30 Z', fill: '#efe6d2', ...st}, a);
+  mk('path', {d: 'M-0.04 0.62 C-0.24 0.70 -0.40 0.60 -0.44 0.42 C-0.30 0.44 -0.16 0.36 -0.04 0.32 Z', fill: '#e2d6bd', ...st}, a);
+  mk('circle', {cx: 0.33, cy: 0.5, r: 0.05, fill: 'none', stroke: '#c9b897', 'stroke-width': LW}, a);
 }
 function drawHandles() {
   const h = $('handles'), k = $('knobs'); h.textContent = ''; k.textContent = '';
@@ -426,7 +498,8 @@ function showFrame(i, {size, decals} = {}) {
   const {frames} = clipSettings();
   const t = clip === 'idle' ? i / frames : i / Math.max(1, frames - 1);
   const f = clip === 'idle' ? motion(ch, t) : surgeMotion(ch, t);
-  drawGL(ch.blobs.map(b => {
+  curT = clip === 'idle' ? t : 0;
+  renderBody(ch.blobs.map(b => {
     const [x, y, sx = 1, sy = 1] = f(b.x, b.y, b.group);
     return {...b, x, y, sx: b.sx * sx, sy: b.sy * sy};
   }), size);
@@ -444,7 +517,7 @@ function frame(now) {
     }
   } else if (dirty) {
     if (previewFrame) showFrame(previewFrame - 1);
-    else { drawGL(ch.blobs); drawDecals((x, y) => [x, y], 1); }
+    else { curT = 0; renderBody(ch.blobs); drawDecals((x, y) => [x, y], 1); }
     drawHandles(); dirty = false;
   }
   requestAnimationFrame(frame);
@@ -552,7 +625,10 @@ const ranges = [
   bindRange('a_arm', () => ch.anim.arm, v => ch.anim.arm = v, v => `${(+v).toFixed(1)}°`),
   bindRange('a_surge', () => ch.surge.strength, v => ch.surge.strength = v, v => `${Math.round(v*100)}%`),
   bindRange('a_pod', () => ch.anim.pod, v => ch.anim.pod = v, v => `${(+v).toFixed(1)}°`),
+  bindRange('c_wob', () => ch.cell.wobble, v => ch.cell.wobble = v),
 ];
+$('look').onchange = e => { pushUndo(); ch.look = e.target.value; changed(); };
+$('testGear').onchange = e => { pushUndo(); ch.cell.gear = e.target.checked; changed(); };
 $('f_mood').onchange = e => { pushUndo(); ch.face.mood = e.target.value; changed(); };
 $('n_shape').onchange = e => { pushUndo(); ch.nucleus.shape = e.target.value; changed(); };
 $('g_shape').onchange = e => { pushUndo(); ch.granules[sel.i].shape = e.target.value; changed(); };
@@ -581,6 +657,8 @@ function syncPanel() {
     $('g_shape').value = part.shape;
   }
   for (const k of PALETTE) $('c_' + k).value = ch.colors[k];
+  $('look').value = ch.look; $('testGear').checked = !!ch.cell.gear;
+  $('gearToggle').hidden = $('wobControl').hidden = ch.look !== 'cell';
   if (document.activeElement !== $('name')) $('name').value = ch.name || '';
   $('count').textContent = `${ch.blobs.length}/${MAXB} blobs`;
   const {frames, fps} = clipSettings();
@@ -708,6 +786,11 @@ $('downloadSheet').onclick = async () => {
   const tile = mk('svg', {width: size, height: size});
   setView();
   tile.setAttribute('viewBox', svg.getAttribute('viewBox'));
+  mk('defs', {}, tile).innerHTML = DEFS;
+  const layered = ch.look === 'cell';
+  const frontSheet = document.createElement('canvas');
+  frontSheet.width = sheet.width; frontSheet.height = sheet.height;
+  const fsx = frontSheet.getContext('2d');
   const decals = mk('g', {transform: 'scale(1 -1)'}, tile);
   const serializer = new XMLSerializer();
   const layers = [];
@@ -718,6 +801,7 @@ $('downloadSheet').onclick = async () => {
       const x = (i % cols) * size, y = Math.floor(i / cols) * size;
       showFrame(i, {size, decals});
       ctx.drawImage(cv, x, y);
+      if (layered) fsx.drawImage(fcv, x, y);
       layers.push({x, y, xml: serializer.serializeToString(tile)});
     }
     dirty = true;
@@ -727,10 +811,19 @@ $('downloadSheet').onclick = async () => {
       await image.decode();
       ctx.drawImage(image, x, y);
     }
-    const blob = await new Promise(resolve => sheet.toBlob(resolve, 'image/png'));
+    const png = c => new Promise(resolve => c.toBlob(resolve, 'image/png'));
+    const blob = await png(sheet);
     if (!blob) throw new Error('PNG encoding failed');
-    download(blob, filename);
-    status(`Downloaded ${filename} (${frames} frames).`);
+    if (layered) {
+      const back = filename.replace('_sheet', '_back_sheet'), front = filename.replace('_sheet', '_front_sheet');
+      download(blob, back);
+      const fb = await png(frontSheet); if (!fb) throw new Error('PNG encoding failed');
+      download(fb, front);
+      status(`Downloaded ${back} and ${front} (${frames} frames). Draw back, then gear, then front.`);
+    } else {
+      download(blob, filename);
+      status(`Downloaded ${filename} (${frames} frames).`);
+    }
   } catch (error) {
     status('Sprite sheet export failed: ' + error.message);
   } finally {
