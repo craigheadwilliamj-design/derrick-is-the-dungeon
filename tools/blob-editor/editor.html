@@ -160,12 +160,38 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
         <label class="sw" id="gearToggle"><input type="checkbox" id="testGear"> Test gear (axe)</label>
       </div>
       <label class="sl" id="wobControl">Membrane wobble <input type="range" id="c_wob" min="0" max="0.4" step="0.01"><output></output></label>
+      <label class="sl" id="rimControl">Membrane weight <input type="range" id="c_rim" min="0" max="1" step="0.01"><output></output></label>
+    </section>
+
+    <section>
+      <h2>Appendages <small>on the membrane</small></h2>
+      <div class="row">
+        <button class="btn" id="addSpikes">+ Spikes</button>
+        <button class="btn" id="addFimbriae">+ Fimbriae</button>
+        <button class="btn" id="addFlagellum">+ Flagellum</button>
+      </div>
+      <div class="row" id="appList"></div>
+    </section>
+
+    <section id="secApp" hidden>
+      <h2 id="appTitle">Appendage</h2>
+      <div class="row">
+        <label class="sw">Kind <select id="p_kind"><option value="spikes">Spikes</option><option value="fimbriae">Fimbriae</option><option value="flagellum">Flagellum</option></select></label>
+        <span class="sw"><input type="color" id="p_color" aria-label="Appendage color"> Color</span>
+      </div>
+      <label class="sl">Count <input type="range" id="p_count" min="1" max="80" step="1"><output></output></label>
+      <label class="sl">Length <input type="range" id="p_len" min="0.05" max="3" step="0.01"><output></output></label>
+      <label class="sl">Width <input type="range" id="p_width" min="0.005" max="0.2" step="0.001"><output></output></label>
+      <label class="sl">From <input type="range" id="p_from" min="-180" max="180" step="1"><output></output></label>
+      <label class="sl">Arc <input type="range" id="p_span" min="0" max="360" step="1"><output></output></label>
+      <p class="note">Angles: 0° points right (toward the enemies), 90° up. Arc 360° goes all the way round.</p>
+      <div class="row"><button class="btn danger" id="delApp">Delete</button></div>
     </section>
 
     <section>
       <h2>Animation <small id="loopLen"></small></h2>
       <label class="sw">Motion
-        <select id="clip"><option value="idle">Idle</option><option value="act">Act</option><option value="actInPlace">Act in place</option></select>
+        <select id="clip"><option value="idle">Idle</option><option value="act">Act</option><option value="actInPlace">Act in place</option><option value="hit">Hit</option></select>
       </label>
       <label class="sl">Frame <input type="range" id="previewFrame" min="0" value="0"><output>Rest</output></label>
       <div class="motion-controls" id="idleControls">
@@ -175,7 +201,8 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
       </div>
       <div class="motion-controls" id="actControls" hidden>
         <label class="sl">Strength <input type="range" id="a_act" min="0" max="0.5" step="0.01"><output></output></label>
-        <p class="note">Shared by every cell: windup, strike, contact (frame marked ●), jiggle. Gear and damage numbers sync to the contact frame.</p>
+        <p class="note" id="actNote">Shared by every cell: windup, strike, contact (frame marked ●), jiggle. Gear and damage numbers sync to the contact frame.</p>
+        <p class="note" id="hitNote" hidden>Shared by every cell: white flash on frame 1, knocked back on frame 2, then a jiggle back to rest. Uses the Act strength.</p>
       </div>
       <div class="row"><button class="btn" id="downloadSheet">Download sprite sheet</button></div>
       <p class="note">Transparent PNG. 256 × 256 pixels per frame, 8 frames per row.</p>
@@ -201,6 +228,13 @@ const SURGE = {frames: 12, fps: 24, strength: 0.26};   // legacy, kept for rende
 // Act: one reusable action clip for every cell. Beats are fractions of the clip; contact is where results land.
 const ACT = {frames: 16, fps: 20, strength: 0.3};
 const BEAT = {windup: 4/15, contact: 7/15};
+// Hit: shared recoil clip. Frame 1 flashes at rest, frame 2 is the full knock (toward −x), then a damped jiggle back to rest.
+const HIT = {frames: 10, fps: 20};
+// Appendages sit on the membrane. Angles in degrees: 0 = +x (toward the enemies), 90 = up; no from/to = all the way round.
+const APP = {
+  spikes:    {label: 'Spikes',    count: 14, len: 0.32, width: 0.05,  color: '#d9c46a'},
+  fimbriae:  {label: 'Fimbriae',  count: 48, len: 0.18, width: 0.014, color: '#e8d9b0'},
+  flagellum: {label: 'Flagellum', count: 1,  len: 2.0,  width: 0.05,  color: '#e8d9b0', from: 180, to: 180}};
 const PALETTE = ['body', 'nucleus', 'granule', 'ribosome'];
 const VIEW = {cx: 0, cy: 1.95, size: 4.9};
 const GROUPS = [
@@ -213,7 +247,7 @@ const SAMPLE = {"v":1,"id":"macrophage","name":"Macrophage","colors":{"body":"#7
 const BLANK = {v:1, id:'', name:'', colors:{body:'#9fd6f0', nucleus:'#6a3fa0', granule:'#f2c230', ribosome:'#704c9d'},
   blobs:[{x:0,y:1.6,r:1.3,group:'body'},{x:-0.45,y:0.5,r:0.55,group:'leg'},{x:0.45,y:0.5,r:0.55,group:'leg'}],
   face:{x:0.1,y:2.0,s:1,mood:'calm'}, nucleus:{x:0,y:1.35,w:0.8,h:0.55,rot:0,dent:0.3}, granules:[],
-  anim:{...ANIM}, view:{...VIEW}, look:'toon', cell:{wobble:0.15, gear:true}};
+  anim:{...ANIM}, view:{...VIEW}, look:'toon', cell:{wobble:0.15, gear:true, rim:0}, appendages:[]};
 
 const $ = id => document.getElementById(id);
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -222,7 +256,7 @@ const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}},
 
 // ---------- state ----------
 let ch = normalize(JSON.parse(store.get('blob_editor_draft') || 'null') || clone(SAMPLE));
-let sel = null;                 // {kind:'blob'|'nuc'|'gran'|'face', i}
+let sel = null;                 // {kind:'blob'|'nuc'|'gran'|'face'|'app', i}
 let adding = false, playing = false, guides = true, lastGroup = 'body';
 let clip = 'idle', previewFrame = 0;
 const undoStack = [];
@@ -241,6 +275,9 @@ function normalize(c) {
     return {shape: kind === 'ribosome' ? 'bilobed' : 'round', ...part, kind};
   });
   c.blobs = (c.blobs || []).slice(0, MAXB).map(b => ({sx: 1, sy: 1, group: 'body', ...b}));
+  c.appendages = (c.appendages || []).filter(a => APP[a.kind]).map(a => {
+    const {label, ...d} = APP[a.kind]; return {...d, ...a};
+  });
   return c;
 }
 
@@ -305,6 +342,23 @@ function actMotion(c, t, lean) {
     return [nx, base + (y - base) * sy, sx, sy];
   };
 }
+// Hit signals at clip time t (0..1): d = knock (0 at rest, 1 on frame 2, damped jiggle to 0), flash fades out by frame 3.
+function hitSignals(t) {
+  const K = 1 / (HIT.frames - 1), sm = x => x * x * (3 - 2 * x);
+  const flash = Math.max(0, 1 - t / (2 * K));
+  if (t <= K) return {w: 0, d: sm(t / K), flash};
+  const u = (t - K) / (1 - K);
+  return {w: 0, d: Math.cos(2 * Math.PI * u) * Math.exp(-3 * u) * (1 - u * u * u), flash};
+}
+function hitMotion(c, t) {
+  const {cx} = pivots(c), base = c.anim.pivotY, str = c.act.strength, {d} = hitSignals(t);
+  const sx = 1 - 0.18 * str * d, sy = 1 + 0.08 * str * d;   // squashed along the impact
+  return (x, y, group) => {
+    if (group === 'leg') return [x, y, 1, 1];
+    const h = Math.max(0, y - base);
+    return [cx + (x - cx) * sx - (h * 0.40 + 0.5) * str * d, base + (y - base) * sy, sx, sy];
+  };
+}
 function surgeMotion(c, t) {
   const {cx} = pivots(c), base = c.anim.pivotY;
   // Ease into the lean, then take a little longer to settle.
@@ -350,7 +404,7 @@ let prog, uni = {};
 const FS = `precision highp float;
 uniform vec4 uB[32]; uniform vec2 uS[32]; uniform int uN; uniform vec3 uView; uniform vec2 uRes;
 uniform vec3 cSh, cBa, cHi, cInk;
-uniform float uLook, uLayer, uAmp, uT;
+uniform float uLook, uLayer, uAmp, uT, uRim, uFlash;
 float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
 float vn(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(mix(h3(i),h3(i+vec3(1.,0.,0.)),f.x),mix(h3(i+vec3(0.,1.,0.)),h3(i+vec3(1.,1.,0.)),f.x),f.y),
@@ -378,14 +432,17 @@ void main(){
     vec3 o=loopOff();
     if(uLayer<.5){
       float grain=vn(vec3(w*16.,0.)+o*3.)*.6+vn(vec3(w*41.,1.)+o*5.)*.4;
-      vec3 col=mix(cBa,cHi,.35)*(.9+.2*grain);
-      gl_FragColor=vec4(col,(.30+.32*th)*(.85+.3*grain)*inside);
+      vec3 col=mix(mix(cBa,cHi,.35)*(.9+.2*grain),vec3(1.),uFlash*.85);
+      gl_FragColor=vec4(col,max((.30+.32*th)*(.85+.3*grain),uFlash*.6)*inside);
     } else {
-      vec3 col=mix(cBa,cSh,.75);
-      float rim=1.-smoothstep(.02,.42,lo);
-      float a=max(max(rim*.8,fres*.3),edge*.95);
+      // uRim (membrane weight): 0 = the friendly look; up to 1 = thicker, darker membrane for enemies.
+      vec3 col=mix(mix(cBa,cSh,.75),cInk,.55*uRim);
+      float ew=1.+2.5*uRim; edge=1.-smoothstep(hw*.35*ew,hw*1.1*ew,dist);
+      float rim=1.-smoothstep(.02,.42+.5*uRim,lo);
+      float a=max(max(rim*(.8+.15*uRim),fres*(.3+.3*uRim)),edge*.95);
       float sp=pow(max(dot(n,normalize(vec3(-.3,.45,1.))),0.),60.);
       col=mix(col,vec3(1.),clamp(sp*1.2,0.,1.)); a=max(a,sp*.7);
+      col=mix(col,vec3(1.),uFlash); a=max(a,uFlash*.5);
       gl_FragColor=vec4(col,a*inside);
     }
     return;
@@ -396,7 +453,7 @@ void main(){
     float f2; vec3 g2; field(vec3(w,lo),f2,g2); vec3 n=normalize(-g2);
     float fac=dot(n,normalize(vec3(-.45,.65,.6)))*.5+.5;
     col = fac<.3 ? cSh : (fac<.91 ? cBa : cHi); }
-  float a=max(inside,ink); gl_FragColor=vec4(mix(col,cInk,ink),a);
+  float a=max(inside,ink); gl_FragColor=vec4(mix(mix(col,cInk,ink),vec3(1.),uFlash*.8),a);
 }`;
 function initGL() {
   if (!gl) { $('stage').insertAdjacentHTML('beforeend','<p style="position:absolute;inset:auto 8px 8px;color:#3a1838;font-size:12px">WebGL is off in this browser, so the body preview is unavailable.</p>'); return; }
@@ -408,7 +465,7 @@ function initGL() {
   const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  for (const n of ['uB','uS','uN','uView','uRes','cSh','cBa','cHi','cInk','uLook','uLayer','uAmp','uT']) uni[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uB','uS','uN','uView','uRes','cSh','cBa','cHi','cInk','uLook','uLayer','uAmp','uT','uRim','uFlash']) uni[n] = gl.getUniformLocation(prog, n);
   gl.disable(gl.BLEND); // one full-screen pass onto a cleared canvas: write straight (unpremultiplied) color and alpha
 }
 function drawGL(blobs, size, layer = 0) {
@@ -425,12 +482,14 @@ function drawGL(blobs, size, layer = 0) {
   gl.uniform3fv(uni.cSh, hexRgb(s)); gl.uniform3fv(uni.cBa, hexRgb(b)); gl.uniform3fv(uni.cHi, hexRgb(h)); gl.uniform3fv(uni.cInk, hexRgb(INK));
   gl.uniform1f(uni.uLook, ch.look === 'cell' ? 1 : 0); gl.uniform1f(uni.uLayer, layer);
   gl.uniform1f(uni.uAmp, ch.cell.wobble * (act ? 1 + 1.2 * Math.abs(act.d) : 1)); gl.uniform1f(uni.uT, curT);
+  gl.uniform1f(uni.uRim, ch.cell.rim || 0); gl.uniform1f(uni.uFlash, act?.flash || 0);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 // Translucent look: the front membrane goes on its own canvas above the SVG, so nucleus and gear sit between the layers.
 const fcv = $('front'), fctx = fcv.getContext('2d');
-let curT = 0, act = null;
+let curT = 0, act = null, curBlobs = [];
 function renderBody(blobs, size) {
+  curBlobs = blobs;                                         // the posed blobs: appendages anchor on this frame's membrane
   if (ch.look !== 'cell' || !gl) { fctx.clearRect(0, 0, fcv.width, fcv.height); drawGL(blobs, size); return; }
   drawGL(blobs, size, 1);
   if (fcv.width !== cv.width) fcv.width = fcv.height = cv.width;
@@ -462,6 +521,7 @@ function drawDecals(f, blink, g = $('decals')) {
   g.textContent = '';
   const n = ch.nucleus;
   const cell = ch.look === 'cell';
+  drawAppendages(g, cell);
   if (n) { const [x, y] = f(n.x, n.y, 'body');
     mk('polygon', {points: pts2(outline(n.w/2, n.h/2, n.shape, n.dent)), fill: ch.colors.nucleus,
       ...(cell ? {filter: 'url(#dd-nuc)', opacity: 0.9} : {stroke: INK, 'stroke-width': LW}),
@@ -488,7 +548,8 @@ function drawTestAxe(f, g) {
   const n = ch.nucleus, [x, y] = f(n.x + n.w * 0.55, n.y + n.h * 0.35, 'body');
   const ph = 2 * Math.PI * (curT - 0.12);
   let bob = Math.sin(ph) * 0.04, tilt = -28 + Math.sin(ph) * 4, dx = 0;
-  if (act && act.lean) { tilt += 55 * act.w - 75 * Math.max(0, act.d); dx = 0.12 * act.d; bob = 0.05 * act.w; }   // cock back, swing on contact
+  if (act && act.hit) { tilt += 22 * act.d; dx = -0.10 * act.d; }                                              // knocked back
+  else if (act && act.lean) { tilt += 55 * act.w - 75 * Math.max(0, act.d); dx = 0.12 * act.d; bob = 0.05 * act.w; }   // cock back, swing on contact
   else if (act) { bob = 0.18 * act.w + 0.08 * act.d; tilt += 10 * act.d; }                                        // raise and flare
   const a = mk('g', {transform: `translate(${x + dx} ${y + bob}) rotate(${tilt}) scale(0.62)`, opacity: 0.92, 'pointer-events': 'none'}, g);
   const st = {stroke: INK, 'stroke-width': LW * 1.6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round'};
@@ -496,6 +557,74 @@ function drawTestAxe(f, g) {
   mk('path', {d: 'M0.04 0.62 C0.32 0.78 0.58 0.62 0.62 0.32 C0.5 0.38 0.38 0.30 0.36 0.22 C0.3 0.22 0.18 0.30 0.04 0.30 Z', fill: '#efe6d2', ...st}, a);
   mk('path', {d: 'M-0.04 0.62 C-0.24 0.70 -0.40 0.60 -0.44 0.42 C-0.30 0.44 -0.16 0.36 -0.04 0.32 Z', fill: '#e2d6bd', ...st}, a);
   mk('circle', {cx: 0.33, cy: 0.5, r: 0.05, fill: 'none', stroke: '#c9b897', 'stroke-width': LW}, a);
+}
+// ---------- appendages: anchored on the same metaball field the shader draws ----------
+function fieldAt(bl, x, y) {
+  let f = 0, gx = 0, gy = 0;
+  for (const b of bl) {
+    const dx = (x - b.x) / b.sx, dy = (y - b.y) / b.sy, r2 = b.r * b.r, q = 1 - (dx * dx + dy * dy) / r2;
+    if (q > 0) { f += STIFF * q * q * q; const k = STIFF * 3 * q * q * (-2 / r2); gx += k * dx / b.sx; gy += k * dy / b.sy; }
+  }
+  return [f, gx, gy];
+}
+// Cast a ray from the centroid, find the outermost crossing of the threshold, bisect it. Returns point + outward normal.
+function surfaceAt(bl, cx, cy, ang) {
+  const ux = Math.cos(ang), uy = Math.sin(ang), step = 0.03, at = t => fieldAt(bl, cx + ux * t, cy + uy * t)[0];
+  let lo = null;
+  for (let t = ch.view.size; t > 0; t -= step) if (at(t) > TH) { lo = t; break; }
+  if (lo === null) return null;
+  let hi = lo + step;
+  for (let k = 0; k < 14; k++) { const m = (lo + hi) / 2; if (at(m) > TH) lo = m; else hi = m; }
+  const x = cx + ux * lo, y = cy + uy * lo, [, gx, gy] = fieldAt(bl, x, y), gl2 = Math.hypot(gx, gy) || 1;
+  let nx = -gx / gl2 * 0.7 + ux * 0.3, ny = -gy / gl2 * 0.7 + uy * 0.3; const nl = Math.hypot(nx, ny) || 1;
+  return {x, y, nx: nx / nl, ny: ny / nl};
+}
+const jit = i => { const v = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return v - Math.floor(v); };   // stable per-index jitter
+function appAngles(a) {
+  const n = Math.max(1, Math.round(a.count)), from = a.from ?? 0, to = a.to ?? from + 360, span = to - from;
+  return Array.from({length: n}, (_, i) =>
+    span >= 360 ? from + 360 * i / n : span <= 0 ? from + (i - (n - 1) / 2) * 12 : n === 1 ? from + span / 2 : from + span * i / (n - 1));
+}
+function drawAppendages(g, cell) {
+  if (!ch.appendages.length) return;
+  const body = curBlobs.filter(b => b.group === 'body'), src = body.length ? body : curBlobs;
+  let W = 0, cx = 0, cy = 0;
+  for (const b of src) { const w = b.r * b.r * b.sx * b.sy; W += w; cx += b.x * w; cy += b.y * w; }
+  if (!W) return; cx /= W; cy /= W;
+  const ph = 2 * Math.PI * curT, inset = 0.03;      // curT loops 0→1 over idle, so every wave and sway is seamless
+  ch.appendages.forEach((a, ai) => {
+    const grp = mk('g', {'data-kind': 'app', 'data-i': ai, class: 'hit', opacity: cell ? 0.85 : 1,
+      ...(cell && a.kind !== 'fimbriae' ? {filter: 'url(#dd-soft)'} : {})}, g);
+    const ink = cell ? {} : {stroke: INK, 'stroke-width': LW * 0.6, 'stroke-linejoin': 'round'};
+    appAngles(a).forEach((deg, i) => {
+      const sway = a.kind === 'flagellum' ? 0 : (a.kind === 'spikes' ? 3 : 6) * Math.sin(ph + i * 1.7);
+      const s = surfaceAt(curBlobs, cx, cy, deg * Math.PI / 180); if (!s) return;
+      const sa = sway * Math.PI / 180, dx = s.nx * Math.cos(sa) - s.ny * Math.sin(sa), dy = s.nx * Math.sin(sa) + s.ny * Math.cos(sa);
+      const px = -dy, py = dx, bx = s.x - dx * inset, by = s.y - dy * inset;
+      if (a.kind === 'spikes') {
+        const L = a.len + inset, w = a.width, tx = bx + dx * L, ty = by + dy * L;
+        mk('polygon', {points: pts2([[bx + px * w * 0.35, by + py * w * 0.35], [tx + px * w * 0.25, ty + py * w * 0.25],
+          [tx - px * w * 0.25, ty - py * w * 0.25], [bx - px * w * 0.35, by - py * w * 0.35]]), fill: a.color, ...ink}, grp);
+        mk('circle', {cx: tx, cy: ty, r: w * 0.75, fill: a.color, ...ink}, grp);
+      } else if (a.kind === 'fimbriae') {
+        const L = (a.len + inset) * (0.75 + 0.5 * jit(i)), bend = (jit(i + 99) - 0.5) * 0.5 * L;
+        const tx = bx + dx * L + px * bend * 0.6, ty = by + dy * L + py * bend * 0.6;
+        mk('path', {d: `M${bx.toFixed(4)} ${by.toFixed(4)} Q${(bx + dx * L * 0.5 + px * bend).toFixed(4)} ${(by + dy * L * 0.5 + py * bend).toFixed(4)} ${tx.toFixed(4)} ${ty.toFixed(4)}`,
+          fill: 'none', stroke: cell ? a.color : INK, 'stroke-width': a.width, 'stroke-linecap': 'round', opacity: cell ? 0.8 : 1}, grp);
+        if (!cell) mk('path', {d: grp.lastChild.getAttribute('d'), fill: 'none', stroke: a.color, 'stroke-width': a.width * 0.5, 'stroke-linecap': 'round'}, grp);
+      } else {
+        // flagellum: tapered sine whose wave travels outward with the clip phase (one full cycle per loop)
+        const N = 28, L = a.len + inset, amp = 0.09 * L, P = [];
+        for (let j = 0; j <= N; j++) { const u = j / N, o = amp * Math.min(1, u * 2.5) * Math.sin(2 * Math.PI * (1.6 * u - curT) + i * 2.1);
+          P.push([bx + dx * L * u + px * o, by + dy * L * u + py * o]); }
+        const left = [], right = [];
+        P.forEach(([x, y], j) => { const [ax, ay] = P[Math.max(0, j - 1)], [cx2, cy2] = P[Math.min(N, j + 1)];
+          let tx = cx2 - ax, ty = cy2 - ay; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+          const hw = a.width / 2 * (1 - 0.85 * j / N); left.push([x - ty * hw, y + tx * hw]); right.push([x + ty * hw, y - tx * hw]); });
+        mk('polygon', {points: pts2(left.concat(right.reverse())), fill: a.color, ...ink}, grp);
+      }
+    });
+  });
 }
 function drawHandles() {
   const h = $('handles'), k = $('knobs'); h.textContent = ''; k.textContent = '';
@@ -521,14 +650,14 @@ function drawHandles() {
 // ---------- render loop ----------
 let t0 = performance.now(), dirty = true;
 function clipSettings() {
-  return clip === 'idle' ? ch.anim : ch.act;
+  return clip === 'idle' ? ch.anim : clip === 'hit' ? {...HIT, strength: ch.act.strength} : ch.act;
 }
 function showFrame(i, {size, decals} = {}) {
   const {frames} = clipSettings();
   const t = clip === 'idle' ? i / frames : i / Math.max(1, frames - 1);
-  const f = clip === 'idle' ? motion(ch, t) : actMotion(ch, t, clip === 'act');
+  const f = clip === 'idle' ? motion(ch, t) : clip === 'hit' ? hitMotion(ch, t) : actMotion(ch, t, clip === 'act');
   curT = clip === 'idle' ? t : 2 * t;                       // the membrane wobbles twice as fast during an action
-  act = clip === 'idle' ? null : {...actSignals(t), lean: clip === 'act'};
+  act = clip === 'idle' ? null : clip === 'hit' ? {...hitSignals(t), hit: true} : {...actSignals(t), lean: clip === 'act'};
   renderBody(ch.blobs.map(b => {
     const [x, y, sx = 1, sy = 1] = f(b.x, b.y, b.group);
     return {...b, x, y, sx: b.sx * sx, sy: b.sy * sy};
@@ -556,14 +685,14 @@ let lastFrame = -1;
 const contactFrame = () => Math.round(BEAT.contact * (ch.act.frames - 1)) + 1;   // 1-based
 function showFrameNumber(frame) {
   $('previewFrame').value = frame;
-  const hit = clip !== 'idle' && frame === contactFrame();
+  const hit = (clip === 'act' || clip === 'actInPlace') && frame === contactFrame();
   $('previewFrame').nextElementSibling.textContent = frame ? (hit ? `${frame}●` : frame) : 'Rest';
 }
 function setPlaying(on) {
   playing = on;
   lastFrame = -1;
   t0 = performance.now();
-  $('play').textContent = playing ? 'Stop' : clip === 'idle' ? 'Play idle' : 'Play act';
+  $('play').textContent = playing ? 'Stop' : clip === 'idle' ? 'Play idle' : clip === 'hit' ? 'Play hit' : 'Play act';
   $('play').classList.toggle('on', playing);
   $('play').setAttribute('aria-pressed', playing);
   if (playing) setAdding(false);
@@ -574,7 +703,7 @@ let draftT;
 function draftSave(){clearTimeout(draftT);draftT=setTimeout(()=>store.set('blob_editor_draft',JSON.stringify(ch)),400)}
 function pushUndo(){undoStack.push(JSON.stringify(ch));if(undoStack.length>80)undoStack.shift();$('undo').disabled=false}
 function undo(){const s=undoStack.pop();if(!s)return;ch=JSON.parse(s);if(sel&&!exists(sel))sel=null;$('undo').disabled=!undoStack.length;changed()}
-function exists(s){return s.kind==='blob'?!!ch.blobs[s.i]:s.kind==='gran'?!!ch.granules[s.i]:true}
+function exists(s){return s.kind==='blob'?!!ch.blobs[s.i]:s.kind==='gran'?!!ch.granules[s.i]:s.kind==='app'?!!ch.appendages[s.i]:true}
 
 // ---------- pointer interaction ----------
 function world(ev) { const p = svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY; const q = p.matrixTransform(root.getScreenCTM().inverse()); return [q.x, q.y]; }
@@ -589,6 +718,7 @@ svg.addEventListener('pointerdown', ev => {
   }
   const kind = tgt.dataset.kind, i = +tgt.dataset.i, part = tgt.dataset.part || 'move';
   sel = {kind, i}; if (kind === 'blob') lastGroup = ch.blobs[i].group;
+  if (kind === 'app') { changed(false); return; }
   const o = kind === 'blob' ? ch.blobs[i] : kind === 'nuc' ? ch.nucleus : kind === 'face' ? ch.face : ch.granules[i];
   drag = {o, part, wx, wy, ox: o.x, oy: o.y, or: o.r, snap: JSON.stringify(ch), moved: false};
   svg.setPointerCapture(ev.pointerId); changed(false); ev.preventDefault();
@@ -621,6 +751,7 @@ function delSel() {
   if (!sel) return;
   if (sel.kind === 'blob') { if (ch.blobs.length <= 1) return; pushUndo(); ch.blobs.splice(sel.i, 1); }
   else if (sel.kind === 'gran') { pushUndo(); ch.granules.splice(sel.i, 1); }
+  else if (sel.kind === 'app') { pushUndo(); ch.appendages.splice(sel.i, 1); }
   else return;
   sel = null; changed();
 }
@@ -658,7 +789,28 @@ const ranges = [
   bindRange('a_act', () => ch.act.strength, v => ch.act.strength = v, v => `${Math.round(v*100)}%`),
   bindRange('a_pod', () => ch.anim.pod, v => ch.anim.pod = v, v => `${(+v).toFixed(1)}°`),
   bindRange('c_wob', () => ch.cell.wobble, v => ch.cell.wobble = v),
+  bindRange('c_rim', () => ch.cell.rim, v => ch.cell.rim = v),
+  bindRange('p_count', () => selApp()?.count, v => selApp().count = v, v => `${Math.round(v)}`),
+  bindRange('p_len', () => selApp()?.len, v => selApp().len = v),
+  bindRange('p_width', () => selApp()?.width, v => selApp().width = v, v => (+v).toFixed(3)),
+  bindRange('p_from', () => selApp() && (selApp().from ?? 0), v => { const a = selApp(), sp = appSpan(a); a.from = v; a.to = v + sp; }, v => `${Math.round(v)}°`),
+  bindRange('p_span', () => selApp() && appSpan(selApp()), v => { const a = selApp(); a.from = a.from ?? 0; a.to = a.from + v; }, v => `${Math.round(v)}°`),
 ];
+function selApp() { return sel?.kind === 'app' ? ch.appendages[sel.i] : null; }
+function appSpan(a) { return Math.min(360, (a.to ?? (a.from ?? 0) + 360) - (a.from ?? 0)); }
+function addAppendage(kind) {
+  pushUndo(); const {label, ...d} = APP[kind];
+  ch.appendages.push({kind, ...d}); sel = {kind: 'app', i: ch.appendages.length - 1}; changed();
+}
+$('addSpikes').onclick = () => addAppendage('spikes');
+$('addFimbriae').onclick = () => addAppendage('fimbriae');
+$('addFlagellum').onclick = () => addAppendage('flagellum');
+$('delApp').onclick = delSel;
+$('p_kind').onchange = e => { const a = selApp(); if (!a) return; pushUndo(); const {label, ...d} = APP[e.target.value];
+  delete a.from; delete a.to; Object.assign(a, d, {kind: e.target.value}); changed(); };
+{ const el = $('p_color'); let snap = null;
+  el.addEventListener('input', () => { const a = selApp(); if (!a) return; snap ??= JSON.stringify(ch); a.color = el.value; changed(false); });
+  el.addEventListener('change', () => { if (snap) { undoStack.push(snap); $('undo').disabled = false; snap = null; } draftSave(); }); }
 $('look').onchange = e => { pushUndo(); ch.look = e.target.value; changed(); };
 $('testGear').onchange = e => { pushUndo(); ch.cell.gear = e.target.checked; changed(); };
 $('f_mood').onchange = e => { pushUndo(); ch.face.mood = e.target.value; changed(); };
@@ -676,7 +828,13 @@ for (const k of PALETTE) {
 }
 function syncPanel() {
   $('secBlob').hidden = sel?.kind !== 'blob'; $('secNuc').hidden = sel?.kind !== 'nuc';
-  $('secGran').hidden = sel?.kind !== 'gran'; $('secFace').hidden = sel?.kind !== 'face';
+  $('secGran').hidden = sel?.kind !== 'gran'; $('secFace').hidden = sel?.kind !== 'face'; $('secApp').hidden = sel?.kind !== 'app';
+  const al = $('appList'); al.textContent = '';
+  ch.appendages.forEach((a, i) => { const b = document.createElement('button'); b.className = 'btn' + (sel?.kind === 'app' && sel.i === i ? ' on' : '');
+    b.innerHTML = `<span class="dot" style="background:${a.color}"></span>`; b.append(`${APP[a.kind].label} ×${Math.round(a.count)}`);
+    b.style.display = 'flex'; b.style.gap = '6px'; b.style.alignItems = 'center';
+    b.onclick = () => { sel = {kind: 'app', i}; changed(false); }; al.appendChild(b); });
+  if (selApp()) { $('p_kind').value = selApp().kind; $('p_color').value = selApp().color; $('appTitle').textContent = APP[selApp().kind].label; }
   ranges.forEach(r => r._sync());
   if (sel?.kind === 'blob') for (const b of gb.children) b.classList.toggle('on', b.dataset.g === ch.blobs[sel.i].group);
   $('f_mood').value = ch.face.mood; $('delBlob').disabled = ch.blobs.length <= 1;
@@ -690,7 +848,7 @@ function syncPanel() {
   }
   for (const k of PALETTE) $('c_' + k).value = ch.colors[k];
   $('look').value = ch.look; $('testGear').checked = !!ch.cell.gear;
-  $('gearToggle').hidden = $('wobControl').hidden = ch.look !== 'cell';
+  $('gearToggle').hidden = $('wobControl').hidden = $('rimControl').hidden = ch.look !== 'cell';
   if (document.activeElement !== $('name')) $('name').value = ch.name || '';
   $('count').textContent = `${ch.blobs.length}/${MAXB} blobs`;
   const {frames, fps} = clipSettings();
@@ -700,6 +858,7 @@ function syncPanel() {
   if (!playing) showFrameNumber(previewFrame);
   $('idleControls').hidden = clip !== 'idle';
   $('actControls').hidden = clip === 'idle';
+  $('actNote').hidden = clip === 'hit'; $('hitNote').hidden = clip !== 'hit';
 }
 $('dupBlob').onclick = () => { if (sel?.kind !== 'blob' || ch.blobs.length >= MAXB) return; pushUndo();
   const b = {...ch.blobs[sel.i]}; b.x = +(b.x + 0.25).toFixed(3); ch.blobs.push(b); sel = {kind: 'blob', i: ch.blobs.length - 1}; changed(); };
