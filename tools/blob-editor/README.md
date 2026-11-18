@@ -1,6 +1,6 @@
 # Blob Editor
 
-Shape amoeboid cell characters from metaball blobs, then render them in Blender as an idle loop or a short attack surge.
+Shape amoeboid cell characters from metaball blobs, then export an idle loop or a short attack surge.
 
 - **Editor:** Open `editor.html` in a browser. Saves are local there. The separately published [Claude artifact](https://claude.ai/artifact/8Eow14GXstrGUg3wuoQajn) needs its own update to pick up repository changes.
 - **Renderer:** `render.py` (Blender as a Python module, Cycles on CPU, Freestyle outlines)
@@ -8,14 +8,14 @@ Shape amoeboid cell characters from metaball blobs, then render them in Blender 
 
 ## Workflow
 
-1. Shape the character in the editor and press **Save**. Saves go to the artifact's database (`characters` collection).
-2. Ask Claude to render it by name. Claude pulls the saved JSON into `characters/`, runs the renderer and sends back the GIF and sprite sheet.
+1. Download `editor.html` and open it directly in a WebGL-capable browser. It works offline. **Save** keeps characters in that browser. **Download JSON** and **Import JSON** let you move characters between browsers or retain backups.
+2. Choose a motion and click **Download sprite sheet**. The PNG uses transparent 256 × 256 frames in eight columns with the same frame order as the preview.
 
 The **Cell details** panel sets the body, nucleus, granule, and ribosome colors. Select the nucleus to change its shape, or add granules and ribosomes and drag them into place. Use **Face → Visible** for a faceless cell.
 
 Under **Animation**, choose **Idle** or **Attack surge**. Play loops the selected motion and the frame slider previews the same numbered frames on demand. Slide back to **Rest** to edit the base pose on the stage. Surge strength controls the windup and forward flex.
 
-To render by hand:
+For Blender renders and GIFs, download the character JSON and run:
 
 ```bash
 pip install bpy pillow
@@ -27,7 +27,7 @@ Output lands in `tools/blob-editor/out/<id>/`: `f000.png`… frames, `<id>_idle_
 
 ## How it fits together
 
-The camera is orthographic and front-on, so every coordinate is a 2D point (x right, y up, ground at y = 0) and the editor's view is the render's frame. The editor previews the same metaball field Blender meshes (`stiffness·(1 − d²/r²)³`, threshold 0.6) with the same toon cuts, so the preview and the render match closely.
+The browser sheet uses the editor’s WebGL body and SVG details, with a transparent background. The camera is orthographic and front-on, so every coordinate is a 2D point (x right, y up, ground at y = 0) and the editor's view is the render's frame. The editor previews the same metaball field Blender meshes (`stiffness·(1 − d²/r²)³`, threshold 0.6) with the same toon cuts, so the preview and the render match closely.
 
 Three things are duplicated between `editor.html` and `render.py` and must change together: the idle and surge motion, the face and cell detail geometry, and the color tone derivation (`tones`).
 

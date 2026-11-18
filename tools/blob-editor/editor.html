@@ -61,7 +61,7 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
 
 <header>
   <h1>Blob Editor</h1>
-  <p class="sub">Shape a cell character from blobs. What you see is the camera frame Blender renders.</p>
+  <p class="sub">Shape a cell character, preview its motion, and download a sprite sheet.</p>
 </header>
 
 <main>
@@ -93,11 +93,12 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
       <p class="status" id="status"></p>
       <div id="saved"></div>
       <div class="row">
+        <button class="btn" id="downloadJson">Download JSON</button>
         <button class="btn" id="copy">Copy JSON</button>
         <label class="btn" for="importFile">Import JSON</label><input type="file" id="importFile" accept=".json,application/json" hidden>
         <button class="btn" id="newChar">New blank</button>
       </div>
-      <p class="note">To render: save, then ask Claude to render it by name. You get an idle GIF and a sprite sheet.</p>
+      <p class="note">Download JSON to reopen your character on another device or back it up.</p>
     </section>
 
     <section id="secBlob" hidden>
@@ -164,10 +165,12 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
         <label class="sl">Breathing <input type="range" id="a_breath" min="0" max="0.08" step="0.002"><output></output></label>
         <label class="sl">Arm swing <input type="range" id="a_arm" min="0" max="20" step="0.5"><output></output></label>
         <label class="sl">Pod sway <input type="range" id="a_pod" min="0" max="35" step="0.5"><output></output></label>
-        </div>
+      </div>
       <div class="motion-controls" id="surgeControls" hidden>
         <label class="sl">Strength <input type="range" id="a_surge" min="0" max="0.40" step="0.01"><output></output></label>
       </div>
+      <div class="row"><button class="btn" id="downloadSheet">Download sprite sheet</button></div>
+      <p class="note">Transparent PNG. 256 × 256 pixels per frame, 8 frames per row.</p>
     </section>
 
     <section>
@@ -204,7 +207,7 @@ const BLANK = {v:1, id:'', name:'', colors:{body:'#9fd6f0', nucleus:'#6a3fa0', g
 const $ = id => document.getElementById(id);
 const clone = o => JSON.parse(JSON.stringify(o));
 const slug = s => (s || 'character').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'character';
-const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}};
 
 // ---------- state ----------
 let ch = normalize(JSON.parse(store.get('blob_editor_draft') || 'null') || clone(SAMPLE));
@@ -345,9 +348,10 @@ function initGL() {
   for (const n of ['uB','uS','uN','uView','uRes','cSh','cBa','cHi','cInk']) uni[n] = gl.getUniformLocation(prog, n);
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 }
-function drawGL(blobs) {
+function drawGL(blobs, size) {
   if (!gl) return;
-  const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(cv.clientWidth*dpr);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = size ?? Math.round(cv.clientWidth * dpr);
   if (cv.width !== W) { cv.width = cv.height = W; }
   gl.viewport(0, 0, W, W); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
   const B = new Float32Array(MAXB*4), S = new Float32Array(MAXB*2).fill(1);
@@ -371,8 +375,8 @@ function setView() {
   t.setAttribute('x', v.cx - v.size*sc/2); t.setAttribute('y', -(v.cy + v.size*sc/2)); t.setAttribute('width', v.size*sc); t.setAttribute('height', v.size*sc);
   t.setAttribute('transform', 'scale(1 -1)');
 }
-function drawDecals(f, blink) {
-  const g = $('decals'); g.textContent = '';
+function drawDecals(f, blink, g = $('decals')) {
+  g.textContent = '';
   const n = ch.nucleus;
   if (n) { const [x, y] = f(n.x, n.y, 'body');
     mk('polygon', {points: pts2(outline(n.w/2, n.h/2, n.shape, n.dent)), fill: ch.colors.nucleus, stroke: INK, 'stroke-width': LW,
@@ -419,17 +423,18 @@ let t0 = performance.now(), dirty = true;
 function clipSettings() {
   return clip === 'idle' ? ch.anim : ch.surge;
 }
-function showFrame(i) {
+function showFrame(i, {size, decals} = {}) {
   const {frames} = clipSettings();
   const t = clip === 'idle' ? i / frames : i / Math.max(1, frames - 1);
   const f = clip === 'idle' ? motion(ch, t) : surgeMotion(ch, t);
   drawGL(ch.blobs.map(b => {
     const [x, y, sx = 1, sy = 1] = f(b.x, b.y, b.group);
     return {...b, x, y, sx: b.sx * sx, sy: b.sy * sy};
-  }));
-  drawDecals(f, clip === 'idle' ? blinkAt(ch, i) : 1);
+  }), size);
+  drawDecals(f, clip === 'idle' ? blinkAt(ch, i) : 1, decals);
 }
 function frame(now) {
+  if (dirty) setView();
   if (playing) {
     const {frames, fps} = clipSettings();
     const i = Math.floor(Math.max(0, now - t0) * fps / 1000) % frames;
@@ -655,17 +660,86 @@ $('save').onclick = async () => {
   if (db) { try { await db.doc('characters/' + ch.id).set(data); status(`Saved ${ch.name}. Ask Claude to render "${ch.name}".`); }
     catch (e) { status('Save failed: ' + (e.message || e.code || e)); return; } }
   else { let items = []; try { items = JSON.parse(store.get('blob_editor_saved') || '[]'); } catch (e) {}
-    items = items.filter(x => x.id !== ch.id); items.push({id: ch.id, data}); store.set('blob_editor_saved', JSON.stringify(items));
-    status(`Saved ${ch.name} in this browser only. Use Copy JSON to hand it to Claude.`); }
+    items = items.filter(x => x.id !== ch.id); items.push({id: ch.id, data});
+    if (!store.set('blob_editor_saved', JSON.stringify(items))) {
+      status('Browser storage is unavailable. Use Download JSON to save this character.');
+      return;
+    }
+    status(`Saved ${ch.name} in this browser.`); }
   listSaved();
 };
 $('copy').onclick = async () => { const txt = JSON.stringify(ch, null, 2);
   try { await navigator.clipboard.writeText(txt); status('Copied the character JSON.'); }
-  catch (e) { status('Copy was blocked here. Save instead, and Claude can read it.'); } };
+  catch (e) { status('Copy was blocked here. Use Download JSON instead.'); } };
 $('importFile').onchange = e => { const f = e.target.files[0]; if (!f) return; f.text().then(t => {
   try { const c = JSON.parse(t); if (!Array.isArray(c.blobs)) throw new Error('no blobs list'); pushUndo(); ch = normalize(c); sel = null; changed(); status(`Imported ${ch.name || 'character'}.`); }
   catch (err) { status('That file is not a blob character: ' + err.message); } }); e.target.value = ''; };
 $('newChar').onclick = () => { pushUndo(); ch = normalize(clone(BLANK)); sel = null; changed(); status('Started a blank character. Undo brings the last one back.'); };
+
+// ---------- browser downloads ----------
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+$('downloadJson').onclick = () => {
+  const json = JSON.stringify(ch, null, 2);
+  download(new Blob([json], {type: 'application/json'}), `${slug(ch.name)}.json`);
+};
+
+$('downloadSheet').onclick = async () => {
+  if (!gl || gl.isContextLost()) {
+    status('WebGL is unavailable. Enable hardware acceleration or try another browser.');
+    return;
+  }
+  const button = $('downloadSheet');
+  const {frames} = clipSettings();
+  const size = 256, cols = 8;
+  const filename = `${slug(ch.name)}_${clip}_sheet.png`;
+  const sheet = document.createElement('canvas');
+  sheet.width = cols * size;
+  sheet.height = Math.ceil(frames / cols) * size;
+  const ctx = sheet.getContext('2d');
+  const tile = mk('svg', {width: size, height: size});
+  setView();
+  tile.setAttribute('viewBox', svg.getAttribute('viewBox'));
+  const decals = mk('g', {transform: 'scale(1 -1)'}, tile);
+  const serializer = new XMLSerializer();
+  const layers = [];
+  button.disabled = true;
+  button.textContent = 'Building sheet…';
+  try {
+    for (let i = 0; i < frames; i++) {
+      const x = (i % cols) * size, y = Math.floor(i / cols) * size;
+      showFrame(i, {size, decals});
+      ctx.drawImage(cv, x, y);
+      layers.push({x, y, xml: serializer.serializeToString(tile)});
+    }
+    dirty = true;
+    for (const {x, y, xml} of layers) {
+      const image = new Image();
+      image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+      await image.decode();
+      ctx.drawImage(image, x, y);
+    }
+    const blob = await new Promise(resolve => sheet.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('PNG encoding failed');
+    download(blob, filename);
+    status(`Downloaded ${filename} (${frames} frames).`);
+  } catch (error) {
+    status('Sprite sheet export failed: ' + error.message);
+  } finally {
+    dirty = true;
+    button.disabled = false;
+    button.textContent = 'Download sprite sheet';
+  }
+};
 
 // ---------- boot ----------
 initGL(); setView(); syncPanel(); requestAnimationFrame(frame);
@@ -673,7 +747,7 @@ new ResizeObserver(() => { dirty = true; }).observe(cv);
 listSaved();
 (async () => {
   try { if (window.claude?.use) db = await window.claude.use('db'); } catch (e) { db = null; }
-  if (db) listSaved(); else status('Saving goes to this browser only here. Inside claude.ai, saves reach Claude.');
+  if (db) listSaved(); else status('Saves stay in this browser.');
 })();
 })();
 </script>
