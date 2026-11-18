@@ -240,7 +240,7 @@ DD.ui = (function () {
       return el('button', { class: 'enemy-card' + (e.hp <= 0 ? ' defeated' : '') + (selected ? ' selected' : '') + (e.hp < (prevHP[i] ?? e.hp) ? ' hurt' : ''), type: 'button', disabled: !targetable,
         'aria-label': e.name + ', HP ' + e.hp + ' of ' + e.maxHP + ', ' + intent,
         onclick: () => act('target', i) },
-        el('div', { class: 'glyph' }, e.glyph), el('b', null, e.name),
+        el('div', { class: 'glyph' }, e.glyph), el('b', null, e.name), e.sci ? el('small', { class: 'dim' }, e.sci) : null,
         el('small', null, e.boss ? 'Boss · Lv ' + e.lvl : e.type + ' · Lv ' + e.lvl), meter('HP', e.hp, e.maxHP),
         el('small', { class: e.intent === 'big' ? 'danger' : '' }, e.hp > 0 ? intent : 'Defeated'),
         el('small', null, combat.statusText(e.status)),
