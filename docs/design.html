@@ -175,6 +175,27 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <li>Microbiology is flavor only: one-line codex blurb, never quizzed.</li>
 <li>Clots and plaques are vessel hazards (block or narrow paths), not enemies.</li>
 </ul>
+<h3>Enemy art (2026-11-18)</h3>
+<p>Enemies use the player cells' pipeline (Blob Editor, translucent look, back and front sheets, shared clips), with rules that make friend and foe obvious at a glance. Built in phases E1–E3 below.</p>
+<ul>
+<li><b>Look:</b> same translucent shader, but a darker, thicker membrane and sickly or angry colors; your cells stay clean and friendly. No faces. Art is made facing right and mirrored at draw time to face left.</li>
+<li><b>Shapes:</b> one template per morphology, then each species is a template plus its own colors and small tweaks. Shapes are accurate (microbiology stays flavor, never quizzed, but staph looking like grapes is free learning).</li>
+<li><b>Bosses carry their legendary drop</b> floating inside them (same back sheet, gear, front sheet stack). The player sees the loot during the fight and gets it on the kill. Regular enemies carry nothing.</li>
+<li><b>Animation reuses the shared clips:</b> Attack intent plays Act (damage lands on contact, frame 8); Guard plays Act in place; a telegraphed heavy attack holds the last windup frame through the warning turn, so the “!!” is visible as a cocked-back bug. A shared <b>Hit</b> recoil clip serves players and enemies and replaces the card flash and shake.</li>
+</ul>
+<div class="t"><table><tr><th>Template</th><th>Key features</th><th>Enemies</th></tr>
+<tr><td>Coccus cluster</td><td>Grape-like cluster of spheres</td><td><i>S. aureus</i> (both entries), MRSA</td></tr>
+<tr><td>Coccus chain</td><td>Spheres in a bead chain</td><td><i>S. pyogenes</i></td></tr>
+<tr><td>Diplococcus</td><td>Paired cells: lancet-shaped (<i>S. pneumoniae</i>, with a capsule halo), kidney-bean facing pair (<i>N. meningitidis</i>)</td><td><i>S. pneumoniae</i>, <i>N. meningitidis</i></td></tr>
+<tr><td>Rod</td><td>Capsule-shaped bacillus: peritrichous flagella (<i>Salmonella</i>), fimbriae (<i>E. coli</i>), slender rods in a cord (TB)</td><td><i>Salmonella</i> Typhi, uropathogenic <i>E. coli</i>, <i>M. tuberculosis</i></td></tr>
+<tr><td>Elementary body</td><td>Tiny dense sphere</td><td><i>Chlamydia trachomatis</i></td></tr>
+<tr><td>Spirochete</td><td>Thin tight corkscrew</td><td><i>Treponema pallidum</i></td></tr>
+<tr><td>Budding yeast</td><td>Oval cell with a bud; short pseudohypha</td><td><i>Candida albicans</i></td></tr>
+<tr><td>Enveloped virus</td><td>Round envelope ringed with knobbed spikes</td><td>Influenza, mumps, CMV, EBV (both entries), hepatitis B</td></tr>
+<tr><td>Naked icosahedral virus</td><td>Faceted capsid, no envelope or spikes</td><td>Rhinovirus</td></tr>
+<tr><td>Protozoa</td><td>Ring-form parasite inside a red blood cell (biconcave pale center) for <i>Plasmodium</i>; slender body, undulating membrane and one flagellum for <i>Trypanosoma</i></td><td><i>P. falciparum</i>, <i>T. cruzi</i></td></tr>
+<tr><td>Worm</td><td>Segmented tapeworm with a hooked scolex; coiled larva for <i>Trichinella</i></td><td><i>Taenia solium</i>, <i>Trichinella spiralis</i></td></tr>
+</table></div>
 
 <h2>Traps</h2>
 <ul>
@@ -289,6 +310,9 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <tr><td>4b</td><td>Gear: 4 slots, rarity, ~60 items, chests/shops/merchant stock.</td></tr>
 <tr><td>5a</td><td>Subclasses, set bonuses, rule-changing legendaries, gear to ~150.</td></tr>
 <tr><td>5b</td><td>Derrick's life events (acute + positive) tied to faded regions, Derrick's chart, event-reactive NPC lines, Reinfection (NG+) with chronic conditions.</td></tr>
+<tr><td>E1</td><td>Enemy art: Blob Editor appendages (spikes, fimbriae, flagella), membrane weight, shared Hit clip.</td></tr>
+<tr><td>E2</td><td>Enemy art: 11 pathogen templates, then one character per enemy, rendered in all clips.</td></tr>
+<tr><td>E3</td><td>Enemy art: gear image pipeline, each boss's legendary drawn and floating inside its boss.</td></tr>
 </table></div>
 <p><b>Parked:</b> thymus skill tree, antibody class switching (IgM/IgG/IgA/IgE), timed practical mode.</p>
 
@@ -528,6 +552,32 @@ Each zone has a name and a one-line accurate blurb shown in a banner on entering
 </ul>
 
 <p><i>Built (5b):</i> profile <code>v</code> stays 6 (<code>event</code> = <code>{id, day, seen}</code>, <code>conditions</code> and <code>ngPlus</code> already existed; <code>migrate</code> only cleans them, and question stats gain optional <code>ng</code> and <code>r0</code>). <b>Events</b> are <code>data/events.js</code> (10 daily events plus 3 chronic conditions, numbers in <code>DD.S.events</code> and <code>DD.S.chronic</code>); <code>DD.derrick</code> (<code>js/derrick.js</code>) reads them and <code>js/derrickui.js</code> draws the screens. An event is <code>{id, name, kind, regions, blurb, mapNote, summary, effects, mods, primes?, chart, npcLines}</code>. <code>effects</code> are ordinary effect-engine entries (<code>src:"event"</code>, fired last; <code>stat</code> results may carry <code>mult</code> instead of <code>add</code>; new conditions <code>enemyId</code> and <code>classId</code>). Things the effect list cannot express live in <code>mods</code>: <code>vessel</code> (arterial push interval, ambush chance, clot and plaque odds), <code>dungeon</code> (extra levels, extra pathogens per floor, trap multiplier, a favored pathogen) and <code>global</code> (healing, glucose, Mucus Ward absorption). <b>Roll:</b> <code>DD.derrick.ensure()</code> runs when the body map opens or a game continues; once per calendar day it picks an acute or positive event with weight 1 (0.6 for good days) × (1 + 3 × how faded the event's most-faded region is, using the same recency as the map's ↓ badge), ×0.3 if none of its regions is open yet, ×0.2 if it was yesterday's. Event regions pay ×1.5 glucose (enemy drops, pickups and cells' rewards). The map shows a dashed ring and a <b>!</b> on touched places, a note in the place panel, and a card at the top (the full “This week, Derrick…” intro until dismissed). A dungeon run stores its own modifiers (<code>run.gm</code>) when it starts, so a reload on another day regenerates the same floors. <b>Events:</b> big night out (arteries push every 4th step; kidney pathogens +1 level), all-nighter (Defense ×0.8), didn't wash his hands (lung roster about 75% influenza; I added the <i>Influenza virus</i> as a mild lungs pathogen, and <i>S. pneumoniae</i> now also lists lungs), sunburn (skin traps ×2), untrained 10K (quads +2 pathogens per floor), broken leg (femur: Macrophage ×1.25 damage and +4% max HP healed per kill), takeout week (gut traps ×2), flu shot (×1.5 against influenza; influenza also counts as beaten for B Cell Memory), ate well and slept 8 hours (healing ×1.1 everywhere), stayed hydrated (vessel ambush chance −5 points). <b>Chronic:</b> type 2 diabetes (glucose drops ×1.5, lose 10% of carried glucose whenever a trip enters the renal vein or kidneys, healing ×0.8), hypertension (clots and plaque ×1.5), smoking (lung pathogens +1 level; the Mucus Ward absorbs half of the next hit instead of all of it). <b>Chart:</b> the HUD's Chart button and the map's “Derrick's chart” open a modal of the seven bible vitals from baseline (HR 72, BP 116/74, RR 14, SpO₂ 98, 36.8 °C, glucose 90, osmolality 285) plus event and condition deltas; out-of-range rows are flagged ⚑ with one line of why. <b>NPC lines:</b> every event has lines for the natives it touches and a generic line; a native, town or merchant line about the day replaces its standing Derrick joke (generic lines about half the time) and carries a “Derrick lately” chip; ambient town cells react sometimes. <b>Reinfection:</b> offered on the body map once every <i>open</i> dungeon (<code>playable: true</code>) is cleared and no run is saved, so it grows with the game as regions open. It adds 1 to <code>ngPlus</code> (“Derrick is now 45”: 44 + level), pathogens +5 levels per Reinfection (dungeons and vessel ambushes), chests at least uncommon (Reinfection 1) or rare (2+), clears every region's <code>cleared</code>, puts every question back in full rotation (the recent list is cleared, each question counts as unseen again and earlier right answers stop lowering its weight, while misses and the review list are kept), and tops conditions up to one per Reinfection (max 3). Levels, gear, subclass and stats stay.</p>
+<h3>E1 · Blob Editor: appendages, membrane weight, Hit clip</h3>
+<p>Prerequisite: the shared Act clips are merged. Scope: <code>tools/blob-editor/editor.html</code> only (and its artifact). No game code.</p>
+<ul>
+<li><b>Appendages</b> (new character field <code>appendages: [{kind, count, len, width, color, from?, to?}]</code>, angles in degrees, default all the way round): <code>spikes</code> (radial stalks with a round knob, viral glycoproteins), <code>fimbriae</code> (many short thin hairs), <code>flagellum</code> (one or more long tapered wavy lines from a chosen angle; the wave travels with the clip phase so idle loops seamlessly). Anchor points come from the membrane itself: cast rays from the body centroid and bisect the same metaball field the shader uses (same <code>TH</code>, <code>STIFF</code>, threshold), so appendages sit on the surface and follow the body's motion and wobble closely enough. Drawn in the SVG decal layer (back sheet), under the front membrane. Panel: add, select, edit and delete appendages like particles.</li>
+<li><b>Membrane weight</b> (new <code>cell.rim</code>, 0–1, default 0 = current look): thicker and darker membrane rim for enemies. Shader uniform; affects the front layer only.</li>
+<li><b>Hit clip</b> (new clip <code>hit</code>, shared by every character, back and front sheets): 10 frames at 20 fps, starting and ending at rest. Frames 1–2: knocked away from the attacker (toward −x for right-facing art), squashed, white flash (shader uniform, fades by frame 3); frames 3–10: damped jiggle back to rest. Uses the same strength slider as Act.</li>
+<li>Exports keep the existing naming (<code>&lt;id&gt;_&lt;clip&gt;_back_sheet.png</code>, <code>_front_sheet.png</code>). Old characters load unchanged.</li>
+<li><b>Checks:</b> one headless render of a test character with each appendage kind (idle loops without a seam) and of the Macrophage's Hit clip; no page errors; republish the editor artifact; one look at the lineup with the user.</li>
+</ul>
+<h3>E2 · Pathogen templates and species</h3>
+<p>Prerequisite: E1. Scope: character files and the editor's database. No game code.</p>
+<ul>
+<li>Build the 11 templates in the Enemy art table as characters in the editor's <code>characters</code> collection (ids <code>tpl-&lt;name&gt;</code>), translucent look, face off, <code>cell.rim</code> about 0.6, accurate key features from the table. Show the user a lineup render and get sign-off before species.</li>
+<li>Then one character per enemy id in <code>game/data/enemies.js</code> (ids <code>enemy-&lt;enemy id&gt;</code>): its template, a distinct sickly or angry palette, small shape tweaks so repeat templates differ (MRSA reads tougher than <i>S. aureus</i>), Act strength by temperament. Bosses use the same template drawn larger and more menacing. Leave an empty spot inside each boss where its legendary will float (E3).</li>
+<li>Commit every file to <code>tools/blob-editor/characters/pathogens/</code>. Render Idle, Act, Act in place and Hit for all enemies; send the user a lineup GIF per clip and a zip of sheets. Renders stay out of git until the game integration phase.</li>
+<li><b>Checks:</b> each species' key feature visible at 256 px; no page errors.</li>
+</ul>
+<h3>E3 · Boss legendaries inside bosses</h3>
+<p>Prerequisite: E2. Defines the gear image pipeline that all gear later follows.</p>
+<ul>
+<li><b>Gear image pipeline:</b> each item is a hand-authored SVG at <code>tools/gear/&lt;itemId&gt;.svg</code> in the chunky cartoon style (ink <code>#3a1838</code> outlines, flat fills, light from the upper left), rasterized headlessly to a 512 px transparent PNG at <code>game/assets/gear/&lt;itemId&gt;.png</code>. Per-item <code>art: {anchor:[x,y], angle, scale}</code> goes on the item's data entry. Items without art keep their text display.</li>
+<li>Draw the legendary each boss drops (read the drop from the enemy and equipment data). The art should show what the name is: Waxy Cell Wall, Scolex Hook, Polysaccharide Capsule and so on.</li>
+<li>Add a boss preview to the editor: a “gear image” picker that places a PNG inside the cell at the item's anchor, angle and scale, between the back and front layers, so placement can be tuned visually and saved to the item's <code>art</code>.</li>
+<li>Render each boss with its legendary inside (Idle, Act, Hit) and send the lineup for sign-off.</li>
+<li><b>Checks:</b> <code>node --check</code> on changed data files, the existing <code>tests/*.cjs</code>, no page errors. Game display of sheets and gear stays in the separate layered-sprite-player phase.</li>
+</ul>
 <h2>Standalone browser hosting</h2>
 <p>Approved standalone update: the same game also runs outside the Claude viewer on GitHub Pages. Without Claude capabilities, images and annotations use private browser IndexedDB; player progress and custom questions retain their localStorage mirrors. The body map offers Backups (export private progress, questions and embedded image files; validate and explicitly confirm replacement before restoring). Question import uses the existing review screen and does not call an AI service. Existing Claude storage and generation remain supported in the viewer. No lab image, backup, or personal study material belongs in this public repository. GitHub Actions publishes only <code>game/</code> after merges to <code>main</code>. The old artifact must be updated with export support before its cloud data can be transferred.</p>
 <h2>Content-driven dungeon access</h2>
