@@ -214,6 +214,7 @@ DD.ui = (function () {
   // ---------- group combat ----------
   const stopTimer = () => { if (g.moveTimer) { clearInterval(g.moveTimer); g.moveTimer = null; } };
   let itemOpen = false;
+  const lastHP = new WeakMap(); // enemy HP at the previous render, to flash cards that just took damage
   ui.openCombat = function () { ui.mode = 'combat'; g.combat.hidden = false; ui.renderCombat(); };
   ui.closeCombat = function () { itemOpen = false; ui.mode = 'map'; g.combat.hidden = true; g.combat.replaceChildren(); ui.refreshMap(); };
   ui.renderCombat = function () {
@@ -227,13 +228,16 @@ DD.ui = (function () {
       C.shield ? el('span', { class: 'chip ok' }, 'One-hit Shield') : null,
       C.wind ? el('span', { class: 'chip ok' }, 'Next Attack +50%') : null,
       el('span', null, combat.statusText(C.status)));
-    const player = el('div', { class: 'battle-player' }, el('h2', null, C.cls.role), el('div', { class: 'glyph player-glyph', 'aria-hidden': 'true' }, '@'),
+    if (!lastHP.has(C) && DD.anim) DD.anim.reset(C);
+    const prevHP = lastHP.get(C) || []; lastHP.set(C, C.enemies.map(e => e.hp));
+    const portrait = DD.anim && DD.anim.forClass(C.cls.id);
+    const player = el('div', { class: 'battle-player' }, el('h2', null, C.cls.role), portrait || el('div', { class: 'glyph player-glyph', 'aria-hidden': 'true' }, '@'),
       el('div', { class: 'small dim' }, C.cls.name), meter('HP', C.run.hp, C.st.maxHP), meter('ATP', C.run.atp, C.st.maxATP, 'atp'), statuses,
       C.ally ? el('div', { class: 'companion card' }, el('b', null, 'Basophil'), meter('HP', C.ally.hp, C.ally.maxHP), el('small', null, C.ally.hp > 0 ? 'Attacks each round · shares 25% damage' : 'Defeated · recruit again')) : null);
     const enemies = el('div', { class: 'battle-enemies' }, C.enemies.map((e, i) => {
       const intent = e.intent === 'big' ? 'Charging: ' + (e.applies || 'heavy attack') : e.intent === 'defend' ? 'Guarding' : 'Attack';
       const selected = C.selection.includes(i), targetable = C.phase === 'target' && e.hp > 0;
-      return el('button', { class: 'enemy-card' + (e.hp <= 0 ? ' defeated' : '') + (selected ? ' selected' : ''), type: 'button', disabled: !targetable,
+      return el('button', { class: 'enemy-card' + (e.hp <= 0 ? ' defeated' : '') + (selected ? ' selected' : '') + (e.hp < (prevHP[i] ?? e.hp) ? ' hurt' : ''), type: 'button', disabled: !targetable,
         'aria-label': e.name + ', HP ' + e.hp + ' of ' + e.maxHP + ', ' + intent,
         onclick: () => act('target', i) },
         el('div', { class: 'glyph' }, e.glyph), el('b', null, e.name),
@@ -288,6 +292,7 @@ DD.ui = (function () {
       el('div', { class: 'battlefield' }, player, enemies),
       el('div', { class: 'clog', role: 'status', 'aria-live': 'polite' }, C.log.slice(-3).map(t => el('div', null, t))),
       el('div', { class: 'battle-bottom' }, commands, body)));
+    if (portrait) DD.anim.sync(C);
   };
   function act(name, value) {
     const C = DD.game.combat; if (!C) return;

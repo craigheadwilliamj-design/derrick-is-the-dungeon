@@ -49,7 +49,7 @@ li{margin:.2em 0}
 
 <h2>Tech</h2>
 <ul>
-<li>Plain JavaScript, no framework, no engine. Canvas or a DOM grid for the glyph map. Classic roguelike glyphs (<code>@ # . + &gt;</code>, letters for monsters), colored per region. Single dark visual world.</li>
+<li>Plain JavaScript, no framework, no engine. Canvas or a DOM grid for the glyph map. Classic roguelike glyphs (<code>@ # . + &gt;</code>, letters for monsters), colored per region. Single dark visual world. Combat portraits are the exception: classes with finished art show an animated layered-SVG portrait instead of <code>@</code> (see Character art &amp; animation).</li>
 <li><b>Content is data.</b> Questions, items, enemies, classes, subclasses, NPCs, regions live in <code>data/*.js</code> tables. Logic in <code>js/*.js</code>. Balance numbers in one <code>js/settings.js</code>.</li>
 <li>Files: <code>index.html</code>, <code>js/</code> (engine, combat, effects, dungeon, ui, save, editor…), <code>data/</code>.</li>
 <li><b>Saving:</b> <code>db</code> + <code>user</code> capabilities, private path <code>data/users/&lt;id&gt;/…</code> (save doc, custom questions, image-question records). localStorage mirror as fallback. Store per-question stats and per-region last-reviewed timestamps.</li>
@@ -108,6 +108,64 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <p><b>Wizard staffs:</b> Dendrite Staff grants Nerve Pulse (Electrical, 20% Stun chance); Respiratory Burst Staff grants Oxidative Bolt (Weaken); Spirochete Corkscrew grants Toxic Bolt (+3 Poison). Other staffs currently use Acid Bolt. Equipment must show its granted spell. Spell effects are game abstractions.</p>
 <h3>Basophil companion</h3>
 <p>One permanent companion identity, recruited for a battle. HP = 50% Ranger max HP. Attacks immediately on recruitment and once per round for 40% Ranger Power; follows Antibody Mark, otherwise the selected living target. Receives 25% of direct damage that would otherwise hit Ranger, capped by its remaining HP; damage is redirected, not duplicated or reduced a second time. Recasting heals 50% companion max HP, or summons it again after defeat. No recast at full HP. The mark strengthens both Ranger and companion damage. Companion ends with the encounter.</p>
+
+<h2>Character art &amp; animation (2026-11-18)</h2>
+<p>In combat, classes with finished art show an animated portrait in place of <code>@</code>. The map stays glyphs. Built: Eosinophil Ranger and the Basophil companion, in <code>js/anim.js</code>. The user supplies concept art and sessions redraw it as SVG code; the concept images stay out of the repo. Every portrait must show the cell's real identifying features (nucleus shape, granule color), because players learn from them.</p>
+<div class="t"><table><tr><th>Class</th><th>Art</th><th>What the drawing must show</th></tr>
+<tr><td>Eosinophil · Ranger</td><td>Done</td><td>Bilobed purple nucleus, coral (eosin-stained) granules. Green hood and cape, bow, quiver. Arrowheads are coral granules; Antibody Mark arrows carry gold Y-shaped antibodies.</td></tr>
+<tr><td>Basophil (companion)</td><td>Done</td><td>Lavender pup, no collar, floppy ears on top of the head. Dense dark purple granules that mostly hide a faint nucleus.</td></tr>
+<tr><td>Neutrophil · Berserker</td><td>Concept exists (axe barbarian)</td><td>Redraw with a 3–5-lobed nucleus and pale lilac granules; amoeboid outline with pseudopods is fine.</td></tr>
+<tr><td>B Cell · Wizard</td><td>Concept exists (wizard)</td><td>Redraw with one large round nucleus filling most of the cell and no coral granules. Keep hat, staff and cape.</td></tr>
+<tr><td>Macrophage · Paladin</td><td>Needed</td><td>Large and tanky, irregular outline with pseudopods, one bean-shaped nucleus, mace and shield.</td></tr>
+<tr><td>Cytotoxic T · Rogue</td><td>Needed</td><td>Small lymphocyte: round, mostly nucleus.</td></tr>
+</table></div>
+<h3>Style</h3>
+<ul>
+<li>Chunky, cute cartoon: flat fills, no gradients or textures. Outlines <code>#3a1838</code>, 6 units wide (viewBox units), round joins and caps. Eyes and fine details <code>#2a1028</code>.</li>
+<li>The cell is the body. Nucleus and granules sit on the body; the face (big eyes, angled brows) sits above or over the nucleus. Characters face right, toward the enemies, feet on a ground line with a soft dark ellipse shadow.</li>
+<li>Shared effect colors: coral <code>#ff7a5c</code> (eosinophil granules, player damage), gold <code>#f2c14e</code> (antibodies, ATP, marked damage), green <code>#7fd36b</code> (heal), lavender <code>#b3a8f5</code> (Basophil damage), red <code>#d8343f</code> (Bleed), acid <code>#c8e04a</code>, teal <code>#7fe0e8</code> (Hand Sanitizer).</li>
+<li>Numbers: JetBrains Mono bold with a 6-unit dark stroke drawn under the fill (<code>paint-order: stroke</code>).</li>
+</ul>
+<h3>Rig structure</h3>
+<ul>
+<li>One inline SVG per portrait. Every moving part is its own group or path. Ids carry a per-rig prefix (<code>ea-</code> for the Eosinophil) and lookups are scoped to the portrait root, so they never collide with the page.</li>
+<li>Draw order, back to front: shadow, companion (behind the player), cape, quiver and other back items, hood back, legs, body, granules, nucleus, face, hood rim, belt, weapon-arm group, effects. Feet stay outside the breathing group so they stay planted.</li>
+<li>Pivots: the body scales from the feet; appendages rotate around their attachment points. Separate groups for everything that moves on its own: body, hood tip, cape, quiver arrows, eyes (blink), the aiming assembly (bow, both arms, arrow), the draw arm, the nocked arrow, and effect layers (sparks, puffs, numbers).</li>
+</ul>
+<h3>Motion rules</h3>
+<ul>
+<li>One <code>requestAnimationFrame</code> loop per rig. Every pose is a function of time (no CSS keyframes inside the rig), so actions layer on top of the idle.</li>
+<li>Idle: breathing squash and stretch from the feet (Eosinophil: 2.6 s period, about 2% scale, 3-unit bob). Light parts follow a beat late (hood tip, cape, quiver arrows, ears); the cape runs at 0.75× speed so the loop never looks mechanical. Random blinks every 2.5–5 s. The companion has its own faster rhythm (pant 0.55 s, tail wag 2.2 Hz).</li>
+<li>Actions: anticipation, action, follow-through. Damped springs (<code>e<sup>−kt</sup>·cos ωt</code>) for recoil and settling, ease-out cubic for travel. Impacts lean and squash the body, and secondary parts react to the lean.</li>
+<li>Keep actions short: basic attack about 1.2 s, abilities up to 2 s, hit 0.8 s, heal 1.1 s.</li>
+<li>Reduced motion: no movement. Show the end state briefly (the number, the closed eyes, the companion simply appearing).</li>
+</ul>
+<h3>Standard action set</h3>
+<div class="t"><table><tr><th>Action</th><th>Event</th><th>What it shows</th></tr>
+<tr><td>Idle</td><td>none</td><td>Breathing, lagging parts, blinks.</td></tr>
+<tr><td>Basic attack</td><td><code>shot</code></td><td>Draw, release, arrow leaves, string snaps and wobbles, re-nock.</td></tr>
+<tr><td>Abilities</td><td><code>mark</code>, <code>scatter</code>, <code>recruit</code>, <code>allyHeal</code></td><td>One distinct animation per ATP ability. Antibody Mark: long glowing draw while antibodies coat the arrowhead. Scatter Shot: three arrows loosed at the sky. Recruit Basophil: whistle; the pup bounds in from behind the Ranger and lands with histamine sparkles. Recast: the pup glows green and shows its heal.</td></tr>
+<tr><td>Hit</td><td><code>hit {hit, shared}</code></td><td>Knockback lean and squash, white flash, <code>&gt; &lt;</code> eyes, sparks, number. With the companion out, it flinches and shows its 25% share.</td></tr>
+<tr><td>Heal</td><td><code>heal {heal}</code></td><td>Green glow, rising plus signs, <code>^ ^</code> eyes, green number.</td></tr>
+<tr><td>Use item</td><td><code>use {kind: heal | atp | other}</code></td><td>The item pops up over the head, bobs, then drops into the cell. Heal: green heal. ATP: gold glow, lightning bolts, <code>+n ATP</code>. Other items: a capsule icon only.</td></tr>
+<tr><td>Throw item</td><td><code>throw {kind: gastric | bleach | spray}</code></td><td>The draw hand lets go of the string, winds up and lobs a spinning jar (Gastric Juice) or jug (Bleach). Hand Sanitizer is three pumps of teal mist.</td></tr>
+<tr><td>Companion attack</td><td><code>bite {bite, biteMarked}</code></td><td>Crouch and wiggle, lunge with an open mouth, chomp with histamine sparkles, hop back. Gold number when the target carries Antibody Mark.</td></tr>
+</table></div>
+<p>Effects that land on enemies (arrow rain, splashes, the MARKED stamp) exist only in the prototype stage. In the game, enemy cards flash and shake when their HP drops.</p>
+<h3>Engine contract (<code>js/anim.js</code>)</h3>
+<ul>
+<li><code>DD.anim.forClass(classId)</code> returns a persistent portrait element, or null to keep the glyph (classes without art, or no real DOM). The same element is re-attached on every combat render, so animations survive re-renders.</li>
+<li><code>DD.anim.sync(C)</code> after each render: shows the companion from <code>C.ally</code>, keeps the idle running and starts queued events.</li>
+<li><code>DD.anim.emit(action, values)</code> is called from <code>js/combat.js</code> (helper <code>anim(C, action, values)</code>) where outcomes are decided. Events play in order (player action, companion, enemy hits), each waiting for its duration. Practice drills emit nothing. <code>DD.anim.reset(C)</code> runs when a new fight first renders.</li>
+</ul>
+<h3>Adding a new character</h3>
+<ol>
+<li>Get the user's concept art. Check the class, role and weapon against this doc and the biology against the table above before drawing.</li>
+<li>Prototype in a standalone private artifact: redraw the parts as SVG facing right, rig them with the groups above, add idle first, then one action at a time, with Pause and Slow-motion buttons. Get the user's sign-off at each step. Reference prototype: <a href="https://claude.ai/artifact/Na3pwoPJuDkUDbp9MraLPK">Eosinophil animation test</a>.</li>
+<li>Port it into <code>js/anim.js</code>: add the markup and rig, prefix ids, scope lookups to the root, leave out stage-only effects, and return it from <code>DD.anim.forClass</code>.</li>
+<li>Map the class's abilities to actions in <code>resolve()</code> in <code>js/combat.js</code>, adding new action names when an ability needs its own animation.</li>
+<li>Checks: <code>node --check</code>, <code>tests/*.cjs</code>, one headless fight with screenshots at desktop width and 390 px, and reduced motion.</li>
+</ol>
 
 <h2>Enemies</h2>
 <ul>
