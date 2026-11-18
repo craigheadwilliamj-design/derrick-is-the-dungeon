@@ -212,7 +212,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere}
 
 /* Classic RPG battlefield; command panels remain below the combatants. */
 .battle-box{width:min(1100px,100%);padding:18px;gap:16px;max-height:calc(100dvh - 24px)}
-.battlefield{display:grid;grid-template-columns:minmax(160px,1fr) 2fr;gap:32px;min-height:240px;padding:20px 8px;background:var(--map-bg);border-radius:6px}
+.battlefield{flex-shrink:0;display:grid;grid-template-columns:minmax(160px,1fr) 2fr;gap:32px;min-height:240px;padding:20px 8px;background:var(--map-bg);border-radius:6px}
 .battle-player{display:flex;flex-direction:column;gap:10px;max-width:260px;align-self:center}
 .player-glyph{color:var(--bone);align-self:center;font-size:64px}
 .battle-enemies{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;align-items:center}
