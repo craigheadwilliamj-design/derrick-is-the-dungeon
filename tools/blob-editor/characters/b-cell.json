@@ -1,0 +1,85 @@
+{
+ "v": 1,
+ "id": "b-cell",
+ "name": "B Cell",
+ "look": "cell",
+ "colors": {
+  "ribosome": "#704c9d",
+  "body": "#ffd36e",
+  "nucleus": "#46277f",
+  "granule": "#f2c230"
+ },
+ "blobs": [
+  {
+   "x": 0,
+   "y": 1.25,
+   "r": 1.1,
+   "sx": 1,
+   "sy": 1,
+   "group": "body"
+  },
+  {
+   "x": 0,
+   "y": 0.85,
+   "r": 0.7,
+   "sx": 1,
+   "sy": 1,
+   "group": "body"
+  },
+  {
+   "x": -0.32,
+   "y": 0.33,
+   "r": 0.42,
+   "sx": 1,
+   "sy": 1,
+   "group": "leg"
+  },
+  {
+   "x": 0.32,
+   "y": 0.33,
+   "r": 0.42,
+   "sx": 1,
+   "sy": 1,
+   "group": "leg"
+  }
+ ],
+ "face": {
+  "x": 0,
+  "y": 2.2,
+  "s": 1,
+  "mood": "calm",
+  "show": false
+ },
+ "nucleus": {
+  "x": 0.03,
+  "y": 1.27,
+  "w": 0.98,
+  "h": 0.94,
+  "rot": 0,
+  "dent": 0.3,
+  "shape": "round"
+ },
+ "granules": [],
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.03,
+  "arm": 5,
+  "pod": 12,
+  "pivotY": 0.55
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.25
+ },
+ "cell": {
+  "wobble": 0.15,
+  "gear": true
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ }
+}

@@ -1,0 +1,302 @@
+{
+ "v": 1,
+ "id": "neutrophil",
+ "name": "Neutrophil",
+ "look": "cell",
+ "colors": {
+  "ribosome": "#704c9d",
+  "body": "#f2a65a",
+  "nucleus": "#5e2a8c",
+  "granule": "#d8b8f2"
+ },
+ "blobs": [
+  {
+   "x": 0,
+   "y": 1.55,
+   "r": 1.25,
+   "sx": 1.1,
+   "sy": 1,
+   "group": "body"
+  },
+  {
+   "x": 0.3,
+   "y": 2.1,
+   "r": 0.9,
+   "sx": 1,
+   "sy": 1,
+   "group": "body"
+  },
+  {
+   "x": -0.4,
+   "y": 1.15,
+   "r": 0.9,
+   "sx": 1,
+   "sy": 1,
+   "group": "body"
+  },
+  {
+   "x": 1.0,
+   "y": 1.75,
+   "r": 0.6,
+   "sx": 1,
+   "sy": 1,
+   "group": "podA"
+  },
+  {
+   "x": 1.4,
+   "y": 1.9,
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1,
+   "group": "podA"
+  },
+  {
+   "x": 1.7,
+   "y": 2.0,
+   "r": 0.42,
+   "sx": 1,
+   "sy": 1,
+   "group": "podA"
+  },
+  {
+   "x": -0.95,
+   "y": 2.1,
+   "r": 0.55,
+   "sx": 1,
+   "sy": 1,
+   "group": "podB"
+  },
+  {
+   "x": -1.25,
+   "y": 2.35,
+   "r": 0.42,
+   "sx": 1,
+   "sy": 1,
+   "group": "podB"
+  },
+  {
+   "x": -0.45,
+   "y": 0.45,
+   "r": 0.55,
+   "sx": 1,
+   "sy": 1,
+   "group": "leg"
+  },
+  {
+   "x": 0.45,
+   "y": 0.45,
+   "r": 0.55,
+   "sx": 1,
+   "sy": 1,
+   "group": "leg"
+  }
+ ],
+ "face": {
+  "x": 0,
+  "y": 2.2,
+  "s": 1,
+  "mood": "calm",
+  "show": false
+ },
+ "nucleus": {
+  "x": 0.05,
+  "y": 1.6,
+  "w": 1.15,
+  "h": 0.8,
+  "rot": 10,
+  "dent": 0.3,
+  "shape": "trilobed"
+ },
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.57,
+   "y": 2.082,
+   "r": 0.046
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.031,
+   "y": 2.092,
+   "r": 0.042
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.388,
+   "y": 1.093,
+   "r": 0.036
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.815,
+   "y": 1.713,
+   "r": 0.041
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.053,
+   "y": 1.568,
+   "r": 0.042
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.022,
+   "y": 1.271,
+   "r": 0.049
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.171,
+   "y": 1.529,
+   "r": 0.035
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.746,
+   "y": 1.425,
+   "r": 0.041
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.165,
+   "y": 2.045,
+   "r": 0.035
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.093,
+   "y": 1.934,
+   "r": 0.038
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.393,
+   "y": 1.695,
+   "r": 0.035
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.382,
+   "y": 1.155,
+   "r": 0.045
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.382,
+   "y": 2.242,
+   "r": 0.048
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.406,
+   "y": 1.878,
+   "r": 0.046
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.149,
+   "y": 0.943,
+   "r": 0.041
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.631,
+   "y": 1.256,
+   "r": 0.048
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.602,
+   "y": 1.582,
+   "r": 0.036
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.085,
+   "y": 2.224,
+   "r": 0.041
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.343,
+   "y": 2.059,
+   "r": 0.046
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.188,
+   "y": 1.219,
+   "r": 0.042
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.699,
+   "y": 1.567,
+   "r": 0.043
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.416,
+   "y": 1.904,
+   "r": 0.035
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.736,
+   "y": 1.758,
+   "r": 0.05
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.394,
+   "y": 1.357,
+   "r": 0.038
+  }
+ ],
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.03,
+  "arm": 5,
+  "pod": 12,
+  "pivotY": 0.55
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.4
+ },
+ "cell": {
+  "wobble": 0.15,
+  "gear": true
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ }
+}

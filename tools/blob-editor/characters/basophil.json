@@ -1,0 +1,354 @@
+{
+ "v": 1,
+ "id": "basophil",
+ "name": "Basophil",
+ "look": "cell",
+ "colors": {
+  "ribosome": "#704c9d",
+  "body": "#b3a8f5",
+  "nucleus": "#8a6cc0",
+  "granule": "#3a1858"
+ },
+ "blobs": [
+  {
+   "x": 0,
+   "y": 1.45,
+   "r": 1.25,
+   "sx": 1,
+   "sy": 1,
+   "group": "body"
+  },
+  {
+   "x": 0,
+   "y": 0.95,
+   "r": 0.85,
+   "sx": 1,
+   "sy": 1,
+   "group": "body"
+  },
+  {
+   "x": -0.55,
+   "y": 2.2,
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1.3,
+   "group": "podA"
+  },
+  {
+   "x": 0.55,
+   "y": 2.2,
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1.3,
+   "group": "podB"
+  },
+  {
+   "x": -0.42,
+   "y": 0.38,
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1,
+   "group": "leg"
+  },
+  {
+   "x": 0.42,
+   "y": 0.38,
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1,
+   "group": "leg"
+  }
+ ],
+ "face": {
+  "x": 0,
+  "y": 2.2,
+  "s": 1,
+  "mood": "calm",
+  "show": false
+ },
+ "nucleus": {
+  "x": 0,
+  "y": 1.45,
+  "w": 1.0,
+  "h": 0.6,
+  "rot": 0,
+  "dent": 0.3,
+  "shape": "bilobed"
+ },
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.04,
+   "y": 1.891,
+   "r": 0.072
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.452,
+   "y": 1.162,
+   "r": 0.066
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.657,
+   "y": 1.495,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.071,
+   "y": 2.046,
+   "r": 0.074
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.257,
+   "y": 1.096,
+   "r": 0.078
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.335,
+   "y": 1.838,
+   "r": 0.082
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.613,
+   "y": 1.375,
+   "r": 0.078
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.577,
+   "y": 1.655,
+   "r": 0.077
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.04,
+   "y": 1.55,
+   "r": 0.082
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.602,
+   "y": 1.537,
+   "r": 0.083
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.154,
+   "y": 0.889,
+   "r": 0.073
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.163,
+   "y": 1.321,
+   "r": 0.068
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.276,
+   "y": 1.215,
+   "r": 0.075
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.321,
+   "y": 1.684,
+   "r": 0.077
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.591,
+   "y": 1.162,
+   "r": 0.079
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.601,
+   "y": 1.21,
+   "r": 0.085
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.075,
+   "y": 1.181,
+   "r": 0.082
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.435,
+   "y": 0.976,
+   "r": 0.067
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.172,
+   "y": 1.956,
+   "r": 0.082
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.508,
+   "y": 1.398,
+   "r": 0.085
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.314,
+   "y": 1.502,
+   "r": 0.073
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.352,
+   "y": 1.227,
+   "r": 0.074
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.472,
+   "y": 1.433,
+   "r": 0.079
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.472,
+   "y": 1.682,
+   "r": 0.065
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.364,
+   "y": 1.853,
+   "r": 0.08
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.175,
+   "y": 1.471,
+   "r": 0.079
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.168,
+   "y": 1.787,
+   "r": 0.077
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.022,
+   "y": 1.709,
+   "r": 0.074
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.397,
+   "y": 0.993,
+   "r": 0.074
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.235,
+   "y": 1.952,
+   "r": 0.082
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.267,
+   "y": 1.686,
+   "r": 0.081
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.019,
+   "y": 0.901,
+   "r": 0.078
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.598,
+   "y": 1.75,
+   "r": 0.077
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.225,
+   "y": 0.939,
+   "r": 0.065
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.149,
+   "y": 1.771,
+   "r": 0.067
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.423,
+   "y": 1.62,
+   "r": 0.074
+  }
+ ],
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.03,
+  "arm": 5,
+  "pod": 12,
+  "pivotY": 0.55
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.38
+ },
+ "cell": {
+  "wobble": 0.15,
+  "gear": true
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ }
+}
