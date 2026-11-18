@@ -272,15 +272,21 @@ function motion(c, t) {
   };
 }
 function surgeMotion(c, t) {
-  const {cx} = pivots(c), base = c.anim.pivotY;
-  // Ease into the lean, then take a little longer to settle.
-  const phase = t < 0.42 ? t / 0.42 : (1 - t) / 0.58;
-  const flex = c.surge.strength * phase * phase * (3 - 2 * phase);
-  const sx = 1 + 0.12 * flex, sy = 1 - 0.10 * flex;
+  const strength = c.surge.strength, base = c.anim.pivotY;
+  // Drive the idle rig through part of a breath and back to its starting pose.
+  const pulse = u => u * u * (3 - 2 * u);
+  const weight = (time, peak) => pulse(time < peak ? time / peak : (1 - time) / (1 - peak));
+  const drive = weight(t, 0.36);
+  const idlePose = motion(c, 1 - 0.30 * drive * strength / 0.26);
   return (x, y, group) => {
-    if (group === 'leg' || !flex) return [x, y, 1, 1];
-    const height = Math.max(0, y - base);
-    return [cx + (x - cx) * sx + height * 0.24 * flex, base + (y - base) * sy, sx, sy];
+    const [px, py] = idlePose(x, y, group);
+    if (group === 'leg') return [px, py, 1, 1];
+    // Soft extremities follow the body into the flex and settle after it.
+    const bend = strength * (group.startsWith('pod') ? weight(t, 0.55)
+      : group.startsWith('arm') ? weight(t, 0.45) : drive);
+    const height = Math.max(0, py - base);
+    return [px + height * 0.92 * bend, py - height * 0.15 * bend,
+      1 + 0.30 * bend, 1 - 0.20 * bend];
   };
 }
 function blinkAt(c, i){const k=Math.floor(c.anim.frames*0.62);return i===k||i===k+1?0.12:i===k+2?0.6:1}
