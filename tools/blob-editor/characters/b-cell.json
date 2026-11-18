@@ -1,82 +1,111 @@
 {
- "v": 1,
- "id": "b-cell",
- "name": "B Cell",
- "look": "cell",
- "colors": {
-  "ribosome": "#704c9d",
-  "body": "#ffd36e",
-  "nucleus": "#46277f",
-  "granule": "#f2c230"
+ "act": {
+  "fps": 20,
+  "frames": 16,
+  "strength": 0.25
+ },
+ "anim": {
+  "arm": 5,
+  "breath": 0.03,
+  "fps": 16,
+  "frames": 32,
+  "pivotY": 0.55,
+  "pod": 12
  },
  "blobs": [
   {
-   "x": 0,
-   "y": 1.25,
+   "group": "body",
    "r": 1.1,
    "sx": 1,
    "sy": 1,
-   "group": "body"
+   "x": 0,
+   "y": 1.25
   },
   {
-   "x": 0,
-   "y": 0.85,
+   "group": "body",
    "r": 0.7,
    "sx": 1,
    "sy": 1,
-   "group": "body"
+   "x": 0,
+   "y": 0.85
   },
   {
-   "x": -0.32,
-   "y": 0.33,
+   "group": "leg",
    "r": 0.42,
    "sx": 1,
    "sy": 1,
-   "group": "leg"
+   "x": -0.356,
+   "y": 0.573
   },
   {
-   "x": 0.32,
-   "y": 0.33,
-   "r": 0.42,
+   "group": "leg",
+   "r": 0.527,
    "sx": 1,
    "sy": 1,
-   "group": "leg"
+   "x": 0.22,
+   "y": 0.46
+  },
+  {
+   "group": "leg",
+   "r": 0.602,
+   "sx": 1,
+   "sy": 1,
+   "x": -0.369,
+   "y": 1.644
+  },
+  {
+   "group": "body",
+   "r": 0.601,
+   "sx": 1,
+   "sy": 1,
+   "x": 0.186,
+   "y": 1.676
+  },
+  {
+   "group": "leg",
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1,
+   "x": -0.119,
+   "y": 0.401
   }
  ],
- "face": {
-  "x": 0,
-  "y": 2.2,
-  "s": 1,
-  "mood": "calm",
-  "show": false
+ "cell": {
+  "gear": true,
+  "wobble": 0.15
  },
- "nucleus": {
-  "x": 0.03,
-  "y": 1.27,
-  "w": 0.98,
-  "h": 0.94,
-  "rot": 0,
-  "dent": 0.3,
-  "shape": "round"
+ "colors": {
+  "body": "#ffd36e",
+  "granule": "#f2c230",
+  "nucleus": "#46277f",
+  "ribosome": "#704c9d"
+ },
+ "face": {
+  "mood": "calm",
+  "s": 1,
+  "show": false,
+  "x": 0,
+  "y": 2.2
  },
  "granules": [],
- "anim": {
-  "frames": 32,
-  "fps": 16,
-  "breath": 0.03,
-  "arm": 5,
-  "pod": 12,
-  "pivotY": 0.55
+ "id": "b-cell",
+ "look": "cell",
+ "name": "B Cell",
+ "nucleus": {
+  "dent": 0.3,
+  "h": 0.94,
+  "rot": 0,
+  "shape": "round",
+  "w": 0.98,
+  "x": 0.002,
+  "y": 1.215
  },
- "act": {
-  "frames": 16,
-  "fps": 20,
-  "strength": 0.25
+ "surge": {
+  "fps": 24,
+  "frames": 12,
+  "strength": 0.26
  },
- "cell": {
-  "wobble": 0.15,
-  "gear": true
- },
+ "v": 1,
  "view": {
   "cx": 0,
   "cy": 1.95,

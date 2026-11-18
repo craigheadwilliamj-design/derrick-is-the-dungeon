@@ -1,120 +1,200 @@
 {
- "v": 1,
- "id": "cytotoxic-t",
- "name": "Cytotoxic T",
- "look": "cell",
- "colors": {
-  "ribosome": "#704c9d",
-  "body": "#7d8bb0",
-  "nucleus": "#34195a",
-  "granule": "#e8689a"
+ "act": {
+  "fps": 20,
+  "frames": 16,
+  "strength": 0.45
+ },
+ "anim": {
+  "arm": 5,
+  "breath": 0.03,
+  "fps": 16,
+  "frames": 32,
+  "pivotY": 0.55,
+  "pod": 12
  },
  "blobs": [
   {
-   "x": 0,
-   "y": 1.2,
+   "group": "body",
    "r": 1.05,
    "sx": 1,
    "sy": 1,
-   "group": "body"
+   "x": 0,
+   "y": 1.2
   },
   {
-   "x": 0,
-   "y": 0.82,
+   "group": "body",
    "r": 0.68,
    "sx": 1,
    "sy": 1,
-   "group": "body"
+   "x": 0.191,
+   "y": 0.763
   },
   {
-   "x": 0.72,
-   "y": 1.3,
+   "group": "armB",
    "r": 0.42,
    "sx": 1,
    "sy": 1,
-   "group": "podA"
+   "x": 0.529,
+   "y": 1.143
   },
   {
-   "x": 0.98,
-   "y": 1.35,
+   "group": "armB",
    "r": 0.3,
    "sx": 1,
    "sy": 1,
-   "group": "podA"
+   "x": 0.625,
+   "y": 1.416
   },
   {
-   "x": -0.3,
-   "y": 0.32,
+   "group": "leg",
    "r": 0.4,
    "sx": 1,
    "sy": 1,
-   "group": "leg"
+   "x": -0.286,
+   "y": 0.231
   },
   {
-   "x": 0.3,
-   "y": 0.32,
+   "group": "leg",
    "r": 0.4,
    "sx": 1,
    "sy": 1,
-   "group": "leg"
+   "x": 0.436,
+   "y": 0.393
+  },
+  {
+   "group": "body",
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1,
+   "x": -0.455,
+   "y": 0.728
+  },
+  {
+   "group": "body",
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1,
+   "x": -0.019,
+   "y": 0.364
+  },
+  {
+   "group": "body",
+   "r": 0.814,
+   "sx": 1,
+   "sy": 1,
+   "x": -0.177,
+   "y": 1.321
+  },
+  {
+   "group": "podA",
+   "r": 0.315,
+   "sx": 1,
+   "sy": 1,
+   "x": -0.69,
+   "y": 0.952
+  },
+  {
+   "group": "podA",
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1,
+   "x": -0.518,
+   "y": 1.114
   }
  ],
- "face": {
-  "x": 0,
-  "y": 2.2,
-  "s": 1,
-  "mood": "calm",
-  "show": false
+ "cell": {
+  "gear": true,
+  "wobble": 0.15
  },
- "nucleus": {
-  "x": -0.02,
-  "y": 1.22,
-  "w": 0.9,
-  "h": 0.86,
-  "rot": 0,
-  "dent": 0.3,
-  "shape": "round"
+ "colors": {
+  "body": "#7d8bb0",
+  "granule": "#e8689a",
+  "nucleus": "#34195a",
+  "ribosome": "#704c9d"
+ },
+ "face": {
+  "mood": "calm",
+  "s": 1,
+  "show": false,
+  "x": 0,
+  "y": 2.2
  },
  "granules": [
   {
    "kind": "granule",
+   "r": 0.06,
    "shape": "round",
-   "x": 0.42,
-   "y": 1.55,
-   "r": 0.06
+   "x": 0.238,
+   "y": 1.62
   },
   {
    "kind": "granule",
+   "r": 0.05,
    "shape": "round",
    "x": 0.5,
-   "y": 1.35,
-   "r": 0.05
+   "y": 1.35
   },
   {
    "kind": "granule",
+   "r": 0.055,
    "shape": "round",
-   "x": 0.4,
-   "y": 1.18,
-   "r": 0.055
+   "x": 0.491,
+   "y": 1.037
+  },
+  {
+   "kind": "granule",
+   "r": 0.065,
+   "shape": "round",
+   "x": -0.124,
+   "y": 1.713
+  },
+  {
+   "kind": "granule",
+   "r": 0.08,
+   "shape": "round",
+   "x": 0.361,
+   "y": 0.802
+  },
+  {
+   "kind": "granule",
+   "r": 0.08,
+   "shape": "round",
+   "x": -0.496,
+   "y": 1.488
+  },
+  {
+   "kind": "granule",
+   "r": 0.055,
+   "shape": "round",
+   "x": 0.097,
+   "y": 0.616
+  },
+  {
+   "kind": "granule",
+   "r": 0.06,
+   "shape": "round",
+   "x": 0.408,
+   "y": 0.502
   }
  ],
- "anim": {
-  "frames": 32,
-  "fps": 16,
-  "breath": 0.03,
-  "arm": 5,
-  "pod": 12,
-  "pivotY": 0.55
+ "id": "cytotoxic-t",
+ "look": "cell",
+ "name": "Cytotoxic T",
+ "nucleus": {
+  "dent": 0.3,
+  "h": 0.86,
+  "rot": 0,
+  "shape": "round",
+  "w": 0.9,
+  "x": -0.016,
+  "y": 1.198
  },
- "act": {
-  "frames": 16,
-  "fps": 20,
-  "strength": 0.45
+ "surge": {
+  "fps": 24,
+  "frames": 12,
+  "strength": 0.26
  },
- "cell": {
-  "wobble": 0.15,
-  "gear": true
- },
+ "v": 1,
  "view": {
   "cx": 0,
   "cy": 1.95,

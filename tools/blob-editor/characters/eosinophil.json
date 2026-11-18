@@ -1,287 +1,316 @@
 {
- "v": 1,
- "id": "eosinophil",
- "name": "Eosinophil",
- "look": "cell",
- "colors": {
-  "ribosome": "#704c9d",
-  "body": "#a8c4ff",
-  "nucleus": "#55287f",
-  "granule": "#ff7a5c"
+ "act": {
+  "fps": 20,
+  "frames": 16,
+  "strength": 0.32
+ },
+ "anim": {
+  "arm": 5,
+  "breath": 0.03,
+  "fps": 16,
+  "frames": 32,
+  "pivotY": 0.55,
+  "pod": 12
  },
  "blobs": [
   {
-   "x": 0,
-   "y": 1.6,
+   "group": "body",
    "r": 1.3,
    "sx": 1.05,
    "sy": 1,
-   "group": "body"
+   "x": 0,
+   "y": 1.6
   },
   {
-   "x": 0,
-   "y": 1.05,
+   "group": "body",
    "r": 0.95,
    "sx": 1,
    "sy": 1,
-   "group": "body"
+   "x": 0,
+   "y": 1.05
   },
   {
-   "x": 1.05,
-   "y": 1.65,
+   "group": "armA",
    "r": 0.5,
    "sx": 1,
    "sy": 1,
-   "group": "armA"
+   "x": 0.75,
+   "y": 1.398
   },
   {
-   "x": -0.45,
-   "y": 0.42,
+   "group": "leg",
    "r": 0.55,
    "sx": 1,
    "sy": 1,
-   "group": "leg"
+   "x": -0.095,
+   "y": 0.259
   },
   {
-   "x": 0.45,
-   "y": 0.42,
+   "group": "leg",
    "r": 0.55,
    "sx": 1,
    "sy": 1,
-   "group": "leg"
+   "x": 0.264,
+   "y": 0.563
+  },
+  {
+   "group": "armA",
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1,
+   "x": -0.41,
+   "y": 1.969
+  },
+  {
+   "group": "armA",
+   "r": 0.713,
+   "sx": 1.57,
+   "sy": 0.81,
+   "x": 0.208,
+   "y": 2.036
+  },
+  {
+   "group": "armA",
+   "r": 0.5,
+   "sx": 1,
+   "sy": 1.53,
+   "x": -0.445,
+   "y": 0.733
   }
  ],
- "face": {
-  "x": 0,
-  "y": 2.2,
-  "s": 1,
-  "mood": "calm",
-  "show": false
+ "cell": {
+  "gear": true,
+  "wobble": 0.15
  },
- "nucleus": {
+ "colors": {
+  "body": "#a8c4ff",
+  "granule": "#ff7a5c",
+  "nucleus": "#55287f",
+  "ribosome": "#704c9d"
+ },
+ "face": {
+  "mood": "calm",
+  "s": 1,
+  "show": false,
   "x": 0,
-  "y": 1.65,
-  "w": 1.2,
-  "h": 0.62,
-  "rot": 0,
-  "dent": 0.3,
-  "shape": "bilobed"
+  "y": 2.2
  },
  "granules": [
   {
    "kind": "granule",
+   "r": 0.061,
    "shape": "round",
    "x": 0.618,
-   "y": 1.441,
-   "r": 0.061
+   "y": 1.441
   },
   {
    "kind": "granule",
+   "r": 0.071,
    "shape": "round",
-   "x": 0.52,
-   "y": 1.879,
-   "r": 0.071
+   "x": 0.593,
+   "y": 1.959
   },
   {
    "kind": "granule",
+   "r": 0.069,
    "shape": "round",
-   "x": -0.177,
-   "y": 1.308,
-   "r": 0.069
+   "x": -0.522,
+   "y": 0.819
   },
   {
    "kind": "granule",
+   "r": 0.062,
    "shape": "round",
-   "x": -0.394,
-   "y": 1.316,
-   "r": 0.062
+   "x": -0.535,
+   "y": 1.259
   },
   {
    "kind": "granule",
+   "r": 0.071,
    "shape": "round",
-   "x": -0.375,
-   "y": 1.759,
-   "r": 0.071
+   "x": -0.552,
+   "y": 1.811
   },
   {
    "kind": "granule",
+   "r": 0.068,
    "shape": "round",
-   "x": 0.643,
-   "y": 1.581,
-   "r": 0.068
+   "x": 0.757,
+   "y": 1.638
   },
   {
    "kind": "granule",
+   "r": 0.065,
    "shape": "round",
-   "x": 0.443,
-   "y": 1.67,
-   "r": 0.065
+   "x": 0.338,
+   "y": 0.622
   },
   {
    "kind": "granule",
+   "r": 0.068,
    "shape": "round",
-   "x": -0.454,
-   "y": 1.988,
-   "r": 0.068
+   "x": -0.39,
+   "y": 2.104
   },
   {
    "kind": "granule",
+   "r": 0.06,
    "shape": "round",
-   "x": -0.298,
-   "y": 1.492,
-   "r": 0.06
+   "x": -0.507,
+   "y": 0.585
   },
   {
    "kind": "granule",
+   "r": 0.068,
    "shape": "round",
    "x": -0.111,
-   "y": 1.798,
-   "r": 0.068
+   "y": 1.798
   },
   {
    "kind": "granule",
+   "r": 0.071,
    "shape": "round",
-   "x": 0.462,
-   "y": 1.268,
-   "r": 0.071
+   "x": 0.294,
+   "y": 1.148
   },
   {
    "kind": "granule",
+   "r": 0.071,
    "shape": "round",
-   "x": 0.303,
-   "y": 2.042,
-   "r": 0.071
+   "x": 0.33,
+   "y": 1.899
   },
   {
    "kind": "granule",
+   "r": 0.072,
    "shape": "round",
-   "x": 0.416,
-   "y": 1.407,
-   "r": 0.072
+   "x": 0.602,
+   "y": 1.191
   },
   {
    "kind": "granule",
+   "r": 0.063,
    "shape": "round",
-   "x": -0.076,
-   "y": 1.187,
-   "r": 0.063
+   "x": -0.176,
+   "y": 0.339
   },
   {
    "kind": "granule",
+   "r": 0.062,
    "shape": "round",
-   "x": -0.25,
-   "y": 2.048,
-   "r": 0.062
+   "x": 0.845,
+   "y": 1.371
   },
   {
    "kind": "granule",
+   "r": 0.074,
    "shape": "round",
-   "x": 0.286,
-   "y": 1.43,
-   "r": 0.074
+   "x": 0.381,
+   "y": 0.902
   },
   {
    "kind": "granule",
+   "r": 0.07,
    "shape": "round",
-   "x": -0.475,
-   "y": 1.588,
-   "r": 0.07
+   "x": -0.448,
+   "y": 1.458
   },
   {
    "kind": "granule",
+   "r": 0.069,
    "shape": "round",
-   "x": -0.636,
-   "y": 1.557,
-   "r": 0.069
+   "x": -0.577,
+   "y": 1.082
   },
   {
    "kind": "granule",
+   "r": 0.062,
    "shape": "round",
-   "x": 0.09,
-   "y": 2.155,
-   "r": 0.062
+   "x": 0.199,
+   "y": 2.23
   },
   {
    "kind": "granule",
+   "r": 0.065,
    "shape": "round",
-   "x": -0.024,
-   "y": 1.495,
-   "r": 0.065
+   "x": 0.158,
+   "y": 0.881
   },
   {
    "kind": "granule",
+   "r": 0.071,
    "shape": "round",
-   "x": 0.101,
-   "y": 1.573,
-   "r": 0.071
+   "x": -0.253,
+   "y": 0.759
   },
   {
    "kind": "granule",
+   "r": 0.07,
    "shape": "round",
-   "x": 0.156,
-   "y": 1.815,
-   "r": 0.07
+   "x": 0.452,
+   "y": 2.233
   },
   {
    "kind": "granule",
+   "r": 0.065,
    "shape": "round",
-   "x": 0.073,
-   "y": 1.693,
-   "r": 0.065
+   "x": -0.118,
+   "y": 1.554
   },
   {
    "kind": "granule",
+   "r": 0.074,
    "shape": "round",
-   "x": 0.057,
-   "y": 1.086,
-   "r": 0.074
+   "x": -0.025,
+   "y": 0.656
   },
   {
    "kind": "granule",
+   "r": 0.07,
    "shape": "round",
    "x": -0.309,
-   "y": 1.648,
-   "r": 0.07
+   "y": 1.648
   },
   {
    "kind": "granule",
+   "r": 0.068,
    "shape": "round",
-   "x": -0.078,
-   "y": 1.639,
-   "r": 0.068
+   "x": 0.186,
+   "y": 0.439
   },
   {
    "kind": "granule",
+   "r": 0.067,
    "shape": "round",
-   "x": 0.318,
-   "y": 1.59,
-   "r": 0.067
+   "x": -0.096,
+   "y": 2.147
   },
   {
    "kind": "granule",
+   "r": 0.069,
    "shape": "round",
-   "x": -0.002,
-   "y": 2.061,
-   "r": 0.069
+   "x": 0.08,
+   "y": 1.918
   }
  ],
- "anim": {
-  "frames": 32,
-  "fps": 16,
-  "breath": 0.03,
-  "arm": 5,
-  "pod": 12,
-  "pivotY": 0.55
+ "id": "eosinophil",
+ "look": "cell",
+ "name": "Eosinophil",
+ "nucleus": {
+  "dent": 0.3,
+  "h": 0.62,
+  "rot": 36,
+  "shape": "bilobed",
+  "w": 1.2,
+  "x": 0.063,
+  "y": 1.34
  },
- "act": {
-  "frames": 16,
-  "fps": 20,
-  "strength": 0.32
+ "surge": {
+  "fps": 24,
+  "frames": 12,
+  "strength": 0.26
  },
- "cell": {
-  "wobble": 0.15,
-  "gear": true
- },
+ "v": 1,
  "view": {
   "cx": 0,
   "cy": 1.95,
