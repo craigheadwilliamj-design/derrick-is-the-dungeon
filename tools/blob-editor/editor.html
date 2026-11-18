@@ -39,6 +39,8 @@ button,select,input{font:inherit;color:var(--bone)}
 .btn.on,.btn.primary{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 22%,var(--panel))}
 .btn.danger{color:var(--accent)}
 .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+[hidden]{display:none!important}
+.motion-controls{display:grid;gap:8px}
 label.sl{display:grid;grid-template-columns:78px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:13px}
 label.sl output{font-family:var(--mono);font-size:11.5px;color:var(--dim);text-align:right;font-variant-numeric:tabular-nums}
 input[type=range]{width:100%;accent-color:var(--bile)}
@@ -108,21 +110,28 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
     </section>
 
     <section id="secNuc" hidden>
-      <h2>Nucleus <small>bean</small></h2>
+      <h2>Nucleus</h2>
+      <label class="sw">Shape
+        <select id="n_shape"><option value="bean">Bean</option><option value="round">Round</option><option value="bilobed">Two lobes</option><option value="trilobed">Three lobes</option></select>
+      </label>
       <label class="sl">Width <input type="range" id="n_w" min="0.2" max="2" step="0.01"><output></output></label>
       <label class="sl">Height <input type="range" id="n_h" min="0.2" max="1.6" step="0.01"><output></output></label>
       <label class="sl">Tilt <input type="range" id="n_rot" min="-90" max="90" step="1"><output></output></label>
-      <label class="sl">Dent <input type="range" id="n_dent" min="0" max="0.6" step="0.01"><output></output></label>
+      <label class="sl" id="dentControl">Dent <input type="range" id="n_dent" min="0" max="0.6" step="0.01"><output></output></label>
     </section>
 
     <section id="secGran" hidden>
-      <h2>Granule</h2>
+      <h2 id="particleTitle">Granule</h2>
+      <label class="sw">Shape
+        <select id="g_shape"><option value="round">Round</option><option value="oval">Oval</option><option value="bilobed">Two lobes</option></select>
+      </label>
       <label class="sl">Size <input type="range" id="g_r" min="0.03" max="0.25" step="0.005"><output></output></label>
       <div class="row"><button class="btn danger" id="delGran">Delete</button></div>
     </section>
 
     <section id="secFace" hidden>
       <h2>Face</h2>
+      <label class="sw"><input type="checkbox" id="f_show"> Visible</label>
       <label class="sl">Size <input type="range" id="f_s" min="0.5" max="2" step="0.01"><output></output></label>
       <div class="row"><span class="sw">Mood</span>
         <select id="f_mood"><option value="angry">Determined</option><option value="calm">Happy</option><option value="worried">Worried</option></select>
@@ -135,20 +144,30 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
         <button class="btn" id="selNuc">Nucleus</button>
         <button class="btn" id="selFace">Face</button>
         <button class="btn" id="addGran">+ Granule</button>
+        <button class="btn" id="addRibo">+ Ribosome</button>
       </div>
       <div class="row">
         <span class="sw"><input type="color" id="c_body" aria-label="Body color"> Body</span>
         <span class="sw"><input type="color" id="c_nucleus" aria-label="Nucleus color"> Nucleus</span>
         <span class="sw"><input type="color" id="c_granule" aria-label="Granule color"> Granules</span>
+        <span class="sw"><input type="color" id="c_ribosome" aria-label="Ribosome color"> Ribosomes</span>
       </div>
     </section>
 
     <section>
-      <h2>Idle motion <small id="loopLen"></small></h2>
-      <label class="sl">Breathing <input type="range" id="a_breath" min="0" max="0.08" step="0.002"><output></output></label>
-      <label class="sl">Arm swing <input type="range" id="a_arm" min="0" max="20" step="0.5"><output></output></label>
-      <label class="sl">Pod sway <input type="range" id="a_pod" min="0" max="35" step="0.5"><output></output></label>
-      <p class="note">Body breathes from the hips. Legs stay planted. Arms swing from the blob nearest the body (marked +). Pseudopods bend and their tips lag.</p>
+      <h2>Animation <small id="loopLen"></small></h2>
+      <label class="sw">Motion
+        <select id="clip"><option value="idle">Idle</option><option value="surge">Attack surge</option></select>
+      </label>
+      <label class="sl">Frame <input type="range" id="previewFrame" min="0" value="0"><output>Rest</output></label>
+      <div class="motion-controls" id="idleControls">
+        <label class="sl">Breathing <input type="range" id="a_breath" min="0" max="0.08" step="0.002"><output></output></label>
+        <label class="sl">Arm swing <input type="range" id="a_arm" min="0" max="20" step="0.5"><output></output></label>
+        <label class="sl">Pod sway <input type="range" id="a_pod" min="0" max="35" step="0.5"><output></output></label>
+        </div>
+      <div class="motion-controls" id="surgeControls" hidden>
+        <label class="sl">Strength <input type="range" id="a_surge" min="0" max="0.40" step="0.01"><output></output></label>
+      </div>
     </section>
 
     <section>
@@ -167,6 +186,8 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
 const TH = 0.6, STIFF = 2.0, DEPTH = 0.85, MAXB = 32, VIS = Math.sqrt(1 - Math.cbrt(TH / STIFF)); // visible radius / r
 const INK = '#3a1838', EYE = '#2a1028';
 const ANIM = {frames: 32, fps: 16, breath: 0.03, arm: 5, pod: 12, pivotY: 0.55};
+const SURGE = {frames: 12, fps: 24, strength: 0.26};
+const PALETTE = ['body', 'nucleus', 'granule', 'ribosome'];
 const VIEW = {cx: 0, cy: 1.95, size: 4.9};
 const GROUPS = [
   ['body', 'Body', '#ece3d3'], ['leg', 'Leg', '#9a8a8f'],
@@ -175,7 +196,7 @@ const GROUPS = [
 const GCOL = Object.fromEntries(GROUPS.map(g => [g[0], g[2]]));
 const PHASE = {armA: 0.6, armB: 2.4, podA: 0.4, podB: 2.1};
 const SAMPLE = {"v":1,"id":"macrophage","name":"Macrophage","colors":{"body":"#7ee8b0","nucleus":"#7c1f8f","granule":"#f2c230"},"blobs":[{"x":-0.1,"y":1.85,"r":1.3,"sx":0.95,"sy":1.1,"group":"body"},{"x":-0.1,"y":1.0,"r":1.0,"group":"body"},{"x":0.15,"y":2.7,"r":0.8,"group":"body"},{"x":-0.55,"y":2.6,"r":0.6,"group":"body"},{"x":0.5,"y":3.15,"r":0.45,"group":"podA"},{"x":0.68,"y":3.4,"r":0.36,"group":"podA"},{"x":0.82,"y":3.68,"r":0.5,"group":"podA"},{"x":-0.9,"y":2.0,"r":0.55,"group":"armA"},{"x":-1.35,"y":1.85,"r":0.45,"group":"armA"},{"x":-1.5,"y":2.15,"r":0.42,"group":"armA"},{"x":-1.53,"y":2.45,"r":0.55,"group":"armA"},{"x":0.8,"y":1.55,"r":0.5,"group":"armB"},{"x":-0.6,"y":0.75,"r":0.55,"group":"leg"},{"x":-0.95,"y":0.45,"r":0.5,"group":"leg"},{"x":0.4,"y":0.7,"r":0.55,"group":"leg"},{"x":0.72,"y":0.45,"r":0.5,"group":"leg"}],"face":{"x":0.02,"y":2.62,"s":1,"mood":"angry"},"nucleus":{"x":0,"y":1.6,"w":0.96,"h":0.66,"rot":-12,"dent":0.35},"granules":[{"x":-0.42,"y":2.02,"r":0.1},{"x":-0.5,"y":1.78,"r":0.075}],"anim":{"frames":32,"fps":16,"breath":0.03,"arm":5,"pod":12,"pivotY":0.55},"view":{"cx":0,"cy":1.95,"size":4.9}};
-const BLANK = {v:1, id:'', name:'', colors:{body:'#9fd6f0', nucleus:'#6a3fa0', granule:'#f2c230'},
+const BLANK = {v:1, id:'', name:'', colors:{body:'#9fd6f0', nucleus:'#6a3fa0', granule:'#f2c230', ribosome:'#704c9d'},
   blobs:[{x:0,y:1.6,r:1.3,group:'body'},{x:-0.45,y:0.5,r:0.55,group:'leg'},{x:0.45,y:0.5,r:0.55,group:'leg'}],
   face:{x:0.1,y:2.0,s:1,mood:'calm'}, nucleus:{x:0,y:1.35,w:0.8,h:0.55,rot:0,dent:0.3}, granules:[],
   anim:{...ANIM}, view:{...VIEW}};
@@ -189,12 +210,20 @@ const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}},
 let ch = normalize(JSON.parse(store.get('blob_editor_draft') || 'null') || clone(SAMPLE));
 let sel = null;                 // {kind:'blob'|'nuc'|'gran'|'face', i}
 let adding = false, playing = false, guides = true, lastGroup = 'body';
+let clip = 'idle', previewFrame = 0;
 const undoStack = [];
 
 function normalize(c) {
   c = {...clone(BLANK), ...c};
   c.anim = {...ANIM, ...(c.anim || {})}; c.view = {...VIEW, ...(c.view || {})};
   c.colors = {...BLANK.colors, ...(c.colors || {})};
+  c.surge = {...SURGE, ...(c.surge || {})};
+  c.nucleus = {...BLANK.nucleus, shape: 'bean', ...c.nucleus};
+  c.face = c.face === null ? {...BLANK.face, show: false} : {...BLANK.face, ...c.face};
+  c.granules = (c.granules || []).map(part => {
+    const kind = part.kind === 'ribosome' ? 'ribosome' : 'granule';
+    return {shape: kind === 'ribosome' ? 'bilobed' : 'round', ...part, kind};
+  });
   c.blobs = (c.blobs || []).slice(0, MAXB).map(b => ({sx: 1, sy: 1, group: 'body', ...b}));
   return c;
 }
@@ -239,6 +268,19 @@ function motion(c, t) {
     return [cx+(x-cx)*(1-A.breath*s), py+(y-py)*(1+1.15*A.breath*s)];
   };
 }
+function surgeMotion(c, t) {
+  const {cx} = pivots(c), py = c.anim.pivotY;
+  const strength = c.surge.strength;
+  const pulse = phase => 16 * phase**2 * (1 - phase)**2;
+  const windup = pulse(Math.min(t / 0.3, 1));
+  const thrust = pulse(Math.max(0, (t - 0.3) / 0.7));
+  const sx = 1 + strength * (thrust - 0.35 * windup);
+  const sy = 1 - strength * (0.65 * thrust + 0.35 * windup);
+  const shift = strength * (1.25 * thrust - 0.45 * windup);
+  return (x, y, g) => g === 'leg'
+    ? [x, y, 1, 1]
+    : [cx + (x - cx) * sx + shift, py + (y - py) * sy, sx, sy];
+}
 function blinkAt(c, i){const k=Math.floor(c.anim.frames*0.62);return i===k||i===k+1?0.12:i===k+2?0.6:1}
 
 // ---------- face + nucleus geometry (same as render.py) ----------
@@ -252,11 +294,18 @@ function faceParts(mood) {
     worried:[[-0.1,-0.16],[-0.03,-0.14],[0.04,-0.17],[0.12,-0.15]]}[mood] || [];
   return {eyes:[[-0.17,0.05],[0.18,0.09]], brows, mouth};
 }
-function bean(w, h, dent, n=48) {
-  const pts = [];
-  for (let i = 0; i < n; i++) { const t = 2*Math.PI*i/n, c = Math.cos(t), s = Math.sin(t);
-    pts.push([w*c, h*s - dent*h*Math.exp(-c*c/0.08)*Math.max(0, s)]); }
-  return pts;
+function outline(w, h, shape, dent = 0.35, n = 48) {
+  return Array.from({length: n}, (_, i) => {
+    const t = 2 * Math.PI * i / n, x = Math.cos(t), y = Math.sin(t);
+    if (shape === 'bean') return [w * x, h * (y - dent * Math.exp(-x*x/0.08) * Math.max(0, y))];
+    if (shape === 'bilobed') return [w * x, h * y * (1 - 0.66 * Math.exp(-x*x/0.095))];
+    const r = shape === 'trilobed' ? (1 + 0.26 * Math.sin(3*t)) / 1.26 : 1;
+    return [w * x * r, h * y * r];
+  });
+}
+function particleOutline(part) {
+  const w = part.r, h = part.shape === 'oval' ? part.r * 0.55 : part.r;
+  return outline(w, h, part.shape, 0, 32);
 }
 
 // ---------- WebGL body preview ----------
@@ -326,12 +375,14 @@ function drawDecals(f, blink) {
   const g = $('decals'); g.textContent = '';
   const n = ch.nucleus;
   if (n) { const [x, y] = f(n.x, n.y, 'body');
-    mk('polygon', {points: pts2(bean(n.w/2, n.h/2, n.dent ?? 0.35)), fill: ch.colors.nucleus, stroke: INK, 'stroke-width': LW,
+    mk('polygon', {points: pts2(outline(n.w/2, n.h/2, n.shape, n.dent)), fill: ch.colors.nucleus, stroke: INK, 'stroke-width': LW,
       'stroke-linejoin': 'round', transform: `translate(${x} ${y}) rotate(${n.rot || 0})`, 'data-kind': 'nuc', class: 'hit'}, g); }
   ch.granules.forEach((gr, i) => { const [x, y] = f(gr.x, gr.y, 'body');
-    mk('circle', {cx: x, cy: y, r: gr.r, fill: ch.colors.granule, stroke: INK, 'stroke-width': LW, 'data-kind': 'gran', 'data-i': i, class: 'hit'}, g); });
+    mk('polygon', {points: pts2(particleOutline(gr)), transform: `translate(${x} ${y})`,
+      fill: ch.colors[gr.kind], stroke: INK, 'stroke-width': gr.kind === 'ribosome' ? LW/2 : LW,
+      'stroke-linejoin': 'round', 'data-kind': 'gran', 'data-i': i, class: 'hit'}, g); });
   const fc = ch.face;
-  if (fc) { const [x, y] = f(fc.x, fc.y, 'body'), s = fc.s || 1, P = faceParts(fc.mood);
+  if (fc.show !== false) { const [x, y] = f(fc.x, fc.y, 'body'), s = fc.s || 1, P = faceParts(fc.mood);
     const fg = mk('g', {transform: `translate(${x} ${y}) scale(${s})`, 'data-kind': 'face', class: 'hit'}, g);
     mk('rect', {x: -0.36, y: -0.24, width: 0.72, height: 0.6, fill: 'transparent'}, fg);
     for (const [ex, ey] of P.eyes) {
@@ -344,7 +395,7 @@ function drawDecals(f, blink) {
 }
 function drawHandles() {
   const h = $('handles'), k = $('knobs'); h.textContent = ''; k.textContent = '';
-  if (playing || !guides) return;
+  if (playing || previewFrame || !guides) return;
   const order = ch.blobs.map((b, i) => i).sort((a, b) => ch.blobs[b].r - ch.blobs[a].r);
   for (const i of order) { const b = ch.blobs[i], on = sel && sel.kind === 'blob' && sel.i === i;
     mk('ellipse', {cx: b.x, cy: b.y, rx: VIS*b.r*b.sx, ry: VIS*b.r*b.sy, fill: 'transparent', stroke: GCOL[b.group] || '#fff',
@@ -365,17 +416,49 @@ function drawHandles() {
 
 // ---------- render loop ----------
 let t0 = performance.now(), dirty = true;
+function clipSettings() {
+  return clip === 'idle' ? ch.anim : ch.surge;
+}
+function showFrame(i) {
+  const {frames} = clipSettings();
+  const t = clip === 'idle' ? i / frames : i / Math.max(1, frames - 1);
+  const f = clip === 'idle' ? motion(ch, t) : surgeMotion(ch, t);
+  drawGL(ch.blobs.map(b => {
+    const [x, y, sx = 1, sy = 1] = f(b.x, b.y, b.group);
+    return {...b, x, y, sx: b.sx * sx, sy: b.sy * sy};
+  }));
+  drawDecals(f, clip === 'idle' ? blinkAt(ch, i) : 1);
+}
 function frame(now) {
   if (playing) {
-    const loop = ch.anim.frames / ch.anim.fps * 1000, t = ((now - t0) % loop) / loop, i = Math.floor(t * ch.anim.frames);
-    const f = motion(ch, t);
-    drawGL(ch.blobs.map(b => { const [x, y] = f(b.x, b.y, b.group); return {...b, x, y}; }));
-    drawDecals(f, blinkAt(ch, i));
+    const {frames, fps} = clipSettings();
+    const i = Math.floor(Math.max(0, now - t0) * fps / 1000) % frames;
+    if (i !== lastFrame || dirty) {
+      showFrame(i);
+      showFrameNumber(i + 1);
+      lastFrame = i; dirty = false;
+    }
   } else if (dirty) {
-    const id = (x, y) => [x, y];
-    drawGL(ch.blobs); drawDecals(id, 1); drawHandles(); dirty = false;
+    if (previewFrame) showFrame(previewFrame - 1);
+    else { drawGL(ch.blobs); drawDecals((x, y) => [x, y], 1); }
+    drawHandles(); dirty = false;
   }
   requestAnimationFrame(frame);
+}
+let lastFrame = -1;
+function showFrameNumber(frame) {
+  $('previewFrame').value = frame;
+  $('previewFrame').nextElementSibling.textContent = frame || 'Rest';
+}
+function setPlaying(on) {
+  playing = on;
+  lastFrame = -1;
+  t0 = performance.now();
+  $('play').textContent = playing ? 'Stop' : clip === 'idle' ? 'Play idle' : 'Play surge';
+  $('play').classList.toggle('on', playing);
+  $('play').setAttribute('aria-pressed', playing);
+  if (playing) setAdding(false);
+  drawHandles();
 }
 function changed(save = true) { dirty = true; syncPanel(); if (save) draftSave(); }
 let draftT;
@@ -388,7 +471,7 @@ function exists(s){return s.kind==='blob'?!!ch.blobs[s.i]:s.kind==='gran'?!!ch.g
 function world(ev) { const p = svg.createSVGPoint(); p.x = ev.clientX; p.y = ev.clientY; const q = p.matrixTransform(root.getScreenCTM().inverse()); return [q.x, q.y]; }
 let drag = null;
 svg.addEventListener('pointerdown', ev => {
-  if (playing) return;
+  if (playing || previewFrame) return;
   const tgt = ev.target.closest('.hit'), [wx, wy] = world(ev);
   if (!tgt) {
     if (adding) { addBlob(wx, wy); setAdding(false); }
@@ -412,7 +495,7 @@ svg.addEventListener('pointermove', ev => {
 });
 const endDrag = () => { if (drag && drag.moved) { undoStack.push(drag.snap); $('undo').disabled = false; draftSave(); } drag = null; };
 svg.addEventListener('pointerup', endDrag); svg.addEventListener('pointercancel', endDrag);
-svg.addEventListener('dblclick', ev => { if (playing || ev.target.closest('.hit')) return; const [x, y] = world(ev); addBlob(x, y); });
+svg.addEventListener('dblclick', ev => { if (playing || previewFrame || ev.target.closest('.hit')) return; const [x, y] = world(ev); addBlob(x, y); });
 document.addEventListener('keydown', ev => {
   if (ev.target.matches('input,select,textarea')) return;
   if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') { ev.preventDefault(); undo(); }
@@ -463,13 +546,20 @@ const ranges = [
   bindRange('f_s', () => ch.face.s, v => ch.face.s = v),
   bindRange('a_breath', () => ch.anim.breath, v => ch.anim.breath = v, v => `${(v*100).toFixed(1)}%`),
   bindRange('a_arm', () => ch.anim.arm, v => ch.anim.arm = v, v => `${(+v).toFixed(1)}°`),
+  bindRange('a_surge', () => ch.surge.strength, v => ch.surge.strength = v, v => `${Math.round(v*100)}%`),
   bindRange('a_pod', () => ch.anim.pod, v => ch.anim.pod = v, v => `${(+v).toFixed(1)}°`),
 ];
 $('f_mood').onchange = e => { pushUndo(); ch.face.mood = e.target.value; changed(); };
-for (const k of ['body', 'nucleus', 'granule']) {
+$('n_shape').onchange = e => { pushUndo(); ch.nucleus.shape = e.target.value; changed(); };
+$('g_shape').onchange = e => { pushUndo(); ch.granules[sel.i].shape = e.target.value; changed(); };
+$('f_show').onchange = e => { pushUndo(); ch.face.show = e.target.checked; changed(); };
+for (const k of PALETTE) {
   const el = $('c_' + k); let snap = null;
-  el.addEventListener('focus', () => snap = JSON.stringify(ch));
-  el.addEventListener('input', () => { ch.colors[k] = el.value; changed(false); });
+  el.addEventListener('input', () => {
+    snap ??= JSON.stringify(ch);
+    ch.colors[k] = el.value;
+    changed(false);
+  });
   el.addEventListener('change', () => { if (snap) { undoStack.push(snap); $('undo').disabled = false; snap = null; } draftSave(); });
 }
 function syncPanel() {
@@ -478,23 +568,59 @@ function syncPanel() {
   ranges.forEach(r => r._sync());
   if (sel?.kind === 'blob') for (const b of gb.children) b.classList.toggle('on', b.dataset.g === ch.blobs[sel.i].group);
   $('f_mood').value = ch.face.mood; $('delBlob').disabled = ch.blobs.length <= 1;
-  for (const k of ['body', 'nucleus', 'granule']) $('c_' + k).value = ch.colors[k];
+  $('n_shape').value = ch.nucleus.shape;
+  $('dentControl').hidden = ch.nucleus.shape !== 'bean';
+  $('f_show').checked = ch.face.show !== false;
+  if (sel?.kind === 'gran') {
+    const part = ch.granules[sel.i];
+    $('particleTitle').textContent = part.kind === 'ribosome' ? 'Ribosome' : 'Granule';
+    $('g_shape').value = part.shape;
+  }
+  for (const k of PALETTE) $('c_' + k).value = ch.colors[k];
   if (document.activeElement !== $('name')) $('name').value = ch.name || '';
   $('count').textContent = `${ch.blobs.length}/${MAXB} blobs`;
-  $('loopLen').textContent = `${(ch.anim.frames / ch.anim.fps).toFixed(1)} s loop`;
+  const {frames, fps} = clipSettings();
+  $('loopLen').textContent = `${frames} frames · ${(frames / fps).toFixed(2)} s`;
+  $('previewFrame').max = frames;
+  previewFrame = Math.min(previewFrame, frames);
+  if (!playing) showFrameNumber(previewFrame);
+  $('idleControls').hidden = clip !== 'idle';
+  $('surgeControls').hidden = clip !== 'surge';
 }
 $('dupBlob').onclick = () => { if (sel?.kind !== 'blob' || ch.blobs.length >= MAXB) return; pushUndo();
   const b = {...ch.blobs[sel.i]}; b.x = +(b.x + 0.25).toFixed(3); ch.blobs.push(b); sel = {kind: 'blob', i: ch.blobs.length - 1}; changed(); };
 $('delBlob').onclick = delSel; $('delGran').onclick = delSel;
 $('selNuc').onclick = () => { sel = {kind: 'nuc'}; changed(false); };
 $('selFace').onclick = () => { sel = {kind: 'face'}; changed(false); };
-$('addGran').onclick = () => { pushUndo(); const n = ch.nucleus;
-  ch.granules.push({x: +(n.x - n.w/2 - 0.12 + Math.random()*0.1).toFixed(3), y: +(n.y + 0.2 + Math.random()*0.3).toFixed(3), r: 0.08});
-  sel = {kind: 'gran', i: ch.granules.length - 1}; changed(); };
-$('addMode').onclick = () => setAdding(!adding);
+function addParticle(kind) {
+  pushUndo();
+  const n = ch.nucleus, ribosome = kind === 'ribosome';
+  const offset = (ch.granules.length % 4) * 0.12;
+  ch.granules.push({kind, shape: ribosome ? 'bilobed' : 'round',
+    x: n.x - n.w/2 + offset, y: n.y + n.h/2 + 0.14, r: ribosome ? 0.055 : 0.08});
+  sel = {kind: 'gran', i: ch.granules.length - 1}; changed();
+}
+$('addGran').onclick = () => addParticle('granule');
+$('addRibo').onclick = () => addParticle('ribosome');
+$('addMode').onclick = () => { previewFrame = 0; setPlaying(false); setAdding(!adding); changed(false); };
 $('undo').onclick = undo;
-$('play').onclick = () => { playing = !playing; t0 = performance.now(); $('play').textContent = playing ? 'Stop' : 'Play idle';
-  $('play').classList.toggle('on', playing); $('play').setAttribute('aria-pressed', playing); drawHandles(); changed(false); };
+$('clip').onchange = e => {
+  clip = e.target.value;
+  previewFrame = 0;
+  setPlaying(false);
+  changed(false);
+};
+$('previewFrame').oninput = e => {
+  previewFrame = +e.target.value;
+  setPlaying(false);
+  setAdding(false);
+  changed(false);
+};
+$('play').onclick = () => {
+  previewFrame = 0;
+  setPlaying(!playing);
+  changed(false);
+};
 $('handlesBtn').onclick = () => { guides = !guides; $('handlesBtn').textContent = guides ? 'Hide guides' : 'Show guides';
   $('handlesBtn').setAttribute('aria-pressed', guides); changed(false); };
 $('name').addEventListener('input', e => { ch.name = e.target.value; ch.id = slug(ch.name); draftSave(); });
