@@ -1,42 +1,48 @@
 # Blob Editor
 
-Shape amoeboid cell characters from metaball blobs, then render them in Blender as an idle loop.
+Shape amoeboid cell characters from metaball blobs, then export an idle loop or a short attack surge.
 
-- **Editor:** `editor.html`, published as a private artifact: https://claude.ai/artifact/8Eow14GXstrGUg3wuoQajn
+- **Editor:** Open `editor.html` in a browser. Saves are local there. The separately published [Claude artifact](https://claude.ai/artifact/8Eow14GXstrGUg3wuoQajn) needs its own update to pick up repository changes.
 - **Renderer:** `render.py` (Blender as a Python module, Cycles on CPU, Freestyle outlines)
 - **Characters:** `characters/*.json`, one file per character. Renders go to `out/`, which git ignores.
 
 ## Workflow
 
-1. Shape the character in the editor and press **Save**. Saves go to the artifact's database (`characters` collection).
-2. Ask Claude to render it by name. Claude pulls the saved JSON into `characters/`, runs the renderer and sends back the GIF and sprite sheet.
+1. Download `editor.html` and open it directly in a WebGL-capable browser. It works offline. **Save** keeps characters in that browser. **Download JSON** and **Import JSON** let you move characters between browsers or retain backups.
+2. Choose a motion and click **Download sprite sheet**. The PNG uses transparent 256 × 256 frames in eight columns with the same frame order as the preview.
 
-To render by hand:
+The **Cell details** panel sets the body, nucleus, granule, and ribosome colors. Select the nucleus to change its shape, or add granules and ribosomes and drag them into place. Use **Face → Visible** for a faceless cell.
+
+Under **Animation**, choose **Idle** or **Attack surge**. Play loops the selected motion and the frame slider previews the same numbered frames on demand. Slide back to **Rest** to edit the base pose on the stage. Surge strength controls the windup and forward flex.
+
+For Blender renders and GIFs, download the character JSON and run:
 
 ```bash
 pip install bpy pillow
 python3 tools/blob-editor/render.py tools/blob-editor/characters/macrophage.json
+python3 tools/blob-editor/render.py tools/blob-editor/characters/macrophage.json --clip surge
 ```
 
-Output lands in `tools/blob-editor/out/<id>/`: `f000.png`… frames, `<id>_idle_sheet.png` (8 columns, transparent) and `<id>_idle.gif` (on a cream ground). Add `--frame 0` for a single test frame, or `--res 256` for smaller frames.
+Output lands in `tools/blob-editor/out/<id>/`: `f000.png`… frames, `<id>_idle_sheet.png` (8 columns, transparent) and `<id>_idle.gif` (on a cream ground). Surge output uses the same format with the `surge` filename suffix in the `surge/` subfolder. Add `--frame 0` for a single test frame (CLI numbering starts at zero), or `--res 256` for smaller frames.
 
 ## How it fits together
 
-The camera is orthographic and front-on, so every coordinate is a 2D point (x right, y up, ground at y = 0) and the editor's view is the render's frame. The editor previews the same metaball field Blender meshes (`stiffness·(1 − d²/r²)³`, threshold 0.6) with the same toon cuts, so the preview and the render match closely.
+The browser sheet uses the editor’s WebGL body and SVG details, with a transparent background. The camera is orthographic and front-on, so every coordinate is a 2D point (x right, y up, ground at y = 0) and the editor's view is the render's frame. The editor previews the same metaball field Blender meshes (`stiffness·(1 − d²/r²)³`, threshold 0.6) with the same toon cuts, so the preview and the render match closely.
 
-Three things are duplicated between `editor.html` and `render.py` and must change together: the motion function (`motion` / `pivots`), the face shapes (`faceParts`) and the nucleus outline (`bean`), and the color tone derivation (`tones`).
+Three things are duplicated between `editor.html` and `render.py` and must change together: the idle and surge motion, the face and cell detail geometry, and the color tone derivation (`tones`).
 
 ## Character file
 
 ```json
 {
   "v": 1, "id": "macrophage", "name": "Macrophage",
-  "colors": { "body": "#7ee8b0", "nucleus": "#7c1f8f", "granule": "#f2c230" },
+  "colors": { "body": "#7ee8b0", "nucleus": "#7c1f8f", "granule": "#f2c230", "ribosome": "#704c9d" },
   "blobs": [ { "x": -0.1, "y": 1.85, "r": 1.3, "sx": 0.95, "sy": 1.1, "group": "body" } ],
   "face": { "x": 0.02, "y": 2.62, "s": 1, "mood": "angry" },
-  "nucleus": { "x": 0, "y": 1.6, "w": 0.96, "h": 0.66, "rot": -12, "dent": 0.35 },
-  "granules": [ { "x": -0.42, "y": 2.02, "r": 0.1 } ],
+  "nucleus": { "x": 0, "y": 1.6, "w": 0.96, "h": 0.66, "rot": -12, "dent": 0.35, "shape": "bean" },
+  "granules": [ { "x": -0.42, "y": 2.02, "r": 0.1 }, { "kind": "ribosome", "shape": "bilobed", "x": 0.4, "y": 1.9, "r": 0.055 } ],
   "anim": { "frames": 32, "fps": 16, "breath": 0.03, "arm": 5, "pod": 12, "pivotY": 0.55 },
+  "surge": { "frames": 12, "fps": 24, "strength": 0.26 },
   "view": { "cx": 0, "cy": 1.95, "size": 4.9 }
 }
 ```
@@ -45,4 +51,4 @@ Groups: `body`, `leg`, `armA`, `armB`, `podA`, `podB`. At most 32 blobs. Moods: 
 
 ## Not built yet
 
-Gear parts (mace, shield, pauldron, boots, cape), actions beyond idle, and a decision on how sprite sheets plug into `game/js/anim.js`.
+Equipment art and integration with `game/js/anim.js`.

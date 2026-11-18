@@ -1,10 +1,11 @@
-"""Render a blob character (JSON from the Blob Editor) to an idle sprite sheet with Blender.
+"""Render a blob character (JSON from the Blob Editor) to a sprite sheet with Blender.
 
     pip install bpy pillow        # Blender as a Python module (Python 3.13 wheel = Blender 5.x)
-    python3 render.py characters/macrophage.json [--out DIR] [--res 512] [--frame N]
+    python3 render.py characters/macrophage.json [--out DIR] [--res 512] [--clip idle|surge] [--frame N]
 
 Writes DIR/<id>/f000.png..., DIR/<id>/<id>_idle_sheet.png (8 columns, transparent) and
-DIR/<id>/<id>_idle.gif (preview on a cream ground). Default DIR is tools/blob-editor/out.
+DIR/<id>/<id>_idle.gif (preview on a cream ground). Surge frames go in a surge subfolder.
+Default DIR is tools/blob-editor/out.
 
 Coordinates in the JSON are world units: x right, y up, ground at y = 0. The camera is
 orthographic and front-on, so the editor's 2D layout is exactly what renders. Motion math
@@ -23,6 +24,7 @@ THRESH, STIFF, DEPTH = 0.6, 2.0, 0.85     # metaball threshold, element stiffnes
 LIGHT = Vector((-0.45, -0.6, 0.65)).normalized()   # Blender axes: -y is toward the camera
 DECAL_Y = -3.0                             # decals sit in front of the body (ortho camera)
 ANIM_DEFAULTS = dict(frames=32, fps=16, breath=0.03, arm=5, pod=12, pivotY=0.55)
+SURGE_DEFAULTS = dict(frames=12, fps=24, strength=0.26)
 VIEW_DEFAULTS = dict(cx=0, cy=1.95, size=4.9)
 
 
@@ -49,11 +51,11 @@ def lin(h):
 
 # ---------- motion (keep in step with editor.html) ----------
 def pivots(ch):
-    body = [b for b in ch['blobs'] if b['group'] == 'body'] or ch['blobs']
+    body = [b for b in ch['blobs'] if b.get('group', 'body') == 'body'] or ch['blobs']
     cx = sum(b['x'] for b in body) / len(body); cy = sum(b['y'] for b in body) / len(body)
     out = {}
     for g in ('armA', 'armB', 'podA', 'podB'):
-        bs = [b for b in ch['blobs'] if b['group'] == g]
+        bs = [b for b in ch['blobs'] if b.get('group', 'body') == g]
         if bs:
             p = min(bs, key=lambda b: (b['x'] - cx) ** 2 + (b['y'] - cy) ** 2)
             far = max(math.hypot(b['x'] - p['x'], b['y'] - p['y']) for b in bs) or 1
@@ -87,6 +89,22 @@ def motion(ch, t):
         return cx + (x - cx) * (1 - A['breath'] * s), py + (y - py) * (1 + 1.15 * A['breath'] * s)
     return f
 
+def surge_motion(ch, t):
+    _, cx = pivots(ch)
+    base = ch.get('anim', {}).get('pivotY', ANIM_DEFAULTS['pivotY'])
+    strength = ch.get('surge', {}).get('strength', SURGE_DEFAULTS['strength'])
+    phase = t / 0.42 if t < 0.42 else (1 - t) / 0.58
+    flex = strength * phase**2 * (3 - 2 * phase)
+    sx, sy = 1 + 0.12 * flex, 1 - 0.10 * flex
+
+    def f(x, y, group):
+        if group == 'leg' or not flex:
+            return x, y, 1, 1
+        height = max(0, y - base)
+        return cx + (x - cx) * sx + height * 0.24 * flex, base + (y - base) * sy, sx, sy
+    return f
+
+
 def blink(ch, i):
     n = int({**ANIM_DEFAULTS, **ch.get('anim', {})}['frames'])
     k = int(n * 0.62)
@@ -109,14 +127,26 @@ def face_parts(mood):
     eyes = [(-0.17, 0.05), (0.18, 0.09)]
     return eyes, brows, mouth
 
-def bean(w, h, dent=0.35, n=48):
+def outline(w, h, shape, dent=0.35, n=48):
     pts = []
     for i in range(n):
         t = 2 * math.pi * i / n
-        c, s = math.cos(t), math.sin(t)
-        y = h * s - dent * h * math.exp(-c * c / 0.08) * max(0.0, s)
-        pts.append((w * c, y))
+        x, y = math.cos(t), math.sin(t)
+        if shape == 'bean':
+            y -= dent * math.exp(-x*x / 0.08) * max(0, y)
+        if shape == 'bilobed':
+            y *= 1 - 0.66 * math.exp(-x*x / 0.095)
+        r = (1 + 0.26 * math.sin(3*t)) / 1.26 if shape == 'trilobed' else 1
+        pts.append((w * x * r, h * y * r))
     return pts
+
+
+def particle_outline(part):
+    w = part['r']
+    h = w * 0.55 if part.get('shape') == 'oval' else w
+    kind = part.get('kind', 'granule')
+    shape = part.get('shape', 'bilobed' if kind == 'ribosome' else 'round')
+    return outline(w, h, shape, 0, 32)
 
 
 # ---------- blender helpers ----------
@@ -204,6 +234,7 @@ def build(ch, res):
     M = dict(body=toon('body', C.get('body', '#7ee8b0')),
              nuc=toon('nuc', C.get('nucleus', '#7c1f8f'), 0.45, 0.86),
              gran=toon('gran', C.get('granule', '#f2c230'), 0.45, 0.86),
+             ribosome=toon('ribosome', C.get('ribosome', '#704c9d'), 0.45, 0.86),
              eye=toon('eye', EYE, flat=True), white=toon('white', '#ffffff', flat=True),
              ink=toon('ink', INK, flat=True))
 
@@ -219,11 +250,14 @@ def build(ch, res):
     objs = {}
     n = ch.get('nucleus')
     if n:
-        o = dome('nucleus', bean(n['w'] / 2, n['h'] / 2, n.get('dent', 0.35)), 0.12, M['nuc'])
+        shape = outline(n['w'] / 2, n['h'] / 2, n.get('shape', 'bean'), n.get('dent', 0.35))
+        o = dome('nucleus', shape, 0.12, M['nuc'])
         o.rotation_euler = (0, -math.radians(n.get('rot', 0)), 0)
         objs['nucleus'] = (o, n['x'], n['y'], DECAL_Y)
     for i, g in enumerate(ch.get('granules', [])):
-        o = dome(f'gran{i}', circle(g['r']), 0.05, M['gran'])
+        ribosome = g.get('kind') == 'ribosome'
+        o = dome(f'gran{i}', particle_outline(g), 0.025 if ribosome else 0.05,
+                 M['ribosome' if ribosome else 'gran'])
         objs[f'gran{i}'] = (o, g['x'], g['y'], DECAL_Y - 0.05)
 
     face = ch.get('face')
@@ -265,16 +299,28 @@ def build(ch, res):
     ls.linestyle.thickness = 3.2 * res / 512
     return body, elems, objs, eyes
 
-def pose(ch, i, body, elems, objs, eyes):
-    N = int({**ANIM_DEFAULTS, **ch.get('anim', {})}['frames'])
-    f = motion(ch, i / N)
+def clip_settings(ch, clip):
+    if clip == 'surge':
+        return {**SURGE_DEFAULTS, **ch.get('surge', {})}
+    return {**ANIM_DEFAULTS, **ch.get('anim', {})}
+
+
+def pose(ch, i, clip, body, elems, objs, eyes):
+    N = int(clip_settings(ch, clip)['frames'])
+    if clip == 'surge':
+        f = surge_motion(ch, i / max(1, N - 1))
+    else:
+        f = motion(ch, i / N)
     for el, b in elems:
-        x, y = f(b['x'], b['y'], b['group'])
+        x, y, *scale = f(b['x'], b['y'], b.get('group', 'body'))
+        sx, sy = scale or (1, 1)
         el.co = (x, 0, y)
+        el.size_x = b.get('sx', 1) * sx
+        el.size_z = b.get('sy', 1) * sy
     for o, x, y, d in objs.values():
-        x, y = f(x, y, 'body')
+        x, y, *_ = f(x, y, 'body')
         o.location = (x, d, y)
-    k = blink(ch, i)
+    k = blink(ch, i) if clip == 'idle' else 1
     for e in eyes:
         e.scale = (0.085, 0.1, 0.11 * k)
     bpy.context.view_layer.update()
@@ -285,17 +331,23 @@ def main():
     ap.add_argument('char')
     ap.add_argument('--out', default=os.path.join(HERE, 'out'))
     ap.add_argument('--res', type=int, default=512)
+    ap.add_argument('--clip', choices=('idle', 'surge'), default='idle')
     ap.add_argument('--frame', type=int, default=None)
     a = ap.parse_args()
     ch = json.load(open(a.char))
     cid = ch.get('id') or os.path.splitext(os.path.basename(a.char))[0]
-    out = os.path.join(a.out, cid); os.makedirs(out, exist_ok=True)
-    A = {**ANIM_DEFAULTS, **ch.get('anim', {})}
+    out = os.path.join(a.out, cid)
+    if a.clip != 'idle':
+        out = os.path.join(out, a.clip)
+    A = clip_settings(ch, a.clip)
     N = int(A['frames'])
+    if a.frame is not None and not 0 <= a.frame < N:
+        ap.error(f'--frame must be between 0 and {N - 1} for {a.clip}')
+    os.makedirs(out, exist_ok=True)
     parts = build(ch, a.res)
     frames = [a.frame] if a.frame is not None else range(N)
     for i in frames:
-        pose(ch, i, *parts)
+        pose(ch, i, a.clip, *parts)
         bpy.context.scene.render.filepath = os.path.join(out, f'f{i:03d}.png')
         bpy.ops.render.render(write_still=True)
     if a.frame is None:
@@ -306,7 +358,7 @@ def main():
         sheet = Image.new('RGBA', (W * cols, H * rows))
         for i, im in enumerate(fr):
             sheet.paste(im, ((i % cols) * W, (i // cols) * H))
-        sheet.save(os.path.join(out, f'{cid}_idle_sheet.png'))
+        sheet.save(os.path.join(out, f'{cid}_{a.clip}_sheet.png'))
         V = {**VIEW_DEFAULTS, **ch.get('view', {})}
         gy = H * (0.5 + (V['cy'] - 0) / V['size'])      # ground line in pixels
         gif = []
@@ -314,7 +366,7 @@ def main():
             bg = Image.new('RGBA', (W, H), (247, 230, 211, 255))
             ImageDraw.Draw(bg).ellipse((W * 0.14, gy - H * 0.03, W * 0.86, gy + H * 0.03), fill=(168, 120, 128, 255))
             bg.alpha_composite(im); gif.append(bg.convert('RGB').quantize(128))
-        gif[0].save(os.path.join(out, f'{cid}_idle.gif'), save_all=True, append_images=gif[1:],
+        gif[0].save(os.path.join(out, f'{cid}_{a.clip}.gif'), save_all=True, append_images=gif[1:],
                     duration=round(1000 / A['fps']), loop=0, disposal=2)
         print('wrote', out)
 
