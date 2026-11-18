@@ -38,7 +38,7 @@ DD.dungeon = (function () {
     const E = S.rpg.enemy;
     const hp = Math.round((E.hp + E.hpLevel * (level - 1)) * (boss ? E.bossHP : 1));
     const types = { bacteria: 'acid', virus: 'electrical', fungus: 'toxin', protozoa: 'oxidative', worm: 'physical' };
-    return { uid, defId: def.id, name: def.name, type: def.type, glyph: def.glyph, codex: def.codex, boss: !!boss, lvl: level,
+    return { uid, defId: def.id, name: def.name, sci: def.sci, type: def.type, glyph: def.glyph, codex: def.codex, boss: !!boss, lvl: level,
       hp, maxHP: hp, atk: (E.attack + E.attackLevel * (level - 1)) * (boss ? E.bossAttack : 1),
       def: E.armor + E.armorLevel * (level - 1), damageType: types[def.type] || 'physical', x, y, alive: true };
   }
