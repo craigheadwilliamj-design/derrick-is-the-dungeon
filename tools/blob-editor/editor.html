@@ -165,7 +165,7 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
     <section>
       <h2>Animation <small id="loopLen"></small></h2>
       <label class="sw">Motion
-        <select id="clip"><option value="idle">Idle</option><option value="surge">Attack surge</option></select>
+        <select id="clip"><option value="idle">Idle</option><option value="act">Act</option><option value="actInPlace">Act in place</option></select>
       </label>
       <label class="sl">Frame <input type="range" id="previewFrame" min="0" value="0"><output>Rest</output></label>
       <div class="motion-controls" id="idleControls">
@@ -173,8 +173,9 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
         <label class="sl">Arm swing <input type="range" id="a_arm" min="0" max="20" step="0.5"><output></output></label>
         <label class="sl">Pod sway <input type="range" id="a_pod" min="0" max="35" step="0.5"><output></output></label>
       </div>
-      <div class="motion-controls" id="surgeControls" hidden>
-        <label class="sl">Strength <input type="range" id="a_surge" min="0" max="0.40" step="0.01"><output></output></label>
+      <div class="motion-controls" id="actControls" hidden>
+        <label class="sl">Strength <input type="range" id="a_act" min="0" max="0.5" step="0.01"><output></output></label>
+        <p class="note">Shared by every cell: windup, strike, contact (frame marked ●), jiggle. Gear and damage numbers sync to the contact frame.</p>
       </div>
       <div class="row"><button class="btn" id="downloadSheet">Download sprite sheet</button></div>
       <p class="note">Transparent PNG. 256 × 256 pixels per frame, 8 frames per row.</p>
@@ -196,7 +197,10 @@ code{font-family:var(--mono);font-size:12px;color:var(--bile)}
 const TH = 0.6, STIFF = 2.0, DEPTH = 0.85, MAXB = 32, VIS = Math.sqrt(1 - Math.cbrt(TH / STIFF)); // visible radius / r
 const INK = '#3a1838', EYE = '#2a1028';
 const ANIM = {frames: 32, fps: 16, breath: 0.03, arm: 5, pod: 12, pivotY: 0.55};
-const SURGE = {frames: 12, fps: 24, strength: 0.26};
+const SURGE = {frames: 12, fps: 24, strength: 0.26};   // legacy, kept for render.py
+// Act: one reusable action clip for every cell. Beats are fractions of the clip; contact is where results land.
+const ACT = {frames: 16, fps: 20, strength: 0.3};
+const BEAT = {windup: 4/15, contact: 7/15};
 const PALETTE = ['body', 'nucleus', 'granule', 'ribosome'];
 const VIEW = {cx: 0, cy: 1.95, size: 4.9};
 const GROUPS = [
@@ -229,6 +233,7 @@ function normalize(c) {
   c.colors = {...BLANK.colors, ...(c.colors || {})};
   c.cell = {...BLANK.cell, ...(c.cell || {})};
   c.surge = {...SURGE, ...(c.surge || {})};
+  c.act = {...ACT, ...(c.act || {})};
   c.nucleus = {...BLANK.nucleus, shape: 'bean', ...c.nucleus};
   c.face = c.face === null ? {...BLANK.face, show: false} : {...BLANK.face, ...c.face};
   c.granules = (c.granules || []).map(part => {
@@ -277,6 +282,27 @@ function motion(c, t) {
       [x, y] = [px+(x-px)*co-(y-pyy)*si, pyy+(x-px)*si+(y-pyy)*co];
     }
     return [cx+(x-cx)*(1-A.breath*s), py+(y-py)*(1+1.15*A.breath*s)];
+  };
+}
+// Act signals at clip time t (0..1): w = windup gather (0..1), d = forward drive (−0.35 back … 1 at contact, then a damped jiggle to 0).
+function actSignals(t) {
+  const sm = x => x * x * (3 - 2 * x), {windup: W, contact: H} = BEAT;
+  if (t <= W) { const k = sm(t / W); return {w: k, d: -0.35 * k}; }
+  if (t <= H) { const k = (t - W) / (H - W), e = 1 - Math.pow(1 - k, 3); return {w: 1 - e, d: -0.35 + 1.35 * e}; }
+  const u = (t - H) / (1 - H);
+  return {w: 0, d: Math.cos(2 * Math.PI * 1.25 * u) * Math.exp(-3.2 * u) * (1 - u * u * u)};
+}
+function actMotion(c, t, lean) {
+  const {cx} = pivots(c), base = c.anim.pivotY, str = c.act.strength, {w, d} = actSignals(t);
+  const pos = Math.max(0, d);
+  let sx, sy;
+  if (lean) { sx = 1 + 0.10 * str * w + 0.16 * str * pos; sy = 1 - 0.14 * str * w - 0.07 * str * pos + 0.05 * str * Math.min(0, d); }
+  else { const g = 1 - 0.10 * str * w + 0.12 * str * d; sx = g; sy = g; }
+  return (x, y, group) => {
+    if (group === 'leg') return [x, y, 1, 1];
+    const h = Math.max(0, y - base), front = Math.max(0, x - cx);
+    const nx = cx + (x - cx) * sx + (lean ? h * 0.30 * str * d + front * 0.35 * str * pos : 0);
+    return [nx, base + (y - base) * sy, sx, sy];
   };
 }
 function surgeMotion(c, t) {
@@ -398,12 +424,12 @@ function drawGL(blobs, size, layer = 0) {
   const [s, b, h] = tones(ch.colors.body);
   gl.uniform3fv(uni.cSh, hexRgb(s)); gl.uniform3fv(uni.cBa, hexRgb(b)); gl.uniform3fv(uni.cHi, hexRgb(h)); gl.uniform3fv(uni.cInk, hexRgb(INK));
   gl.uniform1f(uni.uLook, ch.look === 'cell' ? 1 : 0); gl.uniform1f(uni.uLayer, layer);
-  gl.uniform1f(uni.uAmp, ch.cell.wobble); gl.uniform1f(uni.uT, curT);
+  gl.uniform1f(uni.uAmp, ch.cell.wobble * (act ? 1 + 1.2 * Math.abs(act.d) : 1)); gl.uniform1f(uni.uT, curT);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 // Translucent look: the front membrane goes on its own canvas above the SVG, so nucleus and gear sit between the layers.
 const fcv = $('front'), fctx = fcv.getContext('2d');
-let curT = 0;
+let curT = 0, act = null;
 function renderBody(blobs, size) {
   if (ch.look !== 'cell' || !gl) { fctx.clearRect(0, 0, fcv.width, fcv.height); drawGL(blobs, size); return; }
   drawGL(blobs, size, 1);
@@ -460,8 +486,11 @@ function drawDecals(f, blink, g = $('decals')) {
 // Placeholder main-hand item (Osteon Axe) drifting in the cytoplasm, drawn between the cell's back and front layers.
 function drawTestAxe(f, g) {
   const n = ch.nucleus, [x, y] = f(n.x + n.w * 0.55, n.y + n.h * 0.35, 'body');
-  const ph = 2 * Math.PI * (curT - 0.12), bob = Math.sin(ph) * 0.04, tilt = -28 + Math.sin(ph) * 4;
-  const a = mk('g', {transform: `translate(${x} ${y + bob}) rotate(${tilt}) scale(0.62)`, opacity: 0.92, 'pointer-events': 'none'}, g);
+  const ph = 2 * Math.PI * (curT - 0.12);
+  let bob = Math.sin(ph) * 0.04, tilt = -28 + Math.sin(ph) * 4, dx = 0;
+  if (act && act.lean) { tilt += 55 * act.w - 75 * Math.max(0, act.d); dx = 0.12 * act.d; bob = 0.05 * act.w; }   // cock back, swing on contact
+  else if (act) { bob = 0.18 * act.w + 0.08 * act.d; tilt += 10 * act.d; }                                        // raise and flare
+  const a = mk('g', {transform: `translate(${x + dx} ${y + bob}) rotate(${tilt}) scale(0.62)`, opacity: 0.92, 'pointer-events': 'none'}, g);
   const st = {stroke: INK, 'stroke-width': LW * 1.6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round'};
   mk('rect', {x: -0.06, y: -0.75, width: 0.12, height: 1.45, rx: 0.05, fill: '#a8794f', ...st}, a);
   mk('path', {d: 'M0.04 0.62 C0.32 0.78 0.58 0.62 0.62 0.32 C0.5 0.38 0.38 0.30 0.36 0.22 C0.3 0.22 0.18 0.30 0.04 0.30 Z', fill: '#efe6d2', ...st}, a);
@@ -492,13 +521,14 @@ function drawHandles() {
 // ---------- render loop ----------
 let t0 = performance.now(), dirty = true;
 function clipSettings() {
-  return clip === 'idle' ? ch.anim : ch.surge;
+  return clip === 'idle' ? ch.anim : ch.act;
 }
 function showFrame(i, {size, decals} = {}) {
   const {frames} = clipSettings();
   const t = clip === 'idle' ? i / frames : i / Math.max(1, frames - 1);
-  const f = clip === 'idle' ? motion(ch, t) : surgeMotion(ch, t);
-  curT = clip === 'idle' ? t : 0;
+  const f = clip === 'idle' ? motion(ch, t) : actMotion(ch, t, clip === 'act');
+  curT = clip === 'idle' ? t : 2 * t;                       // the membrane wobbles twice as fast during an action
+  act = clip === 'idle' ? null : {...actSignals(t), lean: clip === 'act'};
   renderBody(ch.blobs.map(b => {
     const [x, y, sx = 1, sy = 1] = f(b.x, b.y, b.group);
     return {...b, x, y, sx: b.sx * sx, sy: b.sy * sy};
@@ -517,21 +547,23 @@ function frame(now) {
     }
   } else if (dirty) {
     if (previewFrame) showFrame(previewFrame - 1);
-    else { curT = 0; renderBody(ch.blobs); drawDecals((x, y) => [x, y], 1); }
+    else { curT = 0; act = null; renderBody(ch.blobs); drawDecals((x, y) => [x, y], 1); }
     drawHandles(); dirty = false;
   }
   requestAnimationFrame(frame);
 }
 let lastFrame = -1;
+const contactFrame = () => Math.round(BEAT.contact * (ch.act.frames - 1)) + 1;   // 1-based
 function showFrameNumber(frame) {
   $('previewFrame').value = frame;
-  $('previewFrame').nextElementSibling.textContent = frame || 'Rest';
+  const hit = clip !== 'idle' && frame === contactFrame();
+  $('previewFrame').nextElementSibling.textContent = frame ? (hit ? `${frame}●` : frame) : 'Rest';
 }
 function setPlaying(on) {
   playing = on;
   lastFrame = -1;
   t0 = performance.now();
-  $('play').textContent = playing ? 'Stop' : clip === 'idle' ? 'Play idle' : 'Play surge';
+  $('play').textContent = playing ? 'Stop' : clip === 'idle' ? 'Play idle' : 'Play act';
   $('play').classList.toggle('on', playing);
   $('play').setAttribute('aria-pressed', playing);
   if (playing) setAdding(false);
@@ -623,7 +655,7 @@ const ranges = [
   bindRange('f_s', () => ch.face.s, v => ch.face.s = v),
   bindRange('a_breath', () => ch.anim.breath, v => ch.anim.breath = v, v => `${(v*100).toFixed(1)}%`),
   bindRange('a_arm', () => ch.anim.arm, v => ch.anim.arm = v, v => `${(+v).toFixed(1)}°`),
-  bindRange('a_surge', () => ch.surge.strength, v => ch.surge.strength = v, v => `${Math.round(v*100)}%`),
+  bindRange('a_act', () => ch.act.strength, v => ch.act.strength = v, v => `${Math.round(v*100)}%`),
   bindRange('a_pod', () => ch.anim.pod, v => ch.anim.pod = v, v => `${(+v).toFixed(1)}°`),
   bindRange('c_wob', () => ch.cell.wobble, v => ch.cell.wobble = v),
 ];
@@ -667,7 +699,7 @@ function syncPanel() {
   previewFrame = Math.min(previewFrame, frames);
   if (!playing) showFrameNumber(previewFrame);
   $('idleControls').hidden = clip !== 'idle';
-  $('surgeControls').hidden = clip !== 'surge';
+  $('actControls').hidden = clip === 'idle';
 }
 $('dupBlob').onclick = () => { if (sel?.kind !== 'blob' || ch.blobs.length >= MAXB) return; pushUndo();
   const b = {...ch.blobs[sel.i]}; b.x = +(b.x + 0.25).toFixed(3); ch.blobs.push(b); sel = {kind: 'blob', i: ch.blobs.length - 1}; changed(); };
