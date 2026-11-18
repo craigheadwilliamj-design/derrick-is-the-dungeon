@@ -272,17 +272,16 @@ function motion(c, t) {
   };
 }
 function surgeMotion(c, t) {
-  const {cx} = pivots(c), py = c.anim.pivotY;
-  const strength = c.surge.strength;
-  const pulse = phase => 16 * phase**2 * (1 - phase)**2;
-  const windup = pulse(Math.min(t / 0.3, 1));
-  const thrust = pulse(Math.max(0, (t - 0.3) / 0.7));
-  const sx = 1 + strength * (thrust - 0.35 * windup);
-  const sy = 1 - strength * (0.65 * thrust + 0.35 * windup);
-  const shift = strength * (1.25 * thrust - 0.45 * windup);
-  return (x, y, g) => g === 'leg'
-    ? [x, y, 1, 1]
-    : [cx + (x - cx) * sx + shift, py + (y - py) * sy, sx, sy];
+  const {cx} = pivots(c), base = c.anim.pivotY;
+  // Ease into the lean, then take a little longer to settle.
+  const phase = t < 0.42 ? t / 0.42 : (1 - t) / 0.58;
+  const flex = c.surge.strength * phase * phase * (3 - 2 * phase);
+  const sx = 1 + 0.12 * flex, sy = 1 - 0.10 * flex;
+  return (x, y, group) => {
+    if (group === 'leg' || !flex) return [x, y, 1, 1];
+    const height = Math.max(0, y - base);
+    return [cx + (x - cx) * sx + height * 0.24 * flex, base + (y - base) * sy, sx, sy];
+  };
 }
 function blinkAt(c, i){const k=Math.floor(c.anim.frames*0.62);return i===k||i===k+1?0.12:i===k+2?0.6:1}
 

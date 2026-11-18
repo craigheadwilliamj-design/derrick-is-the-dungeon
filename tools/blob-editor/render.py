@@ -91,21 +91,17 @@ def motion(ch, t):
 
 def surge_motion(ch, t):
     _, cx = pivots(ch)
-    py = ch.get('anim', {}).get('pivotY', ANIM_DEFAULTS['pivotY'])
+    base = ch.get('anim', {}).get('pivotY', ANIM_DEFAULTS['pivotY'])
     strength = ch.get('surge', {}).get('strength', SURGE_DEFAULTS['strength'])
-    def pulse(phase):
-        return 16 * phase**2 * (1 - phase)**2
-
-    windup = pulse(min(t / 0.3, 1))
-    thrust = pulse(max(0, (t - 0.3) / 0.7))
-    sx = 1 + strength * (thrust - 0.35 * windup)
-    sy = 1 - strength * (0.65 * thrust + 0.35 * windup)
-    shift = strength * (1.25 * thrust - 0.45 * windup)
+    phase = t / 0.42 if t < 0.42 else (1 - t) / 0.58
+    flex = strength * phase**2 * (3 - 2 * phase)
+    sx, sy = 1 + 0.12 * flex, 1 - 0.10 * flex
 
     def f(x, y, group):
-        if group == 'leg':
+        if group == 'leg' or not flex:
             return x, y, 1, 1
-        return cx + (x - cx) * sx + shift, py + (y - py) * sy, sx, sy
+        height = max(0, y - base)
+        return cx + (x - cx) * sx + height * 0.24 * flex, base + (y - base) * sy, sx, sy
     return f
 
 
