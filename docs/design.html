@@ -49,7 +49,7 @@ li{margin:.2em 0}
 
 <h2>Tech</h2>
 <ul>
-<li>Plain JavaScript, no framework, no engine. Canvas or a DOM grid for the glyph map. Classic roguelike glyphs (<code>@ # . + &gt;</code>, letters for monsters), colored per region. Single dark visual world. Combat portraits are the exception: classes with finished art show an animated layered-SVG portrait instead of <code>@</code> (see Character art &amp; animation).</li>
+<li>Plain JavaScript, no framework, no engine. Canvas or a DOM grid for the glyph map. Classic roguelike glyphs (<code>@ # . + &gt;</code>, letters for monsters), colored per region. Single dark visual world. Combat portraits are the exception: classes with finished art show a translucent rendered cell with its gear floating inside instead of <code>@</code> (see Character art: real cells, floating gear).</li>
 <li><b>Content is data.</b> Questions, items, enemies, classes, subclasses, NPCs, regions live in <code>data/*.js</code> tables. Logic in <code>js/*.js</code>. Balance numbers in one <code>js/settings.js</code>.</li>
 <li>Files: <code>index.html</code>, <code>js/</code> (engine, combat, effects, dungeon, ui, save, editor…), <code>data/</code>.</li>
 <li><b>Saving:</b> <code>db</code> + <code>user</code> capabilities, private path <code>data/users/&lt;id&gt;/…</code> (save doc, custom questions, image-question records). localStorage mirror as fallback. Store per-question stats and per-region last-reviewed timestamps.</li>
@@ -109,66 +109,61 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <h3>Basophil companion</h3>
 <p>One permanent companion identity, recruited for a battle. HP = 50% Ranger max HP. Attacks immediately on recruitment and once per round for 40% Ranger Power; follows Antibody Mark, otherwise the selected living target. Receives 25% of direct damage that would otherwise hit Ranger, capped by its remaining HP; damage is redirected, not duplicated or reduced a second time. Recasting heals 50% companion max HP, or summons it again after defeat. No recast at full HP. The mark strengthens both Ranger and companion damage. Companion ends with the encounter.</p>
 
-<h2>Character art &amp; animation (2026-11-18)</h2>
-<p>In combat, classes with finished art show an animated portrait in place of <code>@</code>. The map stays glyphs. Built: Eosinophil Ranger and the Basophil companion, in <code>js/anim.js</code>. The user supplies concept art and sessions redraw it as SVG code; the concept images stay out of the repo. Every portrait must show the cell's real identifying features (nucleus shape, granule color), because players learn from them.</p>
-<div class="t"><table><tr><th>Class</th><th>Art</th><th>What the drawing must show</th></tr>
-<tr><td>Eosinophil · Ranger</td><td>Done</td><td>Bilobed purple nucleus, coral (eosin-stained) granules. Green hood and cape, bow, quiver. Arrowheads are coral granules; Antibody Mark arrows carry gold Y-shaped antibodies.</td></tr>
-<tr><td>Basophil (companion)</td><td>Done</td><td>Lavender pup, no collar, floppy ears on top of the head. Dense dark purple granules that mostly hide a faint nucleus.</td></tr>
-<tr><td>Neutrophil · Berserker</td><td>Concept exists (axe barbarian)</td><td>Redraw with a 3–5-lobed nucleus and pale lilac granules; amoeboid outline with pseudopods is fine.</td></tr>
-<tr><td>B Cell · Wizard</td><td>Concept exists (wizard)</td><td>Redraw with one large round nucleus filling most of the cell and no coral granules. Keep hat, staff and cape.</td></tr>
-<tr><td>Macrophage · Paladin</td><td>Needed</td><td>Large and tanky, irregular outline with pseudopods, one bean-shaped nucleus, mace and shield.</td></tr>
-<tr><td>Cytotoxic T · Rogue</td><td>Needed</td><td>Small lymphocyte: round, mostly nucleus.</td></tr>
+<h2>Character art: real cells, floating gear (2026-11-18)</h2>
+<p><b>Supersedes the SVG rig plan and the toon Blob Editor renders.</b> Hand-drawn SVG rigs did not scale past one character, and cute mascots are not the joke. Every character is now a realistic, translucent cell rendered in Blender, with its equipped gear floating inside the cytoplasm. The cell is deadpan; the gear does the acting. The existing Eosinophil and Basophil SVG rigs in <code>js/anim.js</code> stay in the game only until their replacements land. The map stays glyphs.</p>
+<p>Biology is the point: every cell must show its real identifying features, because players learn from them.</p>
+<div class="t"><table><tr><th>Cell</th><th>Must show</th></tr>
+<tr><td>Neutrophil · Berserker</td><td>3–5-lobed nucleus, faint pale lilac granules, pseudopods.</td></tr>
+<tr><td>Eosinophil · Ranger</td><td>Bilobed nucleus, coral-orange granules.</td></tr>
+<tr><td>B Cell · Wizard</td><td>Small and round, one large round nucleus filling most of the cell, thin rim of cytoplasm.</td></tr>
+<tr><td>Macrophage · Paladin</td><td>Large, irregular outline with pseudopods, one bean-shaped nucleus.</td></tr>
+<tr><td>Cytotoxic T · Rogue</td><td>Small lymphocyte: round, mostly nucleus.</td></tr>
+<tr><td>Basophil (companion)</td><td>Dense dark purple granules mostly hiding the nucleus. Stays the pup through behavior, not anatomy.</td></tr>
 </table></div>
-<h3>Style</h3>
+<h3>Cell render (Blender)</h3>
 <ul>
-<li>Chunky, cute cartoon: flat fills, no gradients or textures. Outlines <code>#3a1838</code>, 6 units wide (viewBox units), round joins and caps. Eyes and fine details <code>#2a1028</code>.</li>
-<li>The cell is the body. Nucleus and granules sit on the body; the face (big eyes, angled brows) sits above or over the nucleus. Characters face right, toward the enemies, feet on a ground line with a soft dark ellipse shadow.</li>
-<li>Shared effect colors: coral <code>#ff7a5c</code> (eosinophil granules, player damage), gold <code>#f2c14e</code> (antibodies, ATP, marked damage), green <code>#7fd36b</code> (heal), lavender <code>#b3a8f5</code> (Basophil damage), red <code>#d8343f</code> (Bleed), acid <code>#c8e04a</code>, teal <code>#7fe0e8</code> (Hand Sanitizer).</li>
-<li>Numbers: JetBrains Mono bold with a 6-unit dark stroke drawn under the fill (<code>paint-order: stroke</code>).</li>
+<li>Shape from metaball blobs in the <a href="https://claude.ai/artifact/8Eow14GXstrGUg3wuoQajn">Blob Editor</a> (<code>tools/blob-editor/</code>, outside the game), converted to mesh with low noise displacement so the membrane is irregular, never geometric.</li>
+<li>Membrane: Transparent BSDF mixed with a tinted shader by Fresnel/Layer Weight, so the rim is dense and colored and the middle is clear, as under a microscope. Optional faint pink-lavender Principled Volume for cytoplasm depth.</li>
+<li>Nucleus: separate inner mesh, shape per cell, dense purple, mostly opaque. Granules: small spheres scattered by Geometry Nodes (Distribute Points in Volume), slow drift.</li>
+<li>Film Transparent; in Cycles also Transparent Glass. Output has a real alpha channel.</li>
+<li>Each cell renders as two layers with the same camera: <b>back</b> (cytoplasm, nucleus, granules, far membrane) and <b>front</b> (near membrane, mostly transparent with a tinted rim). Outputs per class: an idle-wobble sprite sheet of both layers for combat, and one high-resolution still of both layers for the equipment menu.</li>
+<li><code>render.py</code> builds both from the committed character files. Renders are generated assets and may be committed under <code>game/assets/</code>; nothing derived from lab images or study materials.</li>
 </ul>
-<h3>Rig structure</h3>
+<h3>Gear images</h3>
 <ul>
-<li>One inline SVG per portrait. Every moving part is its own group or path. Ids carry a per-rig prefix (<code>ea-</code> for the Eosinophil) and lookups are scoped to the portrait root, so they never collide with the page.</li>
-<li>Draw order, back to front: shadow, companion (behind the player), cape, quiver and other back items, hood back, legs, body, granules, nucleus, face, hood rim, belt, weapon-arm group, effects. Feet stay outside the breathing group so they stay planted.</li>
-<li>Pivots: the body scales from the feet; appendages rotate around their attachment points. Separate groups for everything that moves on its own: body, hood tip, cape, quiver arrows, eyes (blink), the aiming assembly (bow, both arms, arrow), the draw arm, the nocked arrow, and effect layers (sparks, puffs, numbers).</li>
+<li>One transparent PNG/WebP per item, square, rendered at 512 and shipped at 512 (the menu shows it large). Path <code>game/assets/gear/&lt;itemId&gt;.png</code>; item IDs never change. Same image in the equipment menu and in combat.</li>
+<li>Rendered in Blender with the cells' lighting, so gear looks like an object in the same world.</li>
+<li>Per-item data in the catalogue, not baked into the image: <b>anchor</b> (grip or pivot point), <b>angle</b> (resting rotation inside the cell) and <b>scale</b> (relative to the cell).</li>
+<li>Quality pairs (Chipped/Fine, Worn/Fine, etc.) share one mesh with different materials.</li>
+<li>Art is optional per item: items without an image keep their current text display. Starters first.</li>
 </ul>
-<h3>Motion rules</h3>
-<ul>
-<li>One <code>requestAnimationFrame</code> loop per rig. Every pose is a function of time (no CSS keyframes inside the rig), so actions layer on top of the idle.</li>
-<li>Idle: breathing squash and stretch from the feet (Eosinophil: 2.6 s period, about 2% scale, 3-unit bob). Light parts follow a beat late (hood tip, cape, quiver arrows, ears); the cape runs at 0.75× speed so the loop never looks mechanical. Random blinks every 2.5–5 s. The companion has its own faster rhythm (pant 0.55 s, tail wag 2.2 Hz).</li>
-<li>Actions: anticipation, action, follow-through. Damped springs (<code>e<sup>−kt</sup>·cos ωt</code>) for recoil and settling, ease-out cubic for travel. Impacts lean and squash the body, and secondary parts react to the lean.</li>
-<li>Keep actions short: basic attack about 1.2 s, abilities up to 2 s, hit 0.8 s, heal 1.1 s.</li>
-<li>Reduced motion: no movement. Show the end state briefly (the number, the closed eyes, the companion simply appearing).</li>
-</ul>
-<h3>Standard action set</h3>
-<div class="t"><table><tr><th>Action</th><th>Event</th><th>What it shows</th></tr>
-<tr><td>Idle</td><td>none</td><td>Breathing, lagging parts, blinks.</td></tr>
-<tr><td>Basic attack</td><td><code>shot</code></td><td>Draw, release, arrow leaves, string snaps and wobbles, re-nock.</td></tr>
-<tr><td>Abilities</td><td><code>mark</code>, <code>scatter</code>, <code>recruit</code>, <code>allyHeal</code></td><td>One distinct animation per ATP ability. Antibody Mark: long glowing draw while antibodies coat the arrowhead. Scatter Shot: three arrows loosed at the sky. Recruit Basophil: whistle; the pup bounds in from behind the Ranger and lands with histamine sparkles. Recast: the pup glows green and shows its heal.</td></tr>
-<tr><td>Hit</td><td><code>hit {hit, shared}</code></td><td>Knockback lean and squash, white flash, <code>&gt; &lt;</code> eyes, sparks, number. With the companion out, it flinches and shows its 25% share.</td></tr>
-<tr><td>Heal</td><td><code>heal {heal}</code></td><td>Green glow, rising plus signs, <code>^ ^</code> eyes, green number.</td></tr>
-<tr><td>Use item</td><td><code>use {kind: heal | atp | other}</code></td><td>The item pops up over the head, bobs, then drops into the cell. Heal: green heal. ATP: gold glow, lightning bolts, <code>+n ATP</code>. Other items: a capsule icon only.</td></tr>
-<tr><td>Throw item</td><td><code>throw {kind: gastric | bleach | spray}</code></td><td>The draw hand lets go of the string, winds up and lobs a spinning jar (Gastric Juice) or jug (Bleach). Hand Sanitizer is three pumps of teal mist.</td></tr>
-<tr><td>Companion attack</td><td><code>bite {bite, biteMarked}</code></td><td>Crouch and wiggle, lunge with an open mouth, chomp with histamine sparkles, hop back. Gold number when the target carries Antibody Mark.</td></tr>
+<h3>Compositing (one code path for combat and menu)</h3>
+<p>Draw order: cell back, gear (by slot depth), cell front. Gear seen through the front layer reads as suspended in the cytoplasm.</p>
+<div class="t"><table><tr><th>Slot</th><th>Where it floats</th></tr>
+<tr><td>Head</td><td>Upper cytoplasm, above the nucleus.</td></tr>
+<tr><td>Main hand</td><td>Right side, toward the enemies. Performs attacks.</td></tr>
+<tr><td>Off hand</td><td>Left/front; a shield sits in front of the nucleus.</td></tr>
+<tr><td>Armor</td><td>Around or beside the nucleus, drifting.</td></tr>
+<tr><td>Accessories</td><td>Combat: small distinct-colored specks drifting in the cytoplasm. Menu: readable size.</td></tr>
 </table></div>
-<p>Effects that land on enemies (arrow rain, splashes, the MARKED stamp) exist only in the prototype stage. In the game, enemy cards flash and shake when their HP drops.</p>
-<h3>Engine contract (<code>js/anim.js</code>)</h3>
 <ul>
-<li><code>DD.anim.forClass(classId)</code> returns a persistent portrait element, or null to keep the glyph (classes without art, or no real DOM). The same element is re-attached on every combat render, so animations survive re-renders.</li>
-<li><code>DD.anim.sync(C)</code> after each render: shows the companion from <code>C.ally</code>, keeps the idle running and starts queued events.</li>
-<li><code>DD.anim.emit(action, values)</code> is called from <code>js/combat.js</code> (helper <code>anim(C, action, values)</code>) where outcomes are decided. Events play in order (player action, companion, enemy hits), each waiting for its duration. Practice drills emit nothing. <code>DD.anim.reset(C)</code> runs when a new fight first renders.</li>
+<li><b>Combat:</b> gear gets a cytoplasm tint and slight blur. Characters face right, toward the enemies.</li>
+<li><b>Equipment menu:</b> a big preview of your cell with all its gear, lighter tint so items read clearly. Selecting a slot highlights that item and dims the rest. Equipping drops the item in through the membrane, wobbling as it settles; the replaced item drifts out.</li>
 </ul>
-<h3>Adding a new character</h3>
+<h3>Motion</h3>
+<ul>
+<li>The cell barely moves: the idle sprite sheet carries a slow cytoplasm wobble; a jiggle on hit, a green glow on heal, a gold glow for ATP.</li>
+<li>Gear motion is code, not baked: slow lagging bob and rotation of a few pixels and degrees for idle; attacks are transforms of the main-hand image around its anchor (lunge, swing, recoil, bonk). A new weapon needs only its anchor, angle and scale.</li>
+<li>Keep actions short (attack about 1.2 s, abilities up to 2 s). Reduced motion: no movement, show end states briefly.</li>
+<li>The <code>DD.anim</code> engine contract stays: <code>forClass</code>, <code>sync(C)</code>, <code>emit(action, values)</code> from <code>js/combat.js</code>, <code>reset(C)</code>. Only the implementation changes to a layered sprite player.</li>
+</ul>
+<h3>Rollout</h3>
 <ol>
-<li>Get the user's concept art. Check the class, role and weapon against this doc and the biology against the table above before drawing.</li>
-<li>Prototype in a standalone private artifact: redraw the parts as SVG facing right, rig them with the groups above, add idle first, then one action at a time, with Pause and Slow-motion buttons. Get the user's sign-off at each step. Reference prototype: <a href="https://claude.ai/artifact/Na3pwoPJuDkUDbp9MraLPK">Eosinophil animation test</a>.</li>
-<li>Port it into <code>js/anim.js</code>: add the markup and rig, prefix ids, scope lookups to the root, leave out stage-only effects, and return it from <code>DD.anim.forClass</code>.</li>
-<li>Map the class's abilities to actions in <code>resolve()</code> in <code>js/combat.js</code>, adding new action names when an ability needs its own animation.</li>
-<li>Checks: <code>node --check</code>, <code>tests/*.cjs</code>, one headless fight with screenshots at desktop width and 390 px, and reduced motion.</li>
+<li>Prototype: <code>render.py</code> outputs a translucent Neutrophil (back and front layers) and an Osteon Axe image; the user judges the look before anything else is built.</li>
+<li>Layered sprite player in <code>js/anim.js</code> and the equipment menu preview.</li>
+<li>Remaining cells, then gear images, starters first. Replace the Eosinophil and Basophil SVG rigs.</li>
 </ol>
-
-<h3>Blob Editor and Blender pipeline (2026-11-18)</h3>
-<p>An experimental route for amoeboid characters, kept in <code>tools/blob-editor/</code> and outside the game. The user shapes the body from metaball blobs in the <a href="https://claude.ai/artifact/8Eow14GXstrGUg3wuoQajn">Blob Editor</a> (private artifact, published from <code>tools/blob-editor/editor.html</code>, db capability, characters saved in the <code>characters</code> collection). Each blob gets a motion group: body breathes from the hips, legs stay planted, arms swing from the blob nearest the body, pseudopods bend with a lagging tip. The face, a bean-shaped nucleus and granules are placed on top. <code>render.py</code> rebuilds the character in Blender (bpy, Cycles, flat toon shading, Freestyle outlines in the style colors above) and writes an idle GIF and an 8-column sprite sheet. Character files are committed in <code>tools/blob-editor/characters/</code>; renders are not. Gear parts (mace, shield, armor, cape) and actions beyond idle come next. Whether sprite sheets replace the SVG rig in <code>js/anim.js</code> for some classes is not decided yet.</p>
+<p>Shared effect colors still apply to numbers and effects: coral <code>#ff7a5c</code> (player damage), gold <code>#f2c14e</code> (antibodies, ATP, marked damage), green <code>#7fd36b</code> (heal), lavender <code>#b3a8f5</code> (Basophil damage), red <code>#d8343f</code> (Bleed), acid <code>#c8e04a</code>, teal <code>#7fe0e8</code> (Hand Sanitizer). Numbers: JetBrains Mono bold with a 6-unit dark stroke under the fill.</p>
 
 <h2>Enemies</h2>
 <ul>
