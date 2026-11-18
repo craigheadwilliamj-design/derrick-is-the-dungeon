@@ -90,18 +90,24 @@ def motion(ch, t):
     return f
 
 def surge_motion(ch, t):
-    _, cx = pivots(ch)
-    base = ch.get('anim', {}).get('pivotY', ANIM_DEFAULTS['pivotY'])
     strength = ch.get('surge', {}).get('strength', SURGE_DEFAULTS['strength'])
-    phase = t / 0.42 if t < 0.42 else (1 - t) / 0.58
-    flex = strength * phase**2 * (3 - 2 * phase)
-    sx, sy = 1 + 0.12 * flex, 1 - 0.10 * flex
+    base = ch.get('anim', {}).get('pivotY', ANIM_DEFAULTS['pivotY'])
+
+    def weight(time, peak):
+        u = time / peak if time < peak else (1 - time) / (1 - peak)
+        return u * u * (3 - 2 * u)
+
+    drive = weight(t, 0.36)
+    idle_pose = motion(ch, 1 - 0.30 * drive * strength / 0.26)
 
     def f(x, y, group):
-        if group == 'leg' or not flex:
-            return x, y, 1, 1
-        height = max(0, y - base)
-        return cx + (x - cx) * sx + height * 0.24 * flex, base + (y - base) * sy, sx, sy
+        px, py = idle_pose(x, y, group)
+        if group == 'leg':
+            return px, py, 1, 1
+        peak = 0.55 if group.startswith('pod') else 0.45 if group.startswith('arm') else 0.36
+        bend = strength * weight(t, peak)
+        height = max(0, py - base)
+        return px + height * 0.92 * bend, py - height * 0.15 * bend, 1 + 0.30 * bend, 1 - 0.20 * bend
     return f
 
 
