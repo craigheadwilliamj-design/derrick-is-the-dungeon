@@ -5,6 +5,8 @@ DD.combat = (function () {
   const weaponPerks = w => w && w.modern ? w.perks : {};
   function equipState(C){ C.gear=DD.gear.perks(p()); C.streak=C.streak||0; C.usedBasics=C.usedBasics||0; return C; }
   const say = (C, t) => C.log.push(t);
+  // Portrait animation events (DD.anim); practice drills have no battle to animate.
+  const anim = (C, a, v) => { if (DD.anim && !C.drill) DD.anim.emit(a, v); };
   const living = C => C.enemies.filter(e => e.hp > 0);
   const beatenType = e => (p().beaten || []).some(id => { const d = DD.data.enemy(id); return d && e && d.type === e.type; });
   const armorDamage = (raw, armor) => Math.max(1, Math.round(raw * S.armorScale / (S.armorScale + Math.max(0, armor))));
@@ -168,6 +170,7 @@ DD.combat = (function () {
     gain(C,x);if(ability)C.firstHeavy=false;processDeaths(C);
   }
   function basicAttack(C,e){
+    anim(C,'shot');
     beginAttack(C);C.actionBonus=C.nextAttackBonus||0;C.nextAttackBonus=0;
     const main=equipped('weapon'),off=equipped('offhand');
     strike(C,e,{name:'Attack'},true,main);
@@ -187,6 +190,7 @@ DD.combat = (function () {
     if (!e) return;
     const d = Math.max(1, Math.round(C.st.power * S.companion.power * (C.mark === C.enemies.indexOf(e) ? 1.25 : 1)));
     e.hp = Math.max(0, e.hp - d); say(C, 'Basophil hits ' + e.name + ' for ' + d + ' (Toxin).');
+    anim(C, 'bite', { bite: d, biteMarked: C.mark === C.enemies.indexOf(e) });
   }
   function enemyAttack(C,e){
     if(C.shield){C.shield=false;say(C,'One-hit Shield negates '+e.name+"'s attack and effect.");return;}
@@ -200,8 +204,9 @@ DD.combat = (function () {
     if(C.endorphin>0)d=Math.max(1,Math.round(d*(1-DD.S.items.endorphin.cut)));
     const converted=Math.floor(d*((C.gear.convert||{})[type]||0));
     d-=converted;if(converted)gain(C,{atp:converted});
-    if(C.ally&&C.ally.hp>0){const shared=Math.min(C.ally.hp,Math.round(d*S.companion.share));C.ally.hp-=shared;d-=shared;if(shared)say(C,'Basophil takes '+shared+' damage for you.');}
-    hurtPlayer(C,d);say(C,e.name+' hits you for '+d+' ('+type+').');
+    let shared=0;
+    if(C.ally&&C.ally.hp>0){shared=Math.min(C.ally.hp,Math.round(d*S.companion.share));C.ally.hp-=shared;d-=shared;if(shared)say(C,'Basophil takes '+shared+' damage for you.');}
+    hurtPlayer(C,d);say(C,e.name+' hits you for '+d+' ('+type+').');anim(C,'hit',{hit:d,shared});
     if(big&&e.applies)applyStatus(C,C,e.applies,e.atk,e.applies==='bleed'?2:3,1,e.applies==='stun'?.15:1);
     if(C.blocking){
       if(C.gear.blockCorrode)applyStatus(C,e,'corrode',C.st.power,3,1,C.gear.blockCorrode);
@@ -249,7 +254,7 @@ DD.combat = (function () {
     C.opts = DD.q.options(C.q, x.removeWrong); C.removed = x.removeWrong; C.answer = null; C.phase = 'question';
   }
   function resolve(C, s) {
-    const hpBefore=C.run.hp;
+    const hpBefore=C.run.hp, hadAlly=!!(C.ally&&C.ally.hp>0), allyBefore=C.ally?C.ally.hp:0;
     if (s.id === 'oxygen') C.spellBonus=.5;
     else if(s.id==='serving'){gain(C,{heal:C.st.maxHP*s.heal});C.regen={pct:s.regen,turns:s.turns};}
     else if (s.id === 'rage') C.rage = s.turns + 1;
@@ -273,6 +278,10 @@ DD.combat = (function () {
     }
     for (let i = C.buffs.length - 1; i >= 0; i--) if (s.type && C.buffs[i].expires === 'heavy') C.buffs.splice(i, 1);
     if(C.run.hp>hpBefore&&C.gear.healAbilityATP)gain(C,{atp:C.gear.healAbilityATP});
+    if (s.id === 'companion') anim(C, hadAlly ? 'allyHeal' : 'recruit', { allyHeal: C.ally.hp - allyBefore });
+    else if (s.id === 'mark' || s.id === 'scatter') anim(C, s.id);
+    else if (C.run.hp > hpBefore) anim(C, 'heal', { heal: Math.round(C.run.hp - hpBefore) });
+    else if (s.mult) anim(C, 'shot');
     say(C, s.name + ' activated.');
   }
   const A = {
@@ -363,6 +372,7 @@ DD.combat = (function () {
       } else if (C.phase !== 'target' || !C.pending || C.pending.item !== id || !C.enemies[ti] || C.enemies[ti].hp <= 0) return;
       DD.game.consumeItem(id);
       if (id === 'lymphDrain') { C.over = 'return'; C.phase = 'end'; return; }
+      const hp0 = C.run.hp, atp0 = C.run.atp;
       say(C, d.use.msg);
       const x = context(C, C.enemies[C.target] || C.enemies[0]);
       if (d.use.cast) DD.fx.apply(d.use.cast, x); gain(C, x);
@@ -383,6 +393,9 @@ DD.combat = (function () {
       }
       if (id === 'mucusWard') C.shield = true;
       else if (d.use.effect) { C.buffs.push(Object.assign({}, d.use.effect)); if (d.tick) C.buffs.push(Object.assign({}, d.tick)); }
+      if (d.throw) anim(C, 'throw', { kind: id === 'bleach' ? 'bleach' : id === 'sanitizer' ? 'spray' : 'gastric' });
+      else { const dh = Math.round(C.run.hp - hp0), da = Math.round(C.run.atp - atp0);
+        anim(C, 'use', { kind: dh > 0 ? 'heal' : da > 0 ? 'atp' : 'other', heal: dh, atp: da }); }
       C.pending = null; C.selection = [];
       if (finish(C)) return;
       afterPlayer(C);

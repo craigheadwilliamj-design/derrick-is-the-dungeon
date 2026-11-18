@@ -182,7 +182,7 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 @media (min-width:760px){.worldgrid{grid-template-columns:minmax(0,460px) minmax(0,1fr)}.worldside{position:sticky;top:12px}}
 @media (max-width:480px){.ed-fields{grid-template-columns:1fr}}
 @media (max-width:480px){.me{grid-template-columns:1fr}.glyph{font-size:40px;width:48px}}
-@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}.enemy-card.hurt{animation:none}}
 /* 4b: gear, rarity colors (white, green, blue, gold) */
 :root{--r-common:#e8e4dc;--r-uncommon:#6fd18a;--r-rare:#6fa8ff;--r-legendary:#f2c14e}
 .gearcard{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--rc,var(--line));border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -215,6 +215,10 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere}
 .battlefield{display:grid;grid-template-columns:minmax(160px,1fr) 2fr;gap:32px;min-height:240px;padding:20px 8px;background:var(--map-bg);border-radius:6px}
 .battle-player{display:flex;flex-direction:column;gap:10px;max-width:260px;align-self:center}
 .player-glyph{color:var(--bone);align-self:center;font-size:64px}
+/* Animated portrait (classes with art); see docs/design.html, Character art & animation. */
+.battle-player:has(.portrait){max-width:320px}.portrait{width:100%;align-self:center}.portrait svg{display:block;width:100%;height:auto;overflow:visible}
+.enemy-card.hurt{animation:hurt .45s .3s both}
+@keyframes hurt{0%{transform:none;filter:none}20%{transform:translateX(6px);filter:brightness(1.8)}45%{transform:translateX(-4px)}70%{transform:translateX(2px)}100%{transform:none;filter:none}}
 .battle-enemies{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;align-items:center}
 .enemy-card{display:flex;flex-direction:column;gap:8px;background:transparent;border:1px solid transparent;border-radius:6px;padding:12px;min-width:0;text-align:center;color:var(--bone)}
 .enemy-card:disabled{opacity:1;cursor:default}.enemy-card.defeated{opacity:.3}
@@ -254,6 +258,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere}
 <script src="js/questions.js"></script>
 <script src="js/dungeon.js"></script>
 <script src="js/combat.js"></script>
+<script src="js/anim.js"></script>
 <script src="js/render.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ui.js"></script>
