@@ -167,6 +167,9 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <li>Checks: <code>node --check</code>, <code>tests/*.cjs</code>, one headless fight with screenshots at desktop width and 390 px, and reduced motion.</li>
 </ol>
 
+<h3>Blob Editor and Blender pipeline (2026-11-18)</h3>
+<p>An experimental route for amoeboid characters, kept in <code>tools/blob-editor/</code> and outside the game. The user shapes the body from metaball blobs in the <a href="https://claude.ai/artifact/8Eow14GXstrGUg3wuoQajn">Blob Editor</a> (private artifact, published from <code>tools/blob-editor/editor.html</code>, db capability, characters saved in the <code>characters</code> collection). Each blob gets a motion group: body breathes from the hips, legs stay planted, arms swing from the blob nearest the body, pseudopods bend with a lagging tip. The face, a bean-shaped nucleus and granules are placed on top. <code>render.py</code> rebuilds the character in Blender (bpy, Cycles, flat toon shading, Freestyle outlines in the style colors above) and writes an idle GIF and an 8-column sprite sheet. Character files are committed in <code>tools/blob-editor/characters/</code>; renders are not. Gear parts (mace, shield, armor, cape) and actions beyond idle come next. Whether sprite sheets replace the SVG rig in <code>js/anim.js</code> for some classes is not decided yet.</p>
+
 <h2>Enemies</h2>
 <ul>
 <li>Pathogens: bacteria, viruses, fungi, protozoa, worms. Type supplies an initial fictional combat damage theme. Groups, intentions and status effects create tactical differences.</li>
