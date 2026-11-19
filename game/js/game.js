@@ -76,6 +76,7 @@ DD.game = (function () {
       saved.taken.forEach(i => { if (f.pickups[i]) f.pickups[i].taken = true; });
       (saved.traps || []).forEach((s, i) => { if (f.traps[i]) f.traps[i].state = s; });
       (saved.chests || []).forEach(i => { if (f.chests[i]) f.chests[i].taken = true; });
+      (saved.rests || []).forEach(i => { if (f.rests && f.rests[i]) f.rests[i].taken = true; });
       DD.npc.loadState(f, saved.npcs);
       f.bossDead = !!saved.bossDead;
       if (f.bossDead && f.exit) f.g[f.exit.y][f.exit.x] = '>';
@@ -95,7 +96,7 @@ DD.game = (function () {
     DD.save.saveRun({ v: 1, regionId: r.regionId, seed: r.seed, floorIdx: r.floorIdx, genLevel: r.genLevel, hp: r.hp, atp: r.atp,
       earned: r.earned, bossWon: r.bossWon, shroud: r.shroud, cheats: r.cheats, battle: G.combat && !G.combat.drill ? DD.combat.snapshot(G.combat) : null, killed: r.killed, glucose: r.glucose, miss: r.miss, px: r.px, py: r.py, bossDead: f.bossDead, gm: r.gm,
       explored: Array.from(f.explored).join(''), en: f.enemies.map(e => [e.x, e.y, e.alive ? 1 : 0]),
-      taken: f.pickups.map((p, i) => p.taken ? i : -1).filter(i => i >= 0), traps: f.traps.map(t => t.state), chests: f.chests.map((c, i) => c.taken ? i : -1).filter(i => i >= 0), npcs: DD.npc.saveState(f) });
+      taken: f.pickups.map((p, i) => p.taken ? i : -1).filter(i => i >= 0), traps: f.traps.map(t => t.state), chests: f.chests.map((c, i) => c.taken ? i : -1).filter(i => i >= 0), rests: (f.rests || []).map((c, i) => c.taken ? i : -1).filter(i => i >= 0), npcs: DD.npc.saveState(f) });
   };
   G.resume = function (saved) {
     G.run = { v: 1, regionId: saved.regionId, seed: saved.seed, floorIdx: saved.floorIdx, genLevel: saved.genLevel, hp: saved.hp, atp: saved.atp,
@@ -124,6 +125,12 @@ DD.game = (function () {
     }
     const chest = f.chests.find(c => !c.taken && c.x === nx && c.y === ny);
     if (chest) DD.gear.openChest(chest);
+    const rest = (f.rests || []).find(c => !c.taken && c.x === nx && c.y === ny);
+    if (rest) {
+      const st = G.stats(), R = S.rpg.rest, hp0 = run.hp, atp0 = run.atp;
+      run.hp = Math.min(st.maxHP, run.hp + Math.round(st.maxHP * R.hp * DD.derrick.healMult())); run.atp = Math.min(st.maxATP, run.atp + Math.round(st.maxATP * R.atp));
+      rest.taken = true; G.say('You rest in a quiet pocket of tissue fluid: +' + (run.hp - hp0) + ' HP, +' + (run.atp - atp0) + ' ATP.');
+    }
     const t = f.g[ny][nx];
     const trap = f.traps.find(q => q.state === 0 && q.x === nx && q.y === ny);
     if (trap) { DD.dungeon.computeFov(f, nx, ny); DD.ui.refreshMap(); return G.springTrap(trap); }

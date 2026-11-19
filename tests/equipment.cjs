@@ -4,6 +4,7 @@ const root=path.join(__dirname,'..','game'),storage=new Map();
 const c=vm.createContext({console,setTimeout,clearTimeout,URL,crypto,document:{addEventListener(){},querySelector(){return null;}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}});c.window=c;
 for(const [,src]of fs.readFileSync(path.join(root,'index.html'),'utf8').matchAll(/<script src="([^"]+)"/g))if(src!=='js/main.js')new vm.Script(fs.readFileSync(path.join(root,src),'utf8'),{filename:src}).runInContext(c);
 const D=c.DD, realTownUI=D.ui.town, realStopMap=D.ui.stopMap;D.save.loadLocal();vm.runInContext('Math.random=()=>.5',c);
+const winRecover=D.S.rpg.winRecover;D.S.rpg.winRecover={hp:0,atp:0}; // gear checks use exact HP/ATP; win recovery is checked at the end
 D.data.questions[D.data.region('marrow').systems[0]]=[{id:'test',system:D.data.region('marrow').systems[0],q:'Synthetic?',answer:'A',wrong:['B','C','D'],explain:'Synthetic.'}];
 D.ui.openCombat=()=>{};D.ui.closeCombat=()=>{};D.ui.showDeath=()=>{};D.ui.showCleared=()=>{};D.ui.menu=()=>{};D.ui.stopMap=()=>{};D.ui.town=()=>{};
 function profile(id='neutrophil'){
@@ -36,12 +37,12 @@ for(const w of ['eq-starter-pepsin-staff','eq-dendrite-staff','eq-carb-staff','e
 let C=battle({head:'eq-alveolus-hood'},'bcell');assert.equal(D.combat.skills()[0].cost,5);const before=C.run.atp;D.combat.ability(C,'bolt');D.combat.target(C,0);assert.equal(C.run.atp,before-5);D.combat.answer(C,C.opts.findIndex(o=>!o.correct));assert.equal(C.run.atp,before-5);D.combat.cont(C);
 C=battle({weapon:'eq-axon-bow'});C.run.atp=100;cast(C,'wind');assert.equal(C.streak,1);attack(C);assert.equal(C.streak,1);cast(C,'wind',false);assert.equal(C.streak,0);
 // Armor resistance, immunity, and once-per-battle emergency ATP.
-C=battle({armor:'eq-myelin-gambeson'},'bcell',[foe({damageType:'electrical',def:0})]);attack(C);assert.equal(C.run.hp,70);
+C=battle({armor:'eq-myelin-gambeson'},'bcell',[foe({damageType:'electrical',def:0})]);attack(C);assert.equal(C.run.hp,72); // resistance, then half Armor vs elemental
 C=battle({armor:'eq-blood-mail'},'bcell',[foe({applies:'bleed'})]);attack(C);assert.equal(C.status.bleed,undefined);
-C=battle({armor:'eq-reticulum-armor'},'bcell',[foe({damageType:'toxin',applies:'poison'})]);attack(C);assert.equal(C.status.poison,undefined);assert.equal(C.run.hp,60);
+C=battle({armor:'eq-reticulum-armor'},'bcell',[foe({damageType:'toxin',applies:'poison'})]);attack(C);assert.equal(C.status.poison,undefined);assert.equal(C.run.hp,63); // half Armor vs elemental
 C=battle({armor:'eq-adipose-armor'},'bcell',[foe({damageType:'acid'})]);C.run.hp=41;C.run.atp=0;attack(C);assert.equal(C.run.atp,20);C.enemies[0].intent='attack';attack(C);assert.equal(C.run.atp,20);
 // Conversion shields, Corrode on Block and Enamel reflection.
-for(const [shield,type]of [['eq-melanocyte-shield','electrical'],['eq-heme-shield','oxidative']]){C=battle({offhand:shield},'bcell',[foe({damageType:type})]);C.run.atp=0;attack(C);assert.equal(C.run.hp,65);assert.equal(C.run.atp,5);}
+for(const [shield,type]of [['eq-melanocyte-shield','electrical'],['eq-heme-shield','oxidative']]){C=battle({offhand:shield},'bcell',[foe({damageType:type})]);C.run.atp=0;attack(C);assert.equal(C.run.hp,65);assert.equal(C.run.atp,4);} // smaller hit after half Armor converts less
 C=battle({offhand:'eq-enamel-shield'},'bcell');D.combat.block(C);assert.ok(C.enemies[0].hp<1000);
 vm.runInContext('Math.random=()=>0',c);C=battle({offhand:'eq-osteoclast-buckler'},'bcell');C.enemies[0].intent='attack';D.combat.block(C);assert.ok(C.enemies[0].status.corrode);vm.runInContext('Math.random=()=>.5',c);
 // Next-hit healing cannot heal more than actual damage dealt to a nearly-dead target.
@@ -101,5 +102,6 @@ for(const trip of [false,true]){
  D.game.combat={};findButton(page,'Gear').onclick();assert.equal(D.ui.mode,'map');assert.equal(D.gear.unequip('weapon'),false);D.game.combat=null;
  D.save.run.battle={};findButton(page,'Gear').onclick();assert.equal(D.ui.mode,'map');assert.equal(D.gear.unequip('weapon'),false);delete D.save.run.battle;
 }
+D.S.rpg.winRecover=winRecover;{const C=battle({},'bcell',[foe({hp:1,def:0,atk:0})]);C.run.hp=10;C.run.atp=0;attack(C);assert.equal(C.over,'win');assert.equal(C.run.hp,10+Math.round(C.st.maxHP*winRecover.hp));assert.equal(C.run.atp,winRecover.atp);}
 console.log('Passed: dungeon/vessel Gear access, swapping, return position, paused movement, escrow and battle locks.');
 

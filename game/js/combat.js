@@ -116,6 +116,7 @@ DD.combat = (function () {
     if (!living(C).length) {
       C.over = 'win'; C.phase = 'end';
       say(C, 'The infection is defeated.');
+      if (!C.drill) { const hp0 = C.run.hp; gain(C, { heal: C.st.maxHP * S.winRecover.hp, atp: S.winRecover.atp }); say(C, 'You recover ' + (C.run.hp - hp0) + ' HP and catch your breath.'); }
       if (C.buffs.some(b => b.id === 'courage')) { C.run.hp = Math.max(1, C.run.hp - Math.round(C.st.maxHP * DD.S.items.courage.afterPct)); say(C, 'Liquid Courage wears off. You are dehydrated.'); }
       return true;
     }
@@ -198,7 +199,7 @@ DD.combat = (function () {
     if(big&&C.gaba){C.gaba=false;big=false;say(C,'GABA calms '+e.name+': its heavy attack becomes a normal one.');}
     const raw=e.atk*(big?1.8:1)*(e.status.weaken?1-S.weaken:1),type=e.damageType||'physical';
     const armor=(C.st.defense+(C.attackArmor||0))*(C.status.corrode?1-S.corrode:1);
-    let d=armorDamage(raw*(1-((C.gear.resist||{})[type]||0)),type==='physical'?armor:0),prevented=0;
+    let d=armorDamage(raw*(1-((C.gear.resist||{})[type]||0)),type==='physical'?armor:armor*S.elementalArmor),prevented=0;
     if(C.blocking){const before=d;d=Math.max(1,Math.round(d*(1-C.st.blockCut)));prevented=before-d;}
     if(C.rage)d=Math.max(1,Math.round(d*(1-S.rageCut)));
     if(C.endorphin>0)d=Math.max(1,Math.round(d*(1-DD.S.items.endorphin.cut)));

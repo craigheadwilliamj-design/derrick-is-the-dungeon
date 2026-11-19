@@ -70,7 +70,7 @@ C=battle();C.st.defense=0;give('endorphin');D.combat.useItem(C,'endorphin');asse
 C=battle({}, [enemy()],'bcell');give('dopamine');D.combat.useItem(C,'dopamine');const a2=C.run.atp;skill(C,'bolt');assert.equal(C.run.atp,a2-6+2);
 C=battle({}, [enemy()],'bcell');give('cheat',3);D.combat.useItem(C,'cheat');D.combat.ability(C,'bolt');D.combat.target(C,0);assert.equal(C.opts.length,2);
 D.combat.answer(C,0);D.combat.cont(C);D.combat.useItem(C,'cheat');assert.match(D.combat.itemWhy(C,'cheat'),/Already|Limit/);skill(C,'bolt');assert.match(D.combat.itemWhy(C,'cheat'),/Limit/);
-C=battle();give('courage');D.combat.useItem(C,'courage');C.enemies[0].hp=1;const hpw=C.run.hp;D.combat.attack(C);D.combat.target(C,0);assert.equal(C.over,'win');assert.equal(C.run.hp,hpw-Math.round(C.st.maxHP*.1));
+C=battle();give('courage');D.combat.useItem(C,'courage');C.enemies[0].hp=1;const hpw=C.run.hp;D.combat.attack(C);D.combat.target(C,0);assert.equal(C.over,'win');assert.equal(C.run.hp,Math.min(C.st.maxHP,hpw+Math.round(C.st.maxHP*D.S.rpg.winRecover.hp))-Math.round(C.st.maxHP*.1)); // win recovery, then Courage drain
 C=battle();give('tpa');assert.equal(D.combat.itemWhy(C,'tpa'),'Used automatically');
 // Sweet Tooth Ring and trap / flee hooks.
 battle({acc1:'eq-sweet-tooth-ring'});assert.equal(D.derrick.loot(100,'marrow'),Math.round(100*D.derrick.lootMult('marrow')*1.15));
