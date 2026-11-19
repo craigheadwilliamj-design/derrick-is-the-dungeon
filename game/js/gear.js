@@ -74,13 +74,20 @@ DD.gear = (function () {
     if(by(eq.weapon)&&by(eq.weapon).hands===2&&eq.offhand){profile.gearBag.push(eq.offhand);delete eq.offhand;}
     if(!profile.startersIssued[profile.classId]){
       if(equipNewKit){for(const s of ['weapon','offhand','armor']){if(eq[s])profile.gearBag.push(eq[s]);delete eq[s];}}
+      const owned=new Set(profile.gearBag.concat(Object.values(eq)));
       for(const id of DD.data.starterKits[profile.classId]||[]){
+        if(owned.has(id))continue; // already have this piece (worn from another class's kit), no duplicate
         const it=by(id),slot=out.slotsFor(it)[0];
         if(!eq[slot]&&!(slot==='offhand'&&by(eq.weapon)&&by(eq.weapon).hands===2))eq[slot]=id;
         else profile.gearBag.push(id);
       }
       profile.startersIssued[profile.classId]=true;
     }
+    // Starter gear from other classes' kits can't be sold, so it would sit in the bag forever (every new save starts as a Macrophage).
+    // Drop unworn off-class starters from the bag; switching back to that class issues its kit again.
+    const mine=new Set(DD.data.starterKits[profile.classId]||[]);
+    profile.gearBag=profile.gearBag.filter(id=>{const it=by(id);return !(it&&it.source==='starter'&&!mine.has(id));});
+    for(const k of Object.keys(profile.startersIssued))if(k!==profile.classId)profile.startersIssued[k]=false;
     profile.gearV=1;
   };
   out.perks=function(profile){

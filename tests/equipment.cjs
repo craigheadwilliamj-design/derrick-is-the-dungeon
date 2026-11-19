@@ -19,7 +19,14 @@ assert.equal(active.length,99);assert.equal(active.filter(x=>x.slot==="acc").len
 assert.equal(new Set(active.map(x=>x.id)).size,99);
 // Once-per-class starters, persistent ownership and no selling exploits.
 let p=profile();p.startersIssued={};D.gear.prepare(p,true);assert.equal(p.equipment.weapon,'eq-starter-osteon-axe');const count=p.gearBag.length;D.gear.prepare(p);assert.equal(p.gearBag.length,count);assert.equal(D.gear.canSell(D.data.gearById[p.equipment.weapon]),false);
-p.classId='bcell';D.gear.prepare(p,true);assert.equal(p.equipment.weapon,'eq-starter-pepsin-staff');assert.ok(p.gearBag.includes('eq-starter-osteon-axe'));assert.equal(p.equipment.armor,'eq-faded-robes');
+p.classId='bcell';D.gear.prepare(p,true);assert.equal(p.equipment.weapon,'eq-starter-pepsin-staff');assert.ok(!p.gearBag.includes('eq-starter-osteon-axe'));assert.equal(p.equipment.armor,'eq-faded-robes');
+assert.ok(p.gearBag.every(id=>D.data.gearById[id].source!=='starter'||D.data.starterKits.bcell.includes(id))); // off-class starters leave the bag
+// A new save starts as a Macrophage; picking another class must not leave the Macrophage kit stuck in the bag.
+D.save.reset();p=D.save.profile;p.classId='neutrophil';D.gear.prepare(p,true);assert.ok(!p.gearBag.some(id=>D.data.starterKits.macrophage.includes(id)));assert.equal(p.equipment.weapon,'eq-starter-osteon-axe');
+// Switching back re-issues the kit; a worn off-class starter is kept and not duplicated.
+p.equipment.offhand=undefined;p.classId='macrophage';D.gear.prepare(p,true);assert.equal(p.equipment.weapon,'eq-starter-salt-mace');assert.equal(p.equipment.offhand,'eq-cracked-buckler');
+p.classId='bcell';D.gear.prepare(p,true);p.equipment.offhand='eq-cracked-buckler';p.equipment.weapon='eq-fine-salt-mace';p.classId='macrophage';D.gear.prepare(p,true);
+assert.equal([...p.gearBag,...Object.values(p.equipment)].filter(id=>id==='eq-cracked-buckler').length,1);
 // Hand displacement and shield eligibility.
 p=profile();p.gearBag=['eq-fine-salt-mace','eq-fine-buckler','eq-fine-osteon-axe','eq-fine-perforin-dagger'];assert.equal(D.gear.equip('eq-fine-salt-mace','weapon'),true);D.gear.equip('eq-fine-buckler','offhand');D.gear.equip('eq-fine-osteon-axe','weapon');assert.equal(p.equipment.offhand,undefined);assert.ok(p.gearBag.includes('eq-fine-buckler'));assert.equal(D.gear.equip('eq-fine-buckler','weapon'),false);D.gear.equip('eq-fine-buckler','offhand');assert.equal(p.equipment.weapon,undefined);assert.ok(p.gearBag.includes('eq-fine-osteon-axe'));
 // Legacy gear is owned and usable but never rolled, including boss drops.
