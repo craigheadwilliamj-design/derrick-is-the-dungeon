@@ -35,14 +35,14 @@ DD.gear = (function () {
   }
   // Gear found this expedition stays in escrow (run.earned.gear) but can be worn now. Worn finds are tracked in earned.worn
   // so a death or Flee/Leave still takes them back; a found piece taken off returns to escrow, an owned one to the bag.
-  const escrow=()=>{const e=DD.game&&DD.game.run&&DD.game.earnings();if(e&&!e.worn)e.worn=[];return e;};
+  const escrow=()=>DD.game&&DD.game.run&&DD.game.run.earned||null; // read only: never creates fields
   out.found=()=>{const e=escrow();return e?e.gear:[];};
-  const take=(list,id)=>{const i=list.indexOf(id);if(i<0)return false;list.splice(i,1);return true;};
+  const take=(list,id)=>{const i=list?list.indexOf(id):-1;if(i<0)return false;list.splice(i,1);return true;};
   const stow=id=>{const e=escrow();if(e&&take(e.worn,id))e.gear.push(id);else p().gearBag.push(id);};
   out.equip=function(id,slot){
     if(out.locked())return false;
     const e=escrow(),plan=out.plan(p(),id,slot);if(!plan)return false;
-    if(p().gearBag.includes(id))take(p().gearBag,id);else if(e&&take(e.gear,id))e.worn.push(id);else return false;
+    if(p().gearBag.includes(id))take(p().gearBag,id);else if(e&&take(e.gear,id))(e.worn||(e.worn=[])).push(id);else return false;
     plan.removed.forEach(stow);p().equipment=plan.eq;clamp();DD.save.save();return true;
   };
   out.unequip=function(slot){if(out.locked()||!p().equipment[slot])return false;stow(p().equipment[slot]);delete p().equipment[slot];clamp();DD.save.save();return true;};
