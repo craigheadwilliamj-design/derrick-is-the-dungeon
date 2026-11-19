@@ -31,6 +31,7 @@ DD.town = (function () {
   T.gearBought = new Set();
   T.buy = function (id) {
     const d = DD.data.items[id], p = prof();
+    if (st && !supplyStock().includes(id)) return;
     if (inv(id) >= cap(id)) return done('You can only carry ' + d.cap + ' ' + d.name + 's.');
     if (p.glucose < d.price) return done('Not enough glucose for ' + d.name + '.');
     p.glucose -= d.price; p.inventory[id] = inv(id) + 1;
@@ -199,10 +200,16 @@ DD.town = (function () {
   const msgEl = () => T.msg ? el('div', { class: 'fb good', role: 'status' }, T.msg) : null;
   // The shop is tabbed so each view is short: supplies (filtered by the combat item categories), rotating gear, specialty gear, and selling.
   const SHOP_TABS = ['Supplies', 'Gear', 'Specialty', 'Sell'];
+  // Supplies on the shelf this visit: the staples plus a few random others, rolled from the visit's seed so a reload keeps the same shelf.
+  function supplyStock() {
+    const S = DD.S.townShop, rest = DD.data.shopItems.filter(id => !S.staples.includes(id));
+    return S.staples.filter(id => DD.data.shopItems.includes(id)).concat(DD.u.shuffle(DD.rng(st.seed ^ 0x51ab), rest).slice(0, S.extraSupplies));
+  }
+  T.supplyStock = () => st ? supplyStock() : [];
   const tabRow = (names, cur, pick, cls) => el('div', { class: 'toolrow2 ' + (cls || ''), role: 'tablist' }, names.map(([key, label]) =>
     el('button', { class: 'btn small' + (key === cur ? ' on' : ''), type: 'button', role: 'tab', 'aria-selected': String(key === cur), onclick: () => { pick(key); T.open('shop'); const b = g.over.querySelector('.cbox'); if (b) b.scrollTop = 0; } }, label)));
   function shopSupplies(p) {
-    const tabs = Object.entries(DD.data.itemTabs).map(([t, ids]) => [t, ids.filter(id => DD.data.shopItems.includes(id))]).filter(([, ids]) => ids.length);
+    const stock = supplyStock(), tabs = Object.entries(DD.data.itemTabs).map(([t, ids]) => [t, ids.filter(id => stock.includes(id))]).filter(([, ids]) => ids.length);
     if (!tabs.some(([t]) => t === T.supplyTab)) T.supplyTab = tabs[0][0];
     const ids = tabs.find(([t]) => t === T.supplyTab)[1];
     return [tabRow(tabs.map(([t, ids]) => [t, t + ' (' + ids.length + ')']), T.supplyTab, t => { T.supplyTab = t; }, 'subtabs'),
@@ -216,8 +223,8 @@ DD.town = (function () {
       })];
   }
   function shopGear(p) {
-    // Gear (4b): commons and a few uncommons that rotate with each visit, favoring gear from the regions that drain to this node.
-    const GR = DD.gear, stock = GR.shopStock(st.seed, town().regions).filter(id => !T.gearBought.has(id));
+    // Gear: rerolled each time you enter the node (DD.gear.shopStock).
+    const GR = DD.gear, stock = GR.shopStock(st.seed).filter(id => !T.gearBought.has(id));
     const rows = stock.map(id => { const it = DD.data.gearById[id], price = GR.price(it), poor = p.glucose < price;
       return el('div', { class: 'shoprow gearrow' }, GR.info(it, el('span', { class: 'chip' }, 'owned ' + GR.owned(id))),
         el('button', { class: 'btn small', type: 'button', disabled: poor, title: poor ? 'Not enough glucose' : '', onclick: () => T.buyGear(id) }, 'Buy ' + price + ' g')); });
