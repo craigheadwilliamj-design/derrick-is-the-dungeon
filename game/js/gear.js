@@ -172,15 +172,45 @@ DD.gear = (function () {
       const tag=[counts[it.id]?'In bag ×'+counts[it.id]:'',found[it.id]?'Found this expedition ×'+found[it.id]+' (lost if you die or flee)':''].filter(Boolean).join(' · ');
       return el('div',{class:'gearcard'},out.info(it,el('small',null,tag)),...choices);
     });
-    const filters=[['all','All'],['weapon','Weapons'],['shield','Shields'],['armor','Armor'],['head','Head'],['acc','Accessories'],['legacy','Legacy vault']]
-      .map(([v,label])=>el('button',{class:'btn small',onclick:()=>{filter=v;rerender();}},label));
+    const filters=[['all','All'],['weapon','Weapons'],['shield','Shields'],['armor','Armor'],['head','Head'],['acc','Accessories'],['legacy','Legacy vault'],['supplies','Supplies']]
+      .map(([v,label])=>el('button',{class:'btn small'+(filter===v?' on':''),'aria-pressed':String(filter===v),onclick:()=>{filter=v;rerender();}},label));
     ui.mount(el('div',{class:'screen menu'},el('h1',null,'Equipment'),
       el('p',{class:'small dim'},'Any class can use any equipment. Two-handed weapons occupy both hands. Off-hand weapons strike at 50% strength.'),
       el('button',{class:'btn',onclick:()=>(back||ui.menu)()},'Back'),
       locked?el('p',{class:'warn'},'Equipment cannot change during an active or saved battle.'):null,
-      el('div',{class:'gslots'},slotCards),el('div',{class:'toolrow2'},filters),el('div',{class:'gslots'},bagCards)));
+      el('div',{class:'gslots'},slotCards),el('div',{class:'toolrow2'},filters),filter==='supplies'?supplies(rerender):el('div',{class:'gslots'},bagCards)));
 
   };
+  // Supplies tab: everything you carry, by category. O-Neg Bags and Creatine Shakes can be used between fights; the rest are battle-only.
+  const FIELD_USE={tonic:'heal',atpReserve:'atp'};
+  const resources=()=>{const G=DD.game,r=DD.save.run;return G.run||(r&&!r.kind?r:G.resources());};
+  out.fieldWhy=function(id){
+    const how=FIELD_USE[id];if(!how)return DD.data.items[id].outside?'Used automatically':'Use in battle';
+    if(out.locked())return 'Not during a battle';if(!DD.combat.count(id))return 'None left';
+    const r=resources(),st=DD.game.stats();
+    if(how==='heal'&&r.hp>=st.maxHP)return 'Already at full HP';if(how==='atp'&&r.atp>=st.maxATP)return 'Already at full ATP';return '';
+  };
+  out.useField=function(id){
+    if(out.fieldWhy(id))return false;
+    const G=DD.game,r=resources(),st=G.stats(),I=DD.S.items;
+    if(FIELD_USE[id]==='heal')r.hp=Math.min(st.maxHP,r.hp+Math.round(st.maxHP*I.tonic.healPct));else r.atp=Math.min(st.maxATP,r.atp+Math.round(st.maxATP*I.atpReserve.atpPct));
+    G.consumeItem(id);G.syncResources(r);
+    if(G.run)G.persist();else{if(r!==p())DD.save.saveRun(r);DD.save.save();}
+    return true;
+  };
+  function supplies(rerender){
+    const r=resources(),st=DD.game.stats(),have=id=>DD.combat.count(id);
+    const groups=Object.entries(DD.data.itemTabs).map(([t,ids])=>[t,ids.filter(have)]).filter(([,ids])=>ids.length);
+    return el('div',{class:'stack'},
+      el('div',{class:'chips'},el('span',{class:'chip'},'HP '+Math.round(r.hp)+'/'+st.maxHP+' · ATP '+Math.round(r.atp)+'/'+st.maxATP)),
+      groups.length?groups.map(([t,ids])=>el('div',{class:'stack',style:{alignSelf:'stretch'}},el('h3',null,t),...ids.map(id=>{
+        const d=DD.data.items[id],why=out.fieldWhy(id),usable=!!FIELD_USE[id];
+        return el('div',{class:'shoprow',style:{alignSelf:'stretch'}},el('div',{class:'shopinfo'},el('b',null,d.name),el('span',{class:'chip'},'×'+have(id)+(d.cap?' / '+d.cap:'')),
+          el('div',{class:'small'},d.tip),el('div',{class:'small dim'},d.real)),
+          usable?el('button',{class:'btn small',type:'button',disabled:!!why,title:why,onclick:()=>{out.useField(id);rerender();}},why||'Use')
+            :el('span',{class:'small dim'},why));
+      }))):el('p',{class:'small dim'},'You are not carrying any supplies. The plasma cell shop in every lymph node town sells them.'));
+  }
   out.summary=()=>out.equippedIds().map(id=>by(id).name).join(', ')||'nothing equipped';
   return out;
 })();

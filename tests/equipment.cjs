@@ -75,6 +75,15 @@ const page=dom();D.ui.init(page);const text=n=>typeof n==='object'?[n.textConten
 p=profile();p.gearBag=['eq-fine-vest','eq-axon-bow'];p.glucose=1000;D.gear.screen(()=>{});assert.match(text(page),/Main hand/);assert.match(text(page),/Axon Bow/);
 D.game.run=null;D.game.combat=null;realTownUI({id:'cervical',via:'hev'});D.town.open('enchant');assert.match(text(page),/Golgi Workshop/);assert.match(text(page),/acid resistance/);D.town.open('specialty');assert.match(text(page),/Specialty outfitter/);
 console.log('Passed: actual equipment, specialty shop and Golgi Workshop panel rendering.');
+// Supplies from the gear screen: O-Neg Bag and Creatine Shake work between fights; the rest are battle-only.
+D.game.run=null;D.game.combat=null;D.save.saveRun(null);p=profile();const st2=D.game.stats();p.hp=10;p.atp=0;p.inventory={tonic:2,atpReserve:1,fever:1};
+assert.equal(D.gear.fieldWhy('fever'),'Use in battle');assert.equal(D.gear.useField('fever'),false);
+assert.equal(D.gear.useField('tonic'),true);assert.equal(p.hp,10+Math.round(st2.maxHP*D.S.items.tonic.healPct));assert.equal(p.inventory.tonic,1);
+assert.equal(D.gear.useField('atpReserve'),true);assert.ok(p.atp>0);assert.equal(p.inventory.atpReserve,undefined);assert.equal(D.gear.fieldWhy('atpReserve'),'None left');
+p.hp=st2.maxHP;assert.equal(D.gear.fieldWhy('tonic'),'Already at full HP');
+D.game.combat={};assert.equal(D.gear.fieldWhy('tonic'),'Not during a battle');D.game.combat=null;
+p.inventory={tonic:1};D.gear.screen(()=>{});
+console.log('Passed: supplies tab field use.');
 
 C=battle({weapon:'eq-fine-salt-mace',offhand:'eq-fine-perforin-dagger'});attack(C);assert.equal(1000-C.enemies[0].hp,29,'off-hand strikes at half strength');
 C=battle({weapon:'eq-caffeine-rapier'});attack(C);assert.equal(1000-C.enemies[0].hp,42);C.enemies[0].intent='attack';let previous=C.enemies[0].hp;attack(C);assert.equal(previous-C.enemies[0].hp,21,'double strike only once');
