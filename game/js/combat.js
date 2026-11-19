@@ -206,7 +206,7 @@ DD.combat = (function () {
     d-=converted;if(converted)gain(C,{atp:converted});
     let shared=0;
     if(C.ally&&C.ally.hp>0){shared=Math.min(C.ally.hp,Math.round(d*S.companion.share));C.ally.hp-=shared;d-=shared;if(shared)say(C,'Basophil takes '+shared+' damage for you.');}
-    hurtPlayer(C,d);say(C,e.name+' hits you for '+d+' ('+type+').');anim(C,'hit',{hit:d,shared});
+    hurtPlayer(C,d);say(C,e.name+' hits you for '+d+' ('+type+').');anim(C,'hit',{hit:d,shared,from:C.enemies.indexOf(e)});
     if(big&&e.applies)applyStatus(C,C,e.applies,e.atk,e.applies==='bleed'?2:3,1,e.applies==='stun'?.15:1);
     if(C.blocking){
       if(C.gear.blockCorrode)applyStatus(C,e,'corrode',C.st.power,3,1,C.gear.blockCorrode);

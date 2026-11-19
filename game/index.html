@@ -216,7 +216,12 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere}
 .battle-player{display:flex;flex-direction:column;gap:10px;max-width:260px;align-self:center}
 .player-glyph{color:var(--bone);align-self:center;font-size:64px}
 /* Animated portrait (classes with art); see docs/design.html, Character art & animation. */
-.battle-player:has(.portrait){max-width:320px}.portrait{width:100%;align-self:center}.portrait svg{display:block;width:100%;height:auto;overflow:visible}
+.battle-player:has(.portrait){max-width:320px}.portrait{position:relative;width:100%;align-self:center}
+.sprite{position:relative}.sprite canvas{display:block;width:100%;height:auto}.sprite.ally{position:absolute;right:-12%;bottom:-4%;width:46%}
+.sprite.foe{width:100%;max-width:150px;align-self:center;margin:-10px 0}
+.sprite .num{position:absolute;left:50%;top:28%;transform:translateX(-50%);font:700 22px 'JetBrains Mono',monospace;-webkit-text-stroke:6px #1a1020;paint-order:stroke fill;pointer-events:none;white-space:nowrap;animation:numup 1s ease-out forwards}
+@keyframes numup{to{transform:translate(-50%,-36px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.sprite .num{animation:none}}
 .enemy-card.hurt{animation:hurt .45s .3s both}
 @keyframes hurt{0%{transform:none;filter:none}20%{transform:translateX(6px);filter:brightness(1.8)}45%{transform:translateX(-4px)}70%{transform:translateX(2px)}100%{transform:none;filter:none}}
 .battle-enemies{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;align-items:center}

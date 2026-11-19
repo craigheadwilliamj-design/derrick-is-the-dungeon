@@ -64,3 +64,10 @@ Headless export of all four clips (back and front sheets) from any character fil
 ```bash
 node render-sheets.cjs <out dir> characters/pathogens/tpl-*.json [--clips idle,act,actInPlace,hit]
 ```
+
+Game sprites: render, then convert to WebP in the game's asset folder (the game loads `assets/cells/<id>_<clip>_back.webp` and `_front.webp`):
+
+```bash
+node render-sheets.cjs /tmp/sheets characters/*.json characters/pathogens/enemy-*.json
+python3 to-game.py /tmp/sheets ../../game/assets/cells
+```
