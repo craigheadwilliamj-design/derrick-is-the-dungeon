@@ -1,0 +1,241 @@
+{
+ "v": 1,
+ "id": "enemy-typhi",
+ "name": "Enemy Typhoid Fiend",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.07,
+  "gear": false,
+  "rim": 0.6
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.02,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 1.438
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.32
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [
+  {
+   "kind": "flagellum",
+   "count": 9,
+   "len": 0.85,
+   "width": 0.045,
+   "color": "#e2c89a",
+   "from": 0,
+   "to": 360
+  }
+ ],
+ "granules": [
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -1.089,
+   "y": 2.251,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.458,
+   "y": 1.827,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.499,
+   "y": 2.02,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.372,
+   "y": 2.15,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.556,
+   "y": 2.026,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.69,
+   "y": 1.846,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.431,
+   "y": 1.734,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.919,
+   "y": 2.183,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.821,
+   "y": 2.008,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.922,
+   "y": 2.112,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.897,
+   "y": 2.244,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.734,
+   "y": 1.899,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.757,
+   "y": 1.879,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.953,
+   "y": 2.034,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.499,
+   "y": 2.226,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.961,
+   "y": 1.865,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.171,
+   "y": 1.817,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.89,
+   "y": 1.734,
+   "r": 0.025
+  }
+ ],
+ "colors": {
+  "body": "#c08a4a",
+  "nucleus": "#4a2a10",
+  "granule": "#583418",
+  "ribosome": "#583418"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.913,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.548,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.182,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.182,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.548,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.913,
+   "y": 2,
+   "r": 0.738
+  }
+ ],
+ "nucleus": {
+  "x": 0,
+  "y": 2,
+  "w": 0.983,
+  "h": 0.267,
+  "rot": 4,
+  "dent": 0.25,
+  "shape": "trilobed"
+ },
+ "template": "tpl-rod"
+}

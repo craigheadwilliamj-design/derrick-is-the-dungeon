@@ -1,0 +1,138 @@
+{
+ "v": 1,
+ "id": "enemy-influenza",
+ "name": "Enemy Flu Bug",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.05,
+  "gear": false,
+  "rim": 0.6
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.015,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 0.804
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.33
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [
+  {
+   "kind": "spikes",
+   "count": 20,
+   "len": 0.3,
+   "width": 0.045,
+   "color": "#f0d0a0"
+  },
+  {
+   "kind": "spikes",
+   "count": 7,
+   "len": 0.22,
+   "width": 0.085,
+   "color": "#a8d0e8",
+   "from": 25,
+   "to": 385
+  }
+ ],
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "oval",
+   "x": 0.401,
+   "y": 2.124,
+   "r": 0.13
+  },
+  {
+   "kind": "granule",
+   "shape": "oval",
+   "x": 0.196,
+   "y": 2.371,
+   "r": 0.13
+  },
+  {
+   "kind": "granule",
+   "shape": "oval",
+   "x": -0.124,
+   "y": 2.401,
+   "r": 0.13
+  },
+  {
+   "kind": "granule",
+   "shape": "oval",
+   "x": -0.371,
+   "y": 2.196,
+   "r": 0.13
+  },
+  {
+   "kind": "granule",
+   "shape": "oval",
+   "x": -0.401,
+   "y": 1.876,
+   "r": 0.13
+  },
+  {
+   "kind": "granule",
+   "shape": "oval",
+   "x": -0.196,
+   "y": 1.629,
+   "r": 0.13
+  },
+  {
+   "kind": "granule",
+   "shape": "oval",
+   "x": 0.124,
+   "y": 1.599,
+   "r": 0.13
+  },
+  {
+   "kind": "granule",
+   "shape": "oval",
+   "x": 0.371,
+   "y": 1.804,
+   "r": 0.13
+  }
+ ],
+ "colors": {
+  "body": "#e07a8a",
+  "nucleus": "#5a1828",
+  "granule": "#6a1e30",
+  "ribosome": "#3a5a6a"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0,
+   "y": 2,
+   "r": 2.08
+  }
+ ],
+ "nucleus": {
+  "x": 0,
+  "y": 2,
+  "w": 0.3,
+  "h": 0.3,
+  "rot": 0,
+  "dent": 0,
+  "shape": "round"
+ },
+ "template": "tpl-enveloped-virus"
+}

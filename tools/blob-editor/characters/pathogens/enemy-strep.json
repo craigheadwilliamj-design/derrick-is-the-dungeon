@@ -1,0 +1,140 @@
+{
+ "v": 1,
+ "id": "enemy-strep",
+ "name": "Enemy Strep Chainling",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.07,
+  "gear": false,
+  "rim": 0.6
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.015,
+  "arm": 0,
+  "pod": 7,
+  "pivotY": 1.422
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.3
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [],
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -1.439,
+   "y": 2.13,
+   "r": 0.094
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.875,
+   "y": 2.341,
+   "r": 0.094
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.253,
+   "y": 2.382,
+   "r": 0.094
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.817,
+   "y": 2.211,
+   "r": 0.094
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 1.381,
+   "y": 1.913,
+   "r": 0.094
+  }
+ ],
+ "colors": {
+  "body": "#d8445a",
+  "nucleus": "#5a1020",
+  "granule": "#64162a",
+  "ribosome": "#8a3a28"
+ },
+ "blobs": [
+  {
+   "group": "podB",
+   "sx": 1,
+   "sy": 1,
+   "x": -1.385,
+   "y": 2.108,
+   "r": 0.515
+  },
+  {
+   "group": "podB",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.871,
+   "y": 2.32,
+   "r": 0.515
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.257,
+   "y": 2.403,
+   "r": 0.515
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.257,
+   "y": 2.36,
+   "r": 0.515
+  },
+  {
+   "group": "podA",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.871,
+   "y": 2.189,
+   "r": 0.515
+  },
+  {
+   "group": "podA",
+   "sx": 1,
+   "sy": 1,
+   "x": 1.385,
+   "y": 1.892,
+   "r": 0.515
+  }
+ ],
+ "nucleus": {
+  "x": -0.311,
+  "y": 2.425,
+  "w": 0.195,
+  "h": 0.181,
+  "rot": 0,
+  "dent": 0,
+  "shape": "round"
+ },
+ "template": "tpl-coccus-chain"
+}

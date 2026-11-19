@@ -1,0 +1,136 @@
+{
+ "v": 1,
+ "id": "enemy-pneumo",
+ "name": "Enemy Pneumo Lancer",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.07,
+  "gear": false,
+  "rim": 0.6
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.02,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 1.318
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.36
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [
+  {
+   "kind": "fimbriae",
+   "count": 280,
+   "len": 0.13,
+   "width": 0.13,
+   "color": "#e4ecc4"
+  }
+ ],
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.682,
+   "y": 2.017,
+   "r": 0.17
+  }
+ ],
+ "colors": {
+  "body": "#a8c832",
+  "nucleus": "#34480e",
+  "granule": "#3e5412",
+  "ribosome": "#56702a"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.537,
+   "y": 2,
+   "r": 0.835
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.913,
+   "y": 2,
+   "r": 0.631
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 1.236,
+   "y": 2,
+   "r": 0.409
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 1.458,
+   "y": 2,
+   "r": 0.23
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.537,
+   "y": 2,
+   "r": 0.835
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.913,
+   "y": 2,
+   "r": 0.631
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -1.236,
+   "y": 2,
+   "r": 0.409
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -1.458,
+   "y": 2,
+   "r": 0.23
+  }
+ ],
+ "nucleus": {
+  "x": 0.682,
+  "y": 2.017,
+  "w": 0.358,
+  "h": 0.29,
+  "rot": 0,
+  "dent": 0,
+  "shape": "round"
+ },
+ "template": "tpl-diplococcus"
+}

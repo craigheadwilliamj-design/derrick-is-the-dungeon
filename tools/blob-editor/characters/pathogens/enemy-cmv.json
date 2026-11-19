@@ -1,0 +1,157 @@
+{
+ "v": 1,
+ "id": "enemy-cmv",
+ "name": "Enemy CMV Lurker",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.05,
+  "gear": false,
+  "rim": 0.6
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.015,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 0.7
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.25
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [
+  {
+   "kind": "spikes",
+   "count": 30,
+   "len": 0.24,
+   "width": 0.05,
+   "color": "#d0b8e8"
+  }
+ ],
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.56,
+   "y": 2,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.485,
+   "y": 2.28,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.28,
+   "y": 2.485,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0,
+   "y": 2.56,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.28,
+   "y": 2.485,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.485,
+   "y": 2.28,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.56,
+   "y": 2,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.485,
+   "y": 1.72,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.28,
+   "y": 1.515,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0,
+   "y": 1.44,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.28,
+   "y": 1.515,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.485,
+   "y": 1.72,
+   "r": 0.07
+  }
+ ],
+ "colors": {
+  "body": "#9a7ab8",
+  "nucleus": "#2e1a48",
+  "granule": "#5a3a7a",
+  "ribosome": "#3a5a6a"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0,
+   "y": 2,
+   "r": 2.261
+  }
+ ],
+ "nucleus": {
+  "x": 0,
+  "y": 2,
+  "w": 0.78,
+  "h": 0.78,
+  "rot": 0,
+  "dent": 0,
+  "shape": "round"
+ },
+ "template": "tpl-enveloped-virus"
+}
