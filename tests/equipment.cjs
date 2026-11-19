@@ -82,6 +82,12 @@ assert.equal(D.gear.useField('tonic'),true);assert.equal(p.hp,10+Math.round(st2.
 assert.equal(D.gear.useField('atpReserve'),true);assert.ok(p.atp>0);assert.equal(p.inventory.atpReserve,undefined);assert.equal(D.gear.fieldWhy('atpReserve'),'None left');
 p.hp=st2.maxHP;assert.equal(D.gear.fieldWhy('tonic'),'Already at full HP');
 D.game.combat={};assert.equal(D.gear.fieldWhy('tonic'),'Not during a battle');D.game.combat=null;
+assert.equal(D.gear.fieldWhy('lymphDrain'),'Only inside a dungeon');
+// Lymph Drain from the gear screen inside a dungeon banks earnings and lands in the draining node.
+p=profile();p.inventory={lymphDrain:1};p.glucose=0;const realTown=D.ui.town;let landed=null;D.ui.town=o=>{landed=o;};
+D.game.run={seed:1,floorIdx:0,regionId:'brain',hp:50,atp:5,miss:[],killed:0,glucose:0};D.game.reward('glucose',30);
+assert.equal(D.gear.useField('lymphDrain'),true);assert.equal(D.game.run,null);assert.equal(p.glucose,30);assert.equal(p.inventory.lymphDrain,undefined);
+assert.equal(landed.id,D.world.townFor('brain'));assert.equal(p.loc,landed.id);D.ui.town=realTown;
 p.inventory={tonic:1};D.gear.screen(()=>{});
 console.log('Passed: supplies tab field use.');
 

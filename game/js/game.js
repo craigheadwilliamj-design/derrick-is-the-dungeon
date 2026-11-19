@@ -224,6 +224,22 @@ DD.game = (function () {
     G.combat = DD.combat.create(G.run, enemy, opts);
     G.persist(); DD.ui.openCombat();
   };
+  // Lymph Drain outside battle (gear screen): same as using it in a fight, bank earnings and wash out to the node this region drains to.
+  G.drainWhy = function () {
+    if (G.combat || (DD.save.run && DD.save.run.battle)) return 'Not during a battle';
+    if (!G.run || G.run.trip) return 'Only inside a dungeon';
+    if (!DD.combat.count('lymphDrain')) return 'None left';
+    return '';
+  };
+  G.drainTown = () => (G.run && DD.world.townFor(G.run.regionId)) || 'cervical';
+  G.drain = function () {
+    if (G.drainWhy()) return false;
+    const town = G.drainTown();
+    G.consumeItem('lymphDrain'); G.settle(true); prof().loc = town;
+    G.run = null; DD.save.saveRun(null); DD.save.save(); DD.ui.stopMap();
+    DD.ui.town({ id: town, via: 'lymph' });
+    return true;
+  };
   G.endCombat = function () {
     const C = G.combat, run = G.run; if (!C || C.phase !== 'end') return;
     G.combat = null;
