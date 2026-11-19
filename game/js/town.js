@@ -31,6 +31,7 @@ DD.town = (function () {
   T.gearBought = new Set();
   T.buy = function (id) {
     const d = DD.data.items[id], p = prof();
+    if (st && !supplyStock().includes(id)) return;
     if (inv(id) >= cap(id)) return done('You can only carry ' + d.cap + ' ' + d.name + 's.');
     if (p.glucose < d.price) return done('Not enough glucose for ' + d.name + '.');
     p.glucose -= d.price; p.inventory[id] = inv(id) + 1;
@@ -197,38 +198,70 @@ DD.town = (function () {
     r ? el('span', { class: 'chip' }, 'HP ' + Math.round(r.hp) + '/' + s.maxHP + ' · ATP ' + Math.round(r.atp) + '/' + s.maxATP) : el('span', { class: 'chip' }, 'no run in progress')); };
   const leaveBtn = () => el('button', { class: 'btn', type: 'button', onclick: T.close }, el('kbd', null, 'Esc'), 'Leave');
   const msgEl = () => T.msg ? el('div', { class: 'fb good', role: 'status' }, T.msg) : null;
-  function shopPanel() {
-    const p = prof();
-    const rows = DD.data.shopItems.map(id => {
-      const d = DD.data.items[id], have = inv(id), full = have >= cap(id), poor = p.glucose < d.price;
-      return el('div', { class: 'shoprow' },
-        el('div', { class: 'shopinfo' }, el('b', null, d.name), el('span', { class: 'chip' }, 'owned ' + have + (d.cap ? '/' + d.cap : '')),
-          el('div', { class: 'small' }, d.tip), el('div', { class: 'small dim' }, d.real)),
-        el('button', { class: 'btn small', type: 'button', disabled: full || poor, title: full ? 'Carry limit reached' : poor ? 'Not enough glucose' : '', onclick: () => T.buy(id) },
-          'Buy ' + d.price + ' g'));
-    });
-    const owned = DD.data.itemOrder.filter(id => inv(id) > 0);
+  // The shop is tabbed so each view is short: supplies (filtered by the combat item categories), rotating gear, specialty gear, and selling.
+  const SHOP_TABS = ['Supplies', 'Gear', 'Specialty', 'Sell'];
+  // Supplies on the shelf this visit: the staples plus a few random others, rolled from the visit's seed so a reload keeps the same shelf.
+  function supplyStock() {
+    const S = DD.S.townShop, rest = DD.data.shopItems.filter(id => !S.staples.includes(id));
+    return S.staples.filter(id => DD.data.shopItems.includes(id)).concat(DD.u.shuffle(DD.rng(st.seed ^ 0x51ab), rest).slice(0, S.extraSupplies));
+  }
+  T.supplyStock = () => st ? supplyStock() : [];
+  const tabRow = (names, cur, pick, cls) => el('div', { class: 'toolrow2 ' + (cls || ''), role: 'tablist' }, names.map(([key, label]) =>
+    el('button', { class: 'btn small' + (key === cur ? ' on' : ''), type: 'button', role: 'tab', 'aria-selected': String(key === cur), onclick: () => { pick(key); T.open('shop'); const b = g.over.querySelector('.cbox'); if (b) b.scrollTop = 0; } }, label)));
+  function shopSupplies(p) {
+    const stock = supplyStock(), tabs = Object.entries(DD.data.itemTabs).map(([t, ids]) => [t, ids.filter(id => stock.includes(id))]).filter(([, ids]) => ids.length);
+    if (!tabs.some(([t]) => t === T.supplyTab)) T.supplyTab = tabs[0][0];
+    const ids = tabs.find(([t]) => t === T.supplyTab)[1];
+    return [tabRow(tabs.map(([t, ids]) => [t, t + ' (' + ids.length + ')']), T.supplyTab, t => { T.supplyTab = t; }, 'subtabs'),
+      ...ids.map(id => {
+        const d = DD.data.items[id], have = inv(id), full = have >= cap(id), poor = p.glucose < d.price;
+        return el('div', { class: 'shoprow' },
+          el('div', { class: 'shopinfo' }, el('b', null, d.name), el('span', { class: 'chip' }, 'owned ' + have + (d.cap ? '/' + d.cap : '')),
+            el('div', { class: 'small' }, d.tip), el('div', { class: 'small dim' }, d.real)),
+          el('button', { class: 'btn small', type: 'button', disabled: full || poor, title: full ? 'Carry limit reached' : poor ? 'Not enough glucose' : '', onclick: () => T.buy(id) },
+            'Buy ' + d.price + ' g'));
+      })];
+  }
+  function shopGear(p) {
+    // Gear: rerolled each time you enter the node (DD.gear.shopStock).
+    const GR = DD.gear, stock = GR.shopStock(st.seed).filter(id => !T.gearBought.has(id));
+    const rows = stock.map(id => { const it = DD.data.gearById[id], price = GR.price(it), poor = p.glucose < price;
+      return el('div', { class: 'shoprow gearrow' }, GR.info(it, el('span', { class: 'chip' }, 'owned ' + GR.owned(id))),
+        el('button', { class: 'btn small', type: 'button', disabled: poor, title: poor ? 'Not enough glucose' : '', onclick: () => T.buyGear(id) }, 'Buy ' + price + ' g')); });
+    return [note('Stock changes every visit. Bought gear goes to your bag.'), ...(rows.length ? rows : [note('Sold out for this visit.')])];
+  }
+  function shopSpecialty(p) {
+    const ids = DD.gear.specialtyStock(town().regions).filter(id => !T.gearBought.has(id));
+    return [el('h3', null, 'Specialty outfitter'), note('Distinctive equipment for specific builds.'),
+      ...(ids.length ? ids.map(id => { const it = DD.data.gearById[id], poor = p.glucose < DD.gear.price(it);
+        return el('div', { class: 'shoprow gearrow' }, DD.gear.info(it), el('button', { class: 'btn small', type: 'button', disabled: poor, title: poor ? 'Not enough glucose' : '', onclick: () => T.buyGear(id) }, 'Buy ' + DD.gear.price(it) + ' g')); })
+        : [note('Sold out for this visit.')])];
+  }
+  function shopSell(p) {
+    const GR = DD.gear, owned = DD.data.itemOrder.filter(id => inv(id) > 0);
     const sell = owned.length ? owned.map(id => el('div', { class: 'shoprow' },
       el('div', { class: 'shopinfo' }, el('b', null, DD.data.items[id].name), el('span', { class: 'chip' }, '×' + inv(id))),
       el('button', { class: 'btn small', type: 'button', onclick: () => T.sell(id) }, 'Sell ' + sellPrice(id) + ' g')))
-      : [note('Nothing to sell. You are not carrying any items.')];
-    // Gear (4b): commons and a few uncommons that rotate with each visit, favoring gear from the regions that drain to this node.
-    const GR = DD.gear, stock = GR.shopStock(st.seed, town().regions).filter(id => !T.gearBought.has(id));
-    const gearRows = stock.map(id => { const it = DD.data.gearById[id], price = GR.price(it), poor = p.glucose < price;
-      return el('div', { class: 'shoprow gearrow' }, GR.info(it, el('span', { class: 'chip' }, 'owned ' + GR.owned(id))),
-        el('button', { class: 'btn small', type: 'button', disabled: poor, title: poor ? 'Not enough glucose' : '', onclick: () => T.buyGear(id) }, 'Buy ' + price + ' g')); });
+      : [note('You are not carrying any supplies.')];
     const bagSell = [...new Set(p.gearBag)].map(id => DD.data.gearById[id]).filter(it => GR.canSell(it))
       .sort((a, b) => (GR.owned(b.id) > 1) - (GR.owned(a.id) > 1) || GR.sellPrice(b) - GR.sellPrice(a))
       .map(it => el('div', { class: 'shoprow' }, el('div', { class: 'shopinfo' }, el('b', { class: 'gname', style: { color: GR.color(it.rarity) } }, it.name),
         el('span', { class: 'chip' }, 'you own ' + GR.owned(it.id) + (GR.owned(it.id) > 1 ? ' (extra copy)' : ''))),
         el('button', { class: 'btn small', type: 'button', onclick: () => T.sellGear(it.id) }, 'Sell ' + GR.sellPrice(it) + ' g')));
-    return ['Plasma cell · shop', talk('plasma'), chips(), msgEl(), rows,
-      el('div',{class:'toolrow2'},el('button',{class:'btn',onclick:()=>T.open('specialty')},'Specialty equipment'),el('button',{class:'btn',onclick:()=>T.open('enchant')},'The Golgi Workshop')),
-      el('h3', null, 'Gear'), note('Stock changes every visit. Equip what you buy from the gear screen.'),
-      el('div', { class: 'toolrow2' }, el('button', { class: 'btn small primary', type: 'button', onclick: () => { savePos(); DD.gear.screen(() => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Open gear screen')),
-      gearRows.length ? gearRows : note('Sold out for this visit.'),
-      el('h3', null, 'Sell (' + Math.round(E.sellPct * 100) + '% of price)'), sell,
-      bagSell.length ? [el('div', { class: 'tag' }, 'Gear in your bag (equipped gear is not for sale; legendaries are never sold)'), bagSell] : null];
+    return [note('Everything sells for ' + Math.round(E.sellPct * 100) + '% of its price.'),
+      el('h3', null, 'Supplies'), ...sell,
+      el('h3', null, 'Gear'), ...(bagSell.length ? bagSell : [note('No gear to sell.')]), note('Equipped gear, starters and legendaries are not for sale.')];
+  }
+  function shopPanel() {
+    const p = prof();
+    if (!SHOP_TABS.includes(T.shopTab)) T.shopTab = 'Supplies';
+    const body = { Supplies: shopSupplies, Gear: shopGear, Specialty: shopSpecialty, Sell: shopSell }[T.shopTab](p);
+    return ['Plasma cell · shop', talk('plasma'),
+      el('div', { class: 'shophead' }, chips(), tabRow(SHOP_TABS.map(t => [t, t]), T.shopTab, t => { T.shopTab = t; }), msgEl()),
+      ...body,
+      el('div', { class: 'toolrow2' },
+        el('button', { class: 'btn small', type: 'button', onclick: () => { savePos(); DD.gear.screen(() => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Open gear screen'),
+        el('button', { class: 'btn small', type: 'button', onclick: () => T.open('enchant') }, 'The Golgi Workshop'))];
   }
   function innPanel() {
     const iw = T.innWhy();
@@ -272,11 +305,7 @@ DD.town = (function () {
       el('button', { class: 'btn primary', type: 'button', onclick: () => leave(() => DD.explore.start()) }, 'Leave town: explore the circulation'),
       el('button', { class: 'btn', type: 'button', onclick: () => leave(id => DD.ui.menu(id)) }, 'Plan a route on the body map')];
   }
-  function specialtyPanel(){
-    const ids=DD.gear.specialtyStock(town().regions).filter(id=>!T.gearBought.has(id));
-    return ['Specialty outfitter',note('Distinctive equipment for specific builds.'),chips(),msgEl(),
-      ...ids.map(id=>{const it=DD.data.gearById[id];return el('div',{class:'shoprow'},DD.gear.info(it),el('button',{class:'btn',disabled:prof().glucose<DD.gear.price(it),onclick:()=>T.buyGear(id)},'Buy '+DD.gear.price(it)+' g'));})];
-  }
+  function specialtyPanel() { T.shopTab = 'Specialty'; T.panel = 'shop'; return shopPanel(); }
   function enchantPanel(){
     const ids=[...new Set(DD.gear.equippedIds().concat(prof().gearBag))].filter(id=>{const it=DD.data.gearById[id];return it&&it.modern&&it.slot==='armor';});
     return ['The Golgi Workshop · Fibroblast',note('One added resistance per armor copy. Built-in properties remain. Replacing an enchantment costs the full price; identical resistance never stacks.'),chips(),msgEl(),
@@ -289,11 +318,13 @@ DD.town = (function () {
   T.open = function (name, arg) {
     if (!g.over) return;
     if (T.panel !== name) T.msg = '';
+    const same = T.panel === name && !g.over.hidden, prevBox = g.over.querySelector('.cbox'), keep = same && prevBox ? prevBox.scrollTop : 0;
     T.panel = name; T.panelArg = arg; DD.ui.mode = 'townpanel';
     const [title, ...body] = PANELS[name](arg);
     g.over.hidden = false;
     g.over.replaceChildren(el('div', { class: 'cbox', role: 'dialog', 'aria-label': title },
       el('div', { class: 'tag' }, town().name), el('h2', null, title), ...body, leaveBtn()));
+    if (keep) g.over.querySelector('.cbox').scrollTop = keep;
     draw();
   };
   T.close = function () {
@@ -321,7 +352,7 @@ DD.town = (function () {
     DD.game.run = null; DD.game.combat = null; DD.game.talk = null; // the saved run is the only copy while you are here
     prof().loc = id;
     if (g.ro) g.ro.disconnect();
-    g = {}; T.lines = {}; T.msg = ''; T.panel = null; T.gearBought = new Set();
+    g = {}; T.lines = {}; T.msg = ''; T.panel = null; T.gearBought = new Set(); T.shopTab = 'Supplies'; T.supplyTab = null;
     const spot = b.spots[opts.via === 'hev' ? 'hev' : 'lymph'];
     st = { id, seed: res ? res.seed : (Math.random() * 2147483647) >>> 0, x: res ? res.x : spot.x, y: res ? res.y : spot.y, zone: null, msgs: [] };
     build(id, st.seed);

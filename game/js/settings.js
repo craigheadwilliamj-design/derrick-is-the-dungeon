@@ -113,6 +113,9 @@ DD.S = {
   merchant: { chance: 0.2, stockMin: 3, stockMax: 4, qtyMax: 2, priceMult: 1.5, restMult: 2, tipCost: 5, fadedCount: 2 },  // chance is per non-boss floor
   // Walkable towns (3c). ambientStep: an ambient cell moves once every min-max of your steps. gossipChance: a line about a region that drains here.
   town: { ambient: { min: 4, max: 6 }, ambientStep: { min: 2, max: 3 }, gossipChance: 0.4, holdMs: 140 },
+  // Town shop stock, rerolled each time you enter a node. staples: supplies always on the shelf; extraSupplies: random others on top.
+  // gearSlots: rotating gear (common/uncommon); rareChance: per visit, one slot becomes a rare field piece. Very rare, deep, boss and legendary gear is never sold here.
+  townShop: { staples: ['tonic', 'atpReserve'], extraSupplies: 6, gearSlots: 9, rareChance: 0.06 },
   bounty: {
     active: 3, kill: { min: 2, max: 4 }, answer: { min: 5, max: 10 },
     glucose: { kill: 8, answer: 3, clear: 40 },                      // per unit (kill, answer) or flat (clear)

@@ -25,7 +25,8 @@ p=profile();p.gearBag=['eq-fine-salt-mace','eq-fine-buckler','eq-fine-osteon-axe
 // Legacy gear is owned and usable but never rolled, including boss drops.
 D.save.replaceProfile({level:1,classId:'macrophage',equipment:{armor:'hydroxyapatite-shield'},gearBag:['lysozyme-axe'],glucose:0});p=D.save.profile;assert.ok(p.gearBag.includes('lysozyme-axe'));assert.equal(p.equipment.offhand,'hydroxyapatite-shield');
 D.game.run={floorIdx:0};for(let i=1;i<30;i++){const id=D.gear.rollChest(D.rng(i),'marrow',false);assert.ok(D.data.gearById[id].modern);assert.ok(!['starter','deep','boss','specialty'].includes(D.data.gearById[id].source));}
-assert.ok(D.gear.shopStock(1,[]).every(id=>D.data.gearById[id].source==='basic'));
+for(let seed=1;seed<300;seed++){const st=D.gear.shopStock(seed);assert.equal(st.length,D.S.townShop.gearSlots);assert.ok(st.every(id=>{const it=D.data.gearById[id];return it.modern&&(it.source==='basic'||(it.source==='field'&&it.rarity==='rare'));}));}
+assert.notDeepEqual(D.gear.shopStock(1),D.gear.shopStock(2));
 // Per-copy enchantment and replacement survive migration without mutating the other copy.
 p=profile();D.game.run=null;p.gearBag=['eq-myelin-gambeson','eq-myelin-gambeson'];p.glucose=2000;assert.equal(D.gear.enchant('eq-myelin-gambeson','acid'),true);let inst=p.gearBag[0];assert.match(inst,/^instance-/);assert.equal(p.gearBag[1],'eq-myelin-gambeson');D.gear.equip(inst,'armor');let perks=D.gear.perks(p);assert.equal(perks.resist.acid,.5);assert.equal(perks.resist.electrical,.5);assert.match(D.gear.enchantWhy(inst,'electrical'),/already/);assert.equal(D.gear.enchant(inst,'toxin'),true);inst=p.equipment.armor;assert.equal(D.gear.perks(p).resist.acid,undefined);D.save.replaceProfile(JSON.parse(JSON.stringify(p)));assert.equal(D.gear.perks(D.save.profile).resist.toxin,.5);assert.equal(D.gear.perks(D.save.profile).resist.electrical,.5);
 // Each staff grants a different pair plus the permanent shield.

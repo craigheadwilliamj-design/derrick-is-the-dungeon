@@ -121,7 +121,9 @@ DD.gear = (function () {
     return DD.u.weightedPick(r,pool,it=>(it.region===region?3:1)*(it.rarity==='veryrare'?(boss?2:.4):2)).id;
   };
   out.openChest=function(c){if(c.taken)return;c.taken=true;DD.game.reward('gear',c.item);DD.game.say('Found '+by(c.item).name+'. You can wear it now; return safely to keep it.');DD.game.persist();};
-  out.shopStock=function(seed,regions){const rng=DD.rng(seed^0x6ea7);return DD.u.shuffle(rng,active().filter(it=>it.source==='basic')).slice(0,9).map(it=>it.id);};
+  // Town gear: a fresh shuffle of common/uncommon pieces per visit; rarely (rareChance per visit) one slot is a rare field piece instead. Never very rare or legendary.
+  out.shopStock=function(seed){const S=DD.S.townShop,rng=DD.rng(seed^0x6ea7),ids=DD.u.shuffle(rng,active().filter(it=>it.source==='basic'&&rank[it.rarity]<=1)).slice(0,S.gearSlots).map(it=>it.id);
+    if(rng()<S.rareChance)ids[ids.length-1]=DD.u.pick(rng,active().filter(it=>it.source==='field'&&it.rarity==='rare')).id;return ids;};
   out.specialtyStock=function(regions){return active().filter(it=>it.source==='specialty'&&(!it.region||regions.includes(it.region))).map(it=>it.id);};
   out.rareStock=function(r){const it=DD.u.pick(r,active().filter(it=>['field','specialty'].includes(it.source)&&it.rarity==='rare'));return {id:it.id,price:Math.round(out.price(it)*DD.S.merchant.priceMult),sold:false};};
   out.buyRare=function(n){const s=n.rare;if(!s||s.sold||p().glucose<s.price)return false;p().glucose-=s.price;s.sold=true;out.give(s.id);return true;};
