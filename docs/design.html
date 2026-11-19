@@ -162,8 +162,8 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <h3>Rollout</h3>
 <ol>
 <li>Prototype (done 2026-11-18): the Macrophage in the translucent look with a test Osteon Axe, approved by the user.</li>
-<li>Layered sprite player in <code>js/anim.js</code> and the equipment menu preview.</li>
-<li>Remaining cells, then gear images, starters first. Replace the Eosinophil and Basophil SVG rigs.</li>
+<li>Layered sprite player in <code>js/anim.js</code> (done 2026-11-19 for combat: all five player cells, the Basophil companion and the regular enemies; the SVG rigs are gone). Sheets ship as WebP (quality 70, 256 px frames) at <code>game/assets/cells/&lt;id&gt;_&lt;clip&gt;_back|front.webp</code>, made with <code>tools/blob-editor/render-sheets.cjs</code> then <code>to-game.py</code>. Enemy cards show the sprite mirrored to face left; bosses and enemies without art keep their glyph. Equipment menu preview still to do.</li>
+<li>Gear images, starters first (gear draws between the back and front layers).</li>
 </ol>
 <p>Shared effect colors still apply to numbers and effects: coral <code>#ff7a5c</code> (player damage), gold <code>#f2c14e</code> (antibodies, ATP, marked damage), green <code>#7fd36b</code> (heal), lavender <code>#b3a8f5</code> (Basophil damage), red <code>#d8343f</code> (Bleed), acid <code>#c8e04a</code>, teal <code>#7fe0e8</code> (Hand Sanitizer). Numbers: JetBrains Mono bold with a 6-unit dark stroke under the fill.</p>
 

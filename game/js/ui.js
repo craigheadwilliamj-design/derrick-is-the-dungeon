@@ -237,10 +237,11 @@ DD.ui = (function () {
     const enemies = el('div', { class: 'battle-enemies' }, C.enemies.map((e, i) => {
       const intent = e.intent === 'big' ? 'Charging: ' + (e.applies || 'heavy attack') : e.intent === 'defend' ? 'Guarding' : 'Attack';
       const selected = C.selection.includes(i), targetable = C.phase === 'target' && e.hp > 0;
-      return el('button', { class: 'enemy-card' + (e.hp <= 0 ? ' defeated' : '') + (selected ? ' selected' : '') + (e.hp < (prevHP[i] ?? e.hp) ? ' hurt' : ''), type: 'button', disabled: !targetable,
+      const art = DD.anim && !C.drill && DD.anim.enemyArt(e);   // sprite cards play their own Hit clip instead of the card flash
+      return el('button', { class: 'enemy-card' + (e.hp <= 0 ? ' defeated' : '') + (selected ? ' selected' : '') + (!art && e.hp < (prevHP[i] ?? e.hp) ? ' hurt' : ''), type: 'button', disabled: !targetable,
         'aria-label': e.name + ', HP ' + e.hp + ' of ' + e.maxHP + ', ' + intent,
         onclick: () => act('target', i) },
-        el('div', { class: 'glyph' }, e.glyph), el('b', null, e.name), e.sci ? el('small', { class: 'dim' }, e.sci) : null,
+        art || el('div', { class: 'glyph' }, e.glyph), el('b', null, e.name), e.sci ? el('small', { class: 'dim' }, e.sci) : null,
         el('small', null, e.boss ? 'Boss · Lv ' + e.lvl : e.type + ' · Lv ' + e.lvl), meter('HP', e.hp, e.maxHP),
         el('small', { class: e.intent === 'big' ? 'danger' : '' }, e.hp > 0 ? intent : 'Defeated'),
         el('small', null, combat.statusText(e.status)),
@@ -292,7 +293,7 @@ DD.ui = (function () {
       el('div', { class: 'battlefield' }, player, enemies),
       el('div', { class: 'clog', role: 'status', 'aria-live': 'polite' }, C.log.slice(-3).map(t => el('div', null, t))),
       el('div', { class: 'battle-bottom' }, commands, body)));
-    if (portrait) DD.anim.sync(C);
+    if (DD.anim && !C.drill) DD.anim.sync(C);
   };
   function act(name, value) {
     const C = DD.game.combat; if (!C) return;
