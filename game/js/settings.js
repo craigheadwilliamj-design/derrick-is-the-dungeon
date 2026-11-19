@@ -209,6 +209,7 @@ DD.S.rpg = {
   blockCut: .5, armorScale: 100, corrode: .5, weaken: .25,
   bleedPower: .3, poisonPower: .05, rageDamage: 1.5, rageCut: .3,
   companion: { hp: .5, power: .4, share: .25, heal: .5 },
-  enemy: { hp: 34, hpLevel: 6, attack: 10, attackLevel: 2, armor: 15, armorLevel: 3, bossHP: 4, bossAttack: 1.7 },
-  stunBossChance: .25
+  enemy: { hp: 28, hpLevel: 6, attack: 7, attackLevel: 1.5, armor: 15, armorLevel: 3, bossHP: 4, bossAttack: 1.7 },
+  stunBossChance: .25,
+  winRecover: { hp: .2, atp: 6 }   // after each won battle: share of max HP, flat ATP
 };

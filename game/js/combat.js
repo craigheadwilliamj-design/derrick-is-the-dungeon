@@ -116,6 +116,7 @@ DD.combat = (function () {
     if (!living(C).length) {
       C.over = 'win'; C.phase = 'end';
       say(C, 'The infection is defeated.');
+      if (!C.drill) { const hp0 = C.run.hp; gain(C, { heal: C.st.maxHP * S.winRecover.hp, atp: S.winRecover.atp }); say(C, 'You recover ' + (C.run.hp - hp0) + ' HP and catch your breath.'); }
       if (C.buffs.some(b => b.id === 'courage')) { C.run.hp = Math.max(1, C.run.hp - Math.round(C.st.maxHP * DD.S.items.courage.afterPct)); say(C, 'Liquid Courage wears off. You are dehydrated.'); }
       return true;
     }
