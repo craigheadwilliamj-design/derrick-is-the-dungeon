@@ -211,5 +211,7 @@ DD.S.rpg = {
   companion: { hp: .5, power: .4, share: .25, heal: .5 },
   enemy: { hp: 28, hpLevel: 6, attack: 7, attackLevel: 1.5, armor: 15, armorLevel: 3, bossHP: 4, bossAttack: 1.7 },
   stunBossChance: .25,
-  winRecover: { hp: .2, atp: 6 }   // after each won battle: share of max HP, flat ATP
+  winRecover: { hp: .2, atp: 6 },  // after each won battle: share of max HP, flat ATP
+  elementalArmor: .5,              // your Armor counts at this fraction against non-Physical enemy attacks
+  rest: { hp: .4, atp: .5 }        // one rest pocket per dungeon floor: share of max HP and ATP, single use
 };

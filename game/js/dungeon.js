@@ -148,6 +148,9 @@ DD.dungeon = (function () {
       const p = freeIn(rooms[DD.u.int(r, 0, rooms.length - 1)]);
       if (p) f.traps.push({ x: p.x, y: p.y, state: 0, name: tname });
     }
+    // Rest pocket, drawn last so earlier rolls stay the same: one single-use recovery spot per floor, never in the start room.
+    f.rests = [];
+    { const p = freeIn(rooms[DD.u.int(r, 1, rooms.length - 1)]); if (p) f.rests.push({ x: p.x, y: p.y, taken: false }); }
     return f;
   }
 
