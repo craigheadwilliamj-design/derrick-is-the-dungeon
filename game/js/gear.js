@@ -33,12 +33,23 @@ DD.gear = (function () {
     }
     if(DD.game.run)DD.game.persist();else if(DD.save.run)DD.save.saveRun(DD.save.run);
   }
+  // Gear found this expedition stays in escrow (run.earned.gear) but can be worn now. Worn finds are tracked in earned.worn
+  // so a death or Flee/Leave still takes them back; a found piece taken off returns to escrow, an owned one to the bag.
+  const escrow=()=>{const e=DD.game&&DD.game.run&&DD.game.earnings();if(e&&!e.worn)e.worn=[];return e;};
+  out.found=()=>{const e=escrow();return e?e.gear:[];};
+  const take=(list,id)=>{const i=list.indexOf(id);if(i<0)return false;list.splice(i,1);return true;};
+  const stow=id=>{const e=escrow();if(e&&take(e.worn,id))e.gear.push(id);else p().gearBag.push(id);};
   out.equip=function(id,slot){
     if(out.locked())return false;
-    const i=p().gearBag.indexOf(id),plan=out.plan(p(),id,slot);if(i<0||!plan)return false;
-    p().gearBag.splice(i,1);p().gearBag.push(...plan.removed);p().equipment=plan.eq;clamp();DD.save.save();return true;
+    const e=escrow(),plan=out.plan(p(),id,slot);if(!plan)return false;
+    if(p().gearBag.includes(id))take(p().gearBag,id);else if(e&&take(e.gear,id))e.worn.push(id);else return false;
+    plan.removed.forEach(stow);p().equipment=plan.eq;clamp();DD.save.save();return true;
   };
-  out.unequip=function(slot){if(out.locked()||!p().equipment[slot])return false;p().gearBag.push(p().equipment[slot]);delete p().equipment[slot];clamp();DD.save.save();return true;};
+  out.unequip=function(slot){if(out.locked()||!p().equipment[slot])return false;stow(p().equipment[slot]);delete p().equipment[slot];clamp();DD.save.save();return true;};
+  // Forfeit: strip worn finds from their slots (the Flee/Leave keep-gear perk banks them instead).
+  out.forfeitWorn=function(e,keep){
+    for(const id of (e&&e.worn)||[]){if(keep)continue;const s=DD.data.gearSlots.find(x=>p().equipment[x]===id);if(s)delete p().equipment[s];}
+  };
   out.preview=changes=>DD.stats.compute(Object.assign({},p(),{equipment:Object.assign({},p().equipment,changes)}));
   out.restoreInstances=function(profile){
     const src=profile.gearInstances||{},clean={};
@@ -109,7 +120,7 @@ DD.gear = (function () {
       (it.source!=='deep'||boss||floor>=1||DD.derrick.chestMinTier()>0));
     return DD.u.weightedPick(r,pool,it=>(it.region===region?3:1)*(it.rarity==='veryrare'?(boss?2:.4):2)).id;
   };
-  out.openChest=function(c){if(c.taken)return;c.taken=true;DD.game.reward('gear',c.item);DD.game.say('Found '+by(c.item).name+'. Return safely to keep it.');DD.game.persist();};
+  out.openChest=function(c){if(c.taken)return;c.taken=true;DD.game.reward('gear',c.item);DD.game.say('Found '+by(c.item).name+'. You can wear it now; return safely to keep it.');DD.game.persist();};
   out.shopStock=function(seed,regions){const rng=DD.rng(seed^0x6ea7);return DD.u.shuffle(rng,active().filter(it=>it.source==='basic')).slice(0,9).map(it=>it.id);};
   out.specialtyStock=function(regions){return active().filter(it=>it.source==='specialty'&&(!it.region||regions.includes(it.region))).map(it=>it.id);};
   out.rareStock=function(r){const it=DD.u.pick(r,active().filter(it=>['field','specialty'].includes(it.source)&&it.rarity==='rare'));return {id:it.id,price:Math.round(out.price(it)*DD.S.merchant.priceMult),sold:false};};
@@ -136,7 +147,8 @@ DD.gear = (function () {
   let filter='all',back=null;
   out.screen=function(fn){
     if(fn)back=fn;const ui=DD.ui,profile=p();ui.mode='gear';const rerender=()=>out.screen();
-    const locked=out.locked(),counts={};profile.gearBag.forEach(id=>{if(by(id))counts[id]=(counts[id]||0)+1;});
+    const locked=out.locked(),counts={},found={};profile.gearBag.forEach(id=>{if(by(id))counts[id]=(counts[id]||0)+1;});
+    out.found().forEach(id=>{if(by(id)){counts[id]=counts[id]||0;found[id]=(found[id]||0)+1;}});
     const cards=Object.keys(counts).map(by).filter(it=>filter==='all'?!it.legacy:(filter==='legacy'?it.legacy:it.slot===filter&&!it.legacy)).sort((a,b)=>a.name.localeCompare(b.name));
 
     const slotCards=DD.data.gearSlots.map(slot=>{
@@ -148,7 +160,8 @@ DD.gear = (function () {
     const bagCards=cards.map(it=>{
       const choices=out.slotsFor(it).map(slot=>el('div',null,out.diff(it.id,slot),
         el('button',{class:'btn',disabled:locked,onclick:()=>{out.equip(it.id,slot);rerender();}},'Equip: '+names[slot])));
-      return el('div',{class:'gearcard'},out.info(it,el('small',null,'In bag ×'+counts[it.id])),...choices);
+      const tag=[counts[it.id]?'In bag ×'+counts[it.id]:'',found[it.id]?'Found this expedition ×'+found[it.id]+' (lost if you die or flee)':''].filter(Boolean).join(' · ');
+      return el('div',{class:'gearcard'},out.info(it,el('small',null,tag)),...choices);
     });
     const filters=[['all','All'],['weapon','Weapons'],['shield','Shields'],['armor','Armor'],['head','Head'],['acc','Accessories'],['legacy','Legacy vault']]
       .map(([v,label])=>el('button',{class:'btn small',onclick:()=>{filter=v;rerender();}},label));

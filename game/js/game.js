@@ -42,6 +42,7 @@ DD.game = (function () {
       const perks=DD.gear.perks(prof());
       if(reason==='death')G.gainXp(Math.floor(e.xp*(perks.deathXP||0)),true);
       else{prof().glucose+=Math.floor(e.glucose*(perks.fleeGlucose||0));if(perks.keepGear)prof().gearBag.push(...e.gear);}
+      DD.gear.forfeitWorn(e,reason!=='death'&&perks.keepGear);
     }
     if (keep && e) {
       prof().glucose += e.glucose;
@@ -238,7 +239,7 @@ DD.game = (function () {
       G.say(e.name + ' defeated. ' + gain + ' XP and ' + glucose + ' glucose held until return.');
       if (e.boss) {
         const L = DD.npc.legendary(e.defId);
-        if (L) { run.legend = L.name; G.say('Found ' + L.name + '. Return safely to keep it.'); }
+        if (L) { run.legend = L.name; G.say('Found ' + L.name + '. You can wear it now; return safely to keep it.'); }
         const DF = S.items.defib; if (Math.random() < DF.bossChance && DD.combat.count('defib') < DF.cap) { G.reward('item', 'defib'); G.say('Found a Defibrillator.'); }
         run.bossWon = true; run.floor.bossDead = true;
         run.floor.g[run.floor.exit.y][run.floor.exit.x] = '>';
