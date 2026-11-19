@@ -1,0 +1,286 @@
+{
+ "v": 1,
+ "id": "enemy-mumps",
+ "name": "Enemy Mumps Ogre",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.05,
+  "gear": false,
+  "rim": 0.85
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.015,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 0.7
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.5
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [
+  {
+   "kind": "spikes",
+   "count": 40,
+   "len": 0.22,
+   "width": 0.05,
+   "color": "#e8c8e0"
+  }
+ ],
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -1.05,
+   "y": 2.05,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -1.002,
+   "y": 2.193,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.954,
+   "y": 2.32,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.906,
+   "y": 2.42,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.858,
+   "y": 2.483,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.81,
+   "y": 2.503,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.762,
+   "y": 2.481,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.714,
+   "y": 2.423,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.666,
+   "y": 2.338,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.618,
+   "y": 2.239,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.57,
+   "y": 2.141,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.522,
+   "y": 2.059,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.474,
+   "y": 2.002,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.426,
+   "y": 1.98,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.378,
+   "y": 1.996,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.33,
+   "y": 2.046,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.282,
+   "y": 2.125,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.234,
+   "y": 2.221,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.186,
+   "y": 2.32,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.138,
+   "y": 2.409,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.09,
+   "y": 2.473,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.042,
+   "y": 2.502,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.006,
+   "y": 2.49,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.054,
+   "y": 2.434,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.102,
+   "y": 2.341,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.15,
+   "y": 2.217,
+   "r": 0.06
+  }
+ ],
+ "colors": {
+  "body": "#c07aa8",
+  "nucleus": "#4a1a40",
+  "granule": "#5a2450",
+  "ribosome": "#3a5a6a"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.25,
+   "y": 2.05,
+   "r": 2
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.55,
+   "y": 2.35,
+   "r": 1.391
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.4,
+   "y": 1.55,
+   "r": 1.304
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.7,
+   "y": 1.55,
+   "r": 1.044
+  }
+ ],
+ "nucleus": {
+  "x": -0.45,
+  "y": 2.1,
+  "w": 0.04,
+  "h": 0.04,
+  "rot": 0,
+  "dent": 0,
+  "shape": "round"
+ },
+ "template": "tpl-enveloped-virus",
+ "boss": true,
+ "legendary": {
+  "id": "parotid-mantle",
+  "x": 0.55,
+  "y": 2,
+  "r": 0.38
+ }
+}

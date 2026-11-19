@@ -1,0 +1,371 @@
+{
+ "v": 1,
+ "id": "tpl-naked-icosahedral",
+ "name": "Tpl Naked icosahedral virus",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.02,
+  "gear": false,
+  "rim": 0.7
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.01,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 0.9
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.3
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [],
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.45,
+   "y": 1.221,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.15,
+   "y": 1.221,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.15,
+   "y": 1.221,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.45,
+   "y": 1.221,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.6,
+   "y": 1.48,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.3,
+   "y": 1.48,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0,
+   "y": 1.48,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.3,
+   "y": 1.48,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.6,
+   "y": 1.48,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.75,
+   "y": 1.74,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.45,
+   "y": 1.74,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.15,
+   "y": 1.74,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.15,
+   "y": 1.74,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.45,
+   "y": 1.74,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.75,
+   "y": 1.74,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.9,
+   "y": 2,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.6,
+   "y": 2,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.3,
+   "y": 2,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0,
+   "y": 2,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.3,
+   "y": 2,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.6,
+   "y": 2,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.9,
+   "y": 2,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.75,
+   "y": 2.26,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.45,
+   "y": 2.26,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.15,
+   "y": 2.26,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.15,
+   "y": 2.26,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.45,
+   "y": 2.26,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.75,
+   "y": 2.26,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.6,
+   "y": 2.52,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.3,
+   "y": 2.52,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0,
+   "y": 2.52,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.3,
+   "y": 2.52,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.6,
+   "y": 2.52,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.45,
+   "y": 2.779,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.15,
+   "y": 2.779,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.15,
+   "y": 2.779,
+   "r": 0.06
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.45,
+   "y": 2.779,
+   "r": 0.06
+  }
+ ],
+ "colors": {
+  "body": "#88a8c8",
+  "nucleus": "#5a7898",
+  "granule": "#b8cce0",
+  "ribosome": "#b8cce0"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0,
+   "y": 2,
+   "r": 2.05
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.953,
+   "y": 2.55,
+   "r": 0.42
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0,
+   "y": 3.1,
+   "r": 0.42
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.953,
+   "y": 2.55,
+   "r": 0.42
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.953,
+   "y": 1.45,
+   "r": 0.42
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0,
+   "y": 0.9,
+   "r": 0.42
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.953,
+   "y": 1.45,
+   "r": 0.42
+  }
+ ],
+ "nucleus": {
+  "x": 0,
+  "y": 2,
+  "w": 0.9,
+  "h": 0.9,
+  "rot": 0,
+  "dent": 0,
+  "shape": "round"
+ }
+}

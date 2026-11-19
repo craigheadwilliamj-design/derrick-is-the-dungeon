@@ -90,6 +90,75 @@ let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
     nucleus: {x: 0, y: 2.0, w: 1.15, h: 1.15, rot: 0, dent: 0, shape: 'round'},
     anim: {frames: 32, fps: 16, breath: 0.015, arm: 0, pod: 0, pivotY: 0.7}})); }
 
+
+// --- Templates used only by bosses ---
+// 7. Elementary body: tiny dense sphere packed with DNA (Chlamydia's infectious form)
+{ T.push(base('tpl-elementary-body', 'Tpl Elementary body', {
+    colors: {body: '#b06a96', nucleus: '#3a0f28', granule: '#4a1a36', ribosome: '#4a1a36'},
+    blobs: [B(0, 2.0, rv(0.78), {sx: 1.04, sy: 0.97})], cell: {wobble: 0.04, gear: false, rim: 0.8},
+    nucleus: {x: 0.02, y: 2.0, w: 1.0, h: 0.92, rot: 15, dent: 0.15, shape: 'bean'},
+    anim: {frames: 32, fps: 16, breath: 0.012, arm: 0, pod: 0, pivotY: 1.3}})); }
+
+// 8. Spirochete: thin, tight corkscrew (blobs spaced evenly along a sine by arc length)
+{ const pts = [], A = 0.26, L = 0.7, step = 0.205; let acc = step, px = -1.75, py = 2;
+  pts.push([px, py]);
+  for (let x = -1.75; x <= 1.55; x += 0.005) { const y = 2 + A * Math.sin(2 * Math.PI * x / L); acc += Math.hypot(x - px, y - py); px = x; py = y;
+    if (acc >= step * 2) { pts.push([x, y]); acc = step; } }
+  const blobs = pts.slice(0, 32).map(([x, y]) => B(x, y, 0.29));
+  const m = pts[Math.floor(pts.length / 2)];
+  T.push(base('tpl-spirochete', 'Tpl Spirochete', {
+    colors: {body: '#c8b4d8', nucleus: '#8a70a0', granule: '#8a70a0', ribosome: '#8a70a0'},
+    blobs, cell: {wobble: 0.05, gear: false, rim: 0.6},
+    nucleus: {x: m[0], y: m[1], w: 0.14, h: 0.09, rot: 0, dent: 0, shape: 'round'},
+    anim: {frames: 32, fps: 16, breath: 0.01, arm: 0, pod: 0, pivotY: 2.0}})); }
+
+// 9. Naked icosahedral virus: faceted capsid (hexagonal outline, capsomere lattice), no envelope or spikes
+{ const blobs = [B(0, 2.0, 2.05)];
+  for (let k = 0; k < 6; k++) { const a = (30 + 60 * k) * Math.PI / 180; blobs.push(B(1.1 * Math.cos(a), 2 + 1.1 * Math.sin(a), 0.42)); }
+  const gr = [], d = 0.3;
+  for (let j = -4; j <= 4; j++) for (let i = -4; i <= 4; i++) { const x = (i + (j % 2 ? 0.5 : 0)) * d, y = j * d * 0.866;
+    if (Math.hypot(x, y) < 0.95) gr.push(G(x, 2 + y, 0.06)); }
+  T.push(base('tpl-naked-icosahedral', 'Tpl Naked icosahedral virus', {
+    colors: {body: '#88a8c8', nucleus: '#5a7898', granule: '#b8cce0', ribosome: '#b8cce0'},
+    blobs, granules: gr, cell: {wobble: 0.02, gear: false, rim: 0.7},
+    nucleus: {x: 0, y: 2.0, w: 0.9, h: 0.9, rot: 0, dent: 0, shape: 'round'},
+    anim: {frames: 32, fps: 16, breath: 0.01, arm: 0, pod: 0, pivotY: 0.9}})); }
+
+// 10. Protozoa (trypomastigote, Trypanosoma): slender arched body, undulating membrane along the convex side,
+//     free flagellum from the anterior end, central nucleus, kinetoplast near the posterior end
+{ const blobs = [], N = 17;
+  for (let i = 0; i < N; i++) { const u = i / (N - 1), a = (168 - 150 * u) * Math.PI / 180;
+    const vis = 0.13 + 0.28 * Math.sin(Math.PI * Math.min(1, u * 1.08)) ** 0.9;
+    blobs.push(B(1.3 * Math.cos(a), 1.45 + 1.15 * Math.sin(a), rv(vis))); }
+  T.push(base('tpl-protozoa', 'Tpl Protozoa', {
+    colors: {body: '#b8a0d8', nucleus: '#4a2a78', granule: '#4a2a78', ribosome: '#6a4a98'},
+    blobs, cell: {wobble: 0.06, gear: false, rim: 0.6},
+    appendages: [{kind: 'fimbriae', count: 70, len: 0.12, width: 0.06, color: '#e0d4f0', from: 30, to: 150},
+                 {kind: 'flagellum', count: 1, len: 0.9, width: 0.05, color: '#e0d4f0', from: 4, to: 4}],
+    granules: [G(-1.12, 1.82, 0.09)],
+    nucleus: {x: 0.05, y: 2.55, w: 0.5, h: 0.34, rot: 0, dent: 0, shape: 'round'},
+    anim: {frames: 32, fps: 16, breath: 0.02, arm: 0, pod: 0, pivotY: 1.2}})); }
+
+// 11. Worm (Taenia): scolex with suckers and a crown of hooks on the right, thin neck, then proglottids growing toward the left
+{ const blobs = [], sc = [1.45, 2.25];
+  blobs.push(B(sc[0], sc[1], rv(0.32)), B(1.2, 2.23, rv(0.19)), B(1.0, 2.21, rv(0.2)), B(0.8, 2.19, rv(0.2)));
+  let x = 0.46, vis = 0.21, i = 0;
+  while (x > -1.95 && blobs.length < 32) {
+    const sx = 0.85, y = 2.15 - 0.22 * Math.sin(i * 0.55), h = 0.62 * vis;   // two stacked blobs make a boxier segment
+    blobs.push(B(x, y + h, rv(vis * 0.78), {sx: sx * 1.35}), B(x, y - h, rv(vis * 0.78), {sx: sx * 1.35}));
+    blobs.push(B(x, y, rv(vis * 0.7), {sx: sx * 1.6}));                  // axial filler keeps the joints together under Act's stretch
+    const nv = Math.min(0.34, vis * 1.17); x -= (vis + nv) * sx * 1.1; vis = nv; i++;
+  }
+  let W = 0, cx = 0, cy = 0; for (const b of blobs) { const w = b.r * b.r * b.sx * b.sy; W += w; cx += b.x * w; cy += b.y * w; } cx /= W; cy /= W;
+  const ang = Math.atan2(sc[1] - cy, sc[0] - cx) * 180 / Math.PI, half = Math.atan(0.28 / Math.hypot(sc[0] - cx, sc[1] - cy)) * 180 / Math.PI;
+  T.push(base('tpl-worm', 'Tpl Worm', {
+    colors: {body: '#e0d0a8', nucleus: '#b8a478', granule: '#6a5030', ribosome: '#8a7048'},
+    blobs, cell: {wobble: 0.05, gear: false, rim: 0.6},
+    appendages: [{kind: 'spikes', count: 9, len: 0.11, width: 0.035, color: '#f0e0a0', from: Math.round(ang - half), to: Math.round(ang + half)}],
+    granules: [G(sc[0] + 0.05, sc[1] + 0.13, 0.07), G(sc[0] + 0.05, sc[1] - 0.12, 0.07)],
+    nucleus: {x: sc[0] - 0.12, y: sc[1], w: 0.08, h: 0.08, rot: 0, dent: 0, shape: 'round'},
+    anim: {frames: 32, fps: 16, breath: 0.015, arm: 0, pod: 0, pivotY: 1.6}})); }
+
 // Leave room for Act's forward lean (+x) and Hit's knock-back (−x): squeeze x so the body stays inside [−2.0, 1.75].
 for (const t of T) {
   const ext = b => 0.66 * b.r * b.sx;

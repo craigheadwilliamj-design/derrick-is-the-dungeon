@@ -1,0 +1,226 @@
+{
+ "v": 1,
+ "id": "enemy-cruzi",
+ "name": "Enemy Chagas Heartrender",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.06,
+  "gear": false,
+  "rim": 0.85
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.02,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 1.2
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.46
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [
+  {
+   "kind": "fimbriae",
+   "count": 70,
+   "len": 0.12,
+   "width": 0.06,
+   "color": "#f0c8d0",
+   "from": 30,
+   "to": 150
+  },
+  {
+   "kind": "flagellum",
+   "count": 1,
+   "len": 0.9,
+   "width": 0.05,
+   "color": "#f0c8d0",
+   "from": 4,
+   "to": 4
+  }
+ ],
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -1.12,
+   "y": 1.82,
+   "r": 0.09
+  }
+ ],
+ "colors": {
+  "body": "#a83a52",
+  "nucleus": "#3a0a1a",
+  "granule": "#3a0a1a",
+  "ribosome": "#5a1a2a"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -1.272,
+   "y": 1.689,
+   "r": 0.226
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -1.211,
+   "y": 1.869,
+   "r": 0.346
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -1.117,
+   "y": 2.038,
+   "r": 0.445
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.994,
+   "y": 2.191,
+   "r": 0.531
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.844,
+   "y": 2.324,
+   "r": 0.602
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.672,
+   "y": 2.434,
+   "r": 0.657
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.482,
+   "y": 2.518,
+   "r": 0.694
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.279,
+   "y": 2.573,
+   "r": 0.711
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.068,
+   "y": 2.598,
+   "r": 0.71
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.144,
+   "y": 2.593,
+   "r": 0.688
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.353,
+   "y": 2.557,
+   "r": 0.648
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.552,
+   "y": 2.491,
+   "r": 0.59
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.736,
+   "y": 2.398,
+   "r": 0.516
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.901,
+   "y": 2.279,
+   "r": 0.428
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 1.042,
+   "y": 2.138,
+   "r": 0.326
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 1.154,
+   "y": 1.979,
+   "r": 0.226
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 1.236,
+   "y": 1.805,
+   "r": 0.226
+  }
+ ],
+ "nucleus": {
+  "x": 0.05,
+  "y": 2.55,
+  "w": 0.5,
+  "h": 0.34,
+  "rot": 0,
+  "dent": 0,
+  "shape": "round"
+ },
+ "template": "tpl-protozoa",
+ "boss": true,
+ "legendary": {
+  "id": "triatomine-stinger",
+  "x": 0.75,
+  "y": 2.05,
+  "r": 0.28
+ }
+}
