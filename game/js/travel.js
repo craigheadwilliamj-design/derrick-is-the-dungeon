@@ -230,6 +230,7 @@ DD.travel = (function () {
     const f = run.floor, snap = s.segment;
     if (f && snap && snap.grid && snap.grid.length === f.H && snap.grid.every(row => row.length === f.W)) {
       f.g = snap.grid.map(row => row.split('')); run.px = snap.px; run.py = snap.py;
+      f.g.forEach(row => row.forEach((c, x) => { if (c === '|' && x > run.px) row[x] = '»'; })); // a valve ahead of you is never shut (unsticks old saves)
       f.explored.set(snap.explored || []);
       f.pickups.forEach((p, i) => { p.taken = !!(snap.taken || [])[i]; });
       f.traps.forEach((t, i) => { t.state = (snap.traps || [])[i] || 0; });

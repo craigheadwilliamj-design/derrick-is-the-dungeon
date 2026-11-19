@@ -9,7 +9,7 @@ DD.walkWorld=(function(){
   };
   F.floor=function(n,run,idx){
     const t=run.trip, cached=(t.areas||{})[n.id];
-    if(cached){const f=JSON.parse(JSON.stringify(cached));f.explored=new Uint8Array(f.explored);f.vis=new Uint8Array(f.W*f.H);return f;}
+    if(cached){const f=JSON.parse(JSON.stringify(cached));f.g=f.g.map(row=>row.map(c=>c==='|'?'»':c));/* valves closed on an earlier pass open again */f.explored=new Uint8Array(f.explored);f.vis=new Uint8Array(f.W*f.H);return f;}
     const place=n.kind==='place',seedIdx=Object.keys(C.nodes).indexOf(n.id);
     let f;
     if(place){
