@@ -1,0 +1,231 @@
+{
+ "v": 1,
+ "id": "enemy-tissue-invader",
+ "name": "Enemy Germling",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.09,
+  "gear": false,
+  "rim": 0.6
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.02,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 1.438
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.25
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [],
+ "granules": [
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.844,
+   "y": 2.251,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.355,
+   "y": 1.827,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.387,
+   "y": 2.02,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.288,
+   "y": 2.15,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.431,
+   "y": 2.026,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.534,
+   "y": 1.846,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.334,
+   "y": 1.734,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.712,
+   "y": 2.183,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.636,
+   "y": 2.008,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.714,
+   "y": 2.112,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.695,
+   "y": 2.244,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.569,
+   "y": 1.899,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.587,
+   "y": 1.879,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.738,
+   "y": 2.034,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.387,
+   "y": 2.226,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.745,
+   "y": 1.865,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": -0.133,
+   "y": 1.817,
+   "r": 0.025
+  },
+  {
+   "kind": "ribosome",
+   "shape": "round",
+   "x": 0.69,
+   "y": 1.734,
+   "r": 0.025
+  }
+ ],
+ "colors": {
+  "body": "#8aa86a",
+  "nucleus": "#2e3e1e",
+  "granule": "#3a4a26",
+  "ribosome": "#3a4a26"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.707,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.425,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": -0.141,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.141,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.425,
+   "y": 2,
+   "r": 0.738
+  },
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0.707,
+   "y": 2,
+   "r": 0.738
+  }
+ ],
+ "nucleus": {
+  "x": 0,
+  "y": 2,
+  "w": 0.762,
+  "h": 0.267,
+  "rot": 4,
+  "dent": 0.25,
+  "shape": "trilobed"
+ },
+ "template": "tpl-rod"
+}
