@@ -218,7 +218,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere}
 /* Animated portrait (classes with art); see docs/design.html, Character art & animation. */
 .battle-player:has(.portrait){max-width:320px}.portrait{position:relative;width:100%;align-self:center}
 .sprite{position:relative}.sprite canvas{display:block;width:100%;height:auto}.sprite.ally{position:absolute;right:-12%;bottom:-4%;width:46%}
-.sprite.foe{width:100%;max-width:150px;align-self:center;margin:-10px 0}
+.sprite.foe{width:100%;max-width:150px;align-self:center;margin:-10px 0}.sprite.foe.boss{max-width:210px}
 .sprite .num{position:absolute;left:50%;top:28%;transform:translateX(-50%);font:700 22px 'JetBrains Mono',monospace;-webkit-text-stroke:6px #1a1020;paint-order:stroke fill;pointer-events:none;white-space:nowrap;animation:numup 1s ease-out forwards}
 @keyframes numup{to{transform:translate(-50%,-36px);opacity:0}}
 @media (prefers-reduced-motion:reduce){.sprite .num{animation:none}}

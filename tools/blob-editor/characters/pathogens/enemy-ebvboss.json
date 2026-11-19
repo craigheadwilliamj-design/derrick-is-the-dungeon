@@ -1,0 +1,164 @@
+{
+ "v": 1,
+ "id": "enemy-ebvboss",
+ "name": "Enemy Mono Colossus",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.05,
+  "gear": false,
+  "rim": 0.85
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.015,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 0.544
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.44
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [
+  {
+   "kind": "spikes",
+   "count": 20,
+   "len": 0.42,
+   "width": 0.067,
+   "color": "#a8d890"
+  }
+ ],
+ "granules": [
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.599,
+   "y": 2.16,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.438,
+   "y": 2.438,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.16,
+   "y": 2.599,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.16,
+   "y": 2.599,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.438,
+   "y": 2.438,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.599,
+   "y": 2.16,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.599,
+   "y": 1.84,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.438,
+   "y": 1.562,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": -0.16,
+   "y": 1.401,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.16,
+   "y": 1.401,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.438,
+   "y": 1.562,
+   "r": 0.07
+  },
+  {
+   "kind": "granule",
+   "shape": "round",
+   "x": 0.599,
+   "y": 1.84,
+   "r": 0.07
+  }
+ ],
+ "colors": {
+  "body": "#3e7e7e",
+  "nucleus": "#0e2a30",
+  "granule": "#1e4a50",
+  "ribosome": "#3a5a6a"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1,
+   "sy": 1,
+   "x": 0,
+   "y": 2,
+   "r": 2.532
+  }
+ ],
+ "nucleus": {
+  "x": 0,
+  "y": 2,
+  "w": 0.9,
+  "h": 0.9,
+  "rot": 0,
+  "dent": 0,
+  "shape": "round"
+ },
+ "template": "tpl-enveloped-virus",
+ "boss": true,
+ "legendary": {
+  "id": "latent-genome",
+  "x": 0,
+  "y": 2,
+  "r": 0.38
+ }
+}

@@ -8,11 +8,12 @@ DD.anim = (function () {
   const CONTACT = 7, WINDUP = 3;            // 0-based: contact is frame 8, the last windup frame is 4
   const HIT_DELAY = 350;                     // ms from the start of an Act to its contact frame (7 frames at 20 fps)
   const CLASS_ART = { neutrophil: 'neutrophil', eosinophil: 'eosinophil', bcell: 'b-cell', macrophage: 'macrophage', tcell: 'cytotoxic-t' };
-  const ENEMY_ART = ['staph', 'strep', 'pneumo', 'typhi', 'tissue-invader', 'candida', 'cmv', 'ebv', 'hbv', 'influenza'];
+  const ENEMY_ART = ['staph', 'strep', 'pneumo', 'typhi', 'tissue-invader', 'candida', 'cmv', 'ebv', 'hbv', 'influenza',
+    'staphbone', 'mrsa', 'meningococcus', 'upec', 'tb', 'pallidum', 'trachoma', 'rhinovirus', 'ebvboss', 'mumps', 'cruzi', 'plasmodium', 'taenia', 'trichinella'];
   const COLOR = { dmg: '#ff7a5c', gold: '#f2c14e', heal: '#7fd36b', lav: '#b3a8f5', acid: '#c8e04a', teal: '#7fe0e8', hurt: '#f3e9da' };
   const DUR = { hit: 0.85 };                 // seconds each queued event holds the queue; everything else is one Act (0.8 s)
   const reduce = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
-  const ok = () => typeof document !== 'undefined' && !!document.createElement('canvas').getContext;
+  const ok = () => typeof window !== 'undefined' && typeof window.HTMLCanvasElement === 'function' && typeof requestAnimationFrame === 'function';
 
   // ---------- sheets ----------
   const sheets = {};
@@ -132,11 +133,11 @@ DD.anim = (function () {
       if (!CLASS_ART[classId] || !ok()) return null;
       try { if (portraitClass !== classId) buildPortrait(classId); return portrait; } catch (err) { portrait = null; portraitClass = null; return null; }
     },
-    // Sprite for an enemy card, or null when that pathogen has no art yet (bosses keep their glyph).
+    // Sprite for an enemy card, or null when that pathogen has no art yet (the glyph stays). Bosses draw larger.
     enemyArt(e) {
-      if (!e || !ENEMY_ART.includes(e.defId) || e.boss || !ok()) return null;
+      if (!e || !ENEMY_ART.includes(e.defId) || !ok()) return null;
       let s = enemySprites.get(e);
-      if (!s) { s = sprite('enemy-' + e.defId, 'foe', true); enemySprites.set(e, s); lastHP.set(e, e.hp); }
+      if (!s) { try { s = sprite('enemy-' + e.defId, e.boss ? 'foe boss' : 'foe', true); } catch (err) { return null; } enemySprites.set(e, s); lastHP.set(e, e.hp); }
       return s.wrap;
     },
     // Called after every combat render: companion visibility, enemy intents and hits, then idle.

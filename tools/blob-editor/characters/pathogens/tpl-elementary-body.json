@@ -1,0 +1,63 @@
+{
+ "v": 1,
+ "id": "tpl-elementary-body",
+ "name": "Tpl Elementary body",
+ "look": "cell",
+ "cell": {
+  "wobble": 0.04,
+  "gear": false,
+  "rim": 0.8
+ },
+ "face": {
+  "x": 0,
+  "y": 2,
+  "s": 1,
+  "mood": "angry",
+  "show": false
+ },
+ "anim": {
+  "frames": 32,
+  "fps": 16,
+  "breath": 0.012,
+  "arm": 0,
+  "pod": 0,
+  "pivotY": 1.3
+ },
+ "act": {
+  "frames": 16,
+  "fps": 20,
+  "strength": 0.3
+ },
+ "view": {
+  "cx": 0,
+  "cy": 1.95,
+  "size": 4.9
+ },
+ "appendages": [],
+ "granules": [],
+ "colors": {
+  "body": "#b06a96",
+  "nucleus": "#3a0f28",
+  "granule": "#4a1a36",
+  "ribosome": "#4a1a36"
+ },
+ "blobs": [
+  {
+   "group": "body",
+   "sx": 1.04,
+   "sy": 0.97,
+   "x": 0,
+   "y": 2,
+   "r": 1.357
+  }
+ ],
+ "nucleus": {
+  "x": 0.02,
+  "y": 2,
+  "w": 1,
+  "h": 0.92,
+  "rot": 15,
+  "dent": 0.15,
+  "shape": "bean"
+ }
+}
