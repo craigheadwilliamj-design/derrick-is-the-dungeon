@@ -499,14 +499,49 @@
       { p: 'crossSections', per: .04, r: [4, 6], wall: 'rgba(255,220,230,.45)', ww: 1, lumen: 'rgba(150,30,44,.3)', rbc: 0, nuclei: 1, nucleus: fNuc, inset: .15, tag: 'capillary' }
     ] }, features: fFeatures(fArtery), motion: canalFlow
   };
+  const liningCells = { p: 'lining', at: 0, shape: 'squamous', size: [24, 4.5], fill: 'rgba(236,206,214,.42)', nucleus: fNuc, cover: .7, tag: 'liningCells' }; // endosteum: flat bone lining cells
+  const fVessel = { wall: 'rgba(255,214,222,.8)', ww: 1.6, lumen: 'rgba(120,22,36,.7)', rbc: 2, nucleus: fNuc, nr: [5, 1.6], every: [16, 24], tag: 'canalVessel' }; // thin-walled vessel cut across in the canal
+  const canals = { // the room is a central (Haversian) or perforating (Volkmann) canal: loose connective tissue around a vessel running along it
+    walls: [compact(0)],
+    edge: { stroke: 'rgba(252,240,234,.86)', w: 1.8 }, lining: [liningCells],
+    floor: { fill: 'rgba(196,140,150,.15)', grain: .12, ambient: [
+      { p: 'fibers', band: [-.44, -.3], n: 2, even: true, stroke: 'rgba(220,70,84,.32)', w: 1.6, amp: .8, per: [30, 50], dash: [200, 420, 1] }, // the vessel running along the canal
+      { p: 'strands', per: 1.2, len: [10, 20], stroke: 'rgba(250,226,230,.14)', w: 1 },
+      { p: 'nuclei', shape: 'flat', per: .4, size: [4.5, 6], fill: 'rgba(110,52,124,.42)' }
+    ] }, features: fFeatures(fVessel), motion: canalFlow
+  };
+  const trabecula = { // spongy bone: trabeculae of lamellar bone with osteocytes in lacunae, no osteons
+    band: [0, 1.6], fill: fBone, tag: 'trabecula',
+    painter: [
+      { p: 'fibers', n: 6, even: true, stroke: 'rgba(255,240,232,.36)', w: 1.3, amp: 1.4, per: [14, 26] },
+      { p: 'nuclei', shape: 'elongated', per: .8, size: [4, 5.5], fill: fNuc, lacuna: 'rgba(40,18,26,.55)', canaliculi: 'rgba(70,34,44,.45)', inset: .25, tag: 'osteocyte' }
+    ]
+  };
+  const pastTrab = { band: [1.6, null], fill: 'rgba(30,22,16,.94)', painter: [ // the next marrow space past the trabecula
+    { p: 'vacuoles', per: .9, r: [12, 17], stroke: 'rgba(246,234,200,.2)', fill: 'rgba(30,22,16,.2)', inset: .3 }] };
+  const medullary = { // the rooms open into the medullary cavity, which in an adult femoral shaft holds yellow marrow: mostly adipocytes
+    walls: [pastTrab, trabecula],
+    edge: { stroke: 'rgba(252,240,230,.88)', w: 2 },
+    lining: [{ p: 'lining', at: 0, shape: 'cuboidal', size: [11, 9], fill: 'rgba(206,150,196,.5)', nucleus: fNuc, cover: .45, hub: false, tag: 'osteoblast' }],
+    floor: { fill: 'rgba(214,190,120,.1)', grain: .1, ambient: [
+      { p: 'vacuoles', per: 1.1, r: [12, 17], stroke: 'rgba(246,234,200,.34)', fill: 'rgba(20,14,10,.08)', nucleus: 'rgba(110,52,124,.5)', inset: .1, tag: 'adipocyte' },
+      { p: 'nuclei', shape: 'round', per: .5, size: [2.4, 3.4], fill: 'rgba(150,70,150,.18)' },             // a few scattered blood-forming cells
+      { p: 'crossSections', per: .03, r: [9, 13], wall: 'rgba(255,214,222,.35)', ww: 1.2, lumen: 'rgba(110,22,34,.3)', rbc: 0, nuclei: 2, nucleus: fNuc, inset: .3, tag: 'sinusoid' }
+    ] }, features: fFeatures(fVessel),
+    hub: { fill: 'rgba(214,190,120,.06)', lining: { p: 'lining', at: -.02, shape: 'squamous', size: [24, 4.5], fill: 'rgba(236,206,214,.4)', nucleus: fNuc, cover: .8 }, rbc: 0, ports: false, tag: 'medullary' },
+    motion: canalFlow
+  };
   T.femur = {
     accent: '#e8e0cc',
-    depth: [periosteum],
+    depth: [periosteum, canals, medullary],
     labels: [
       { text: 'Periosteum: fibrous layer', at: 'fibrous' }, { text: 'Periosteum: osteogenic layer', at: 'osteogenic' }, { text: 'Fibroblast', at: 'fibroblast' },
       { text: 'Outer circumferential lamellae', at: 'circumferential' }, { text: 'Osteon', at: 'osteon' }, { text: 'Central (Haversian) canal', at: 'haversian' },
       { text: 'Osteocyte in lacuna, canaliculi', at: 'osteocyte' }, { text: 'Interstitial lamellae', at: 'interstitial' },
-      { text: 'Periosteal artery', at: 'periostealA' }, { text: 'Capillary', at: 'capillary' }
+      { text: 'Periosteal artery', at: 'periostealA' }, { text: 'Capillary', at: 'capillary' },
+      { text: 'Bone lining cells (endosteum)', at: 'liningCells' }, { text: 'Vessel in the canal', at: 'canalVessel' },
+      { text: 'Spongy bone trabecula', at: 'trabecula' }, { text: 'Osteoblasts', at: 'osteoblast' }, { text: 'Yellow marrow: adipocytes', at: 'adipocyte' },
+      { text: 'Sinusoid', at: 'sinusoid' }, { text: 'Medullary cavity', at: 'medullary' }
     ]
   };
 })();
