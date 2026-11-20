@@ -167,6 +167,15 @@ DD.anim = (function () {
       queue = []; busy = false; if (timer) clearTimeout(timer); timer = null;
       if (player) { play(player, 'idle'); ally.wrap.hidden = !(C && C.ally && C.ally.hp > 0); }
     },
-    reduced: () => reduce.matches
+    reduced: () => reduce.matches,
+    // Map sprites (V1): the idle sheets for a sheet id, and which id a class or an enemy uses (null: keep the glyph).
+    idleSheet(id, onload) {
+      if (!ok()) return null;
+      const sh = load(id).idle;
+      if (onload && !sh.hooked) { sh.hooked = true; sh.back.addEventListener('load', onload); sh.front.addEventListener('load', onload); }
+      return sh;
+    },
+    classArtId: classId => CLASS_ART[classId] || null,
+    enemyArtId: e => e && ENEMY_ART.includes(e.defId) ? 'enemy-' + e.defId : null
   };
 })();

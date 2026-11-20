@@ -158,6 +158,9 @@ DD.ui = (function () {
       if (ui.mode !== 'map' || DD.gear.locked()) return;
       ui.studyMenu(() => { DD.game.persist(); ui.stopMap(); }, ui.game);
     } }, 'Study');
+    g.labels = trip ? el('button', { class: 'btn small', type: 'button', 'aria-pressed': String(!!DD.save.profile.settings.mapLabels), title: 'Name the structures in view',
+      onclick: () => { const s = DD.save.profile.settings; s.mapLabels = !s.mapLabels; g.labels.setAttribute('aria-pressed', String(s.mapLabels)); g.labels.textContent = s.mapLabels ? 'Labels on' : 'Labels'; DD.save.save(); ui.refreshMap(true); } },
+      DD.save.profile.settings.mapLabels ? 'Labels on' : 'Labels') : null;
     g.abort = trip ? el('button', { class: 'btn small', onclick: ui.abortTrip, title: 'Give up this trip and wash back up where you set out' }, 'Abort') : null;
     g.bt = ui.bountyTracker(); g.bounties = g.bt.node;
     g.strip = trip ? el('div', { class: 'strip', 'aria-label': 'Route' }) : null;
@@ -182,7 +185,7 @@ DD.ui = (function () {
       ? [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gg', '$', 'glucose'), L('gg', '!', 'item'), L('gc', '%', 'clot'), L('gd', '=', 'plaque'), L('gv', '»', 'one-way valve'), L('gt', '^', 'trap'), L('gs', '>', 'walk into branch'), L('gs', 'O', 'enter organ/town')]
       : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gg', '&', 'chest'), L('gc', '~', 'rest'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
-      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.gear, g.study, g.leave, g.abort),
+      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.gear, g.study, g.labels, g.leave, g.abort),
       g.bounties, g.strip, g.mapbox, g.log,
       el('div', { class: 'controls' }, dpad, legend),
       g.combat));
@@ -216,6 +219,7 @@ DD.ui = (function () {
   ui.refreshMap = function (resizeOnly) {
     const run = DD.game.run; if (!run || !g.canvas) return;
     DD.render.draw(g.canvas, run);
+    if (g.labels) g.labels.hidden = !(DD.mapart && DD.mapart.kindOf(DD.travel.segs(run)[run.trip.idx]));
     if (resizeOnly) return;
     const r = DD.data.region(run.regionId), st = DD.game.stats(), p = DD.save.profile;
     if (run.trip) {
