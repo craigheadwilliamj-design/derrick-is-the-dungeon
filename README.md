@@ -23,7 +23,7 @@ Legacy Bard saves become Ranger. Existing equipment and saved subclass/milestone
 
 Combat shows animated cells (player, Basophil, regular enemies) from `game/assets/cells/`; see `tools/blob-editor/README.md` to re-render them.
 
-Checks: run `node tests/content-unlocks.cjs` and `node tests/combat-rework.cjs`. Map art for dungeon floors (V2): `node tests/mapart-floors.cjs` (headless Chromium via Playwright) checks that the baked tissue keeps every walkable tile looking walkable; tissue profiles live in `game/data/tissue.js` (Bone Marrow, Spleen, Heart, Lungs, Gut, Kidneys, Brain, Femur, Quadriceps, Skin so far); `SHOTSEED=<seed> PILLAR=1` frames a pillar in the screenshot.
+Checks: run `node tests/content-unlocks.cjs` and `node tests/combat-rework.cjs`. Map art for dungeon floors (V2): `node tests/mapart-floors.cjs` (headless Chromium via Playwright) checks that the baked tissue keeps every walkable tile looking walkable; tissue profiles live in `game/data/tissue.js` (Bone Marrow, Spleen, Heart, Lungs, Gut, Kidneys, Brain, Femur, Quadriceps, Skin, Gonads); `SHOTSEED=<seed> PILLAR=1` frames a pillar in the screenshot.
 
 ## Equipment rework
 

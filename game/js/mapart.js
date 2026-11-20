@@ -862,8 +862,14 @@ DD.mapart = (function () {
         P.push(s); c.tag(o.tag, X, Y);
       });
     },
-    strands(P, o, a, b, c) { // loose fibers and collagen
-      P.scatter(a, b, o.per, (X, Y) => { const an = P.R(0, 6.28), l = P.R(o.len[0], o.len[1]), bx = X + Math.cos(an) * l, by = Y + Math.sin(an) * l; P.push(`<path fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.2}" d="M${n1(X)},${n1(Y)} Q${n1((X + bx) / 2 + P.R(-l, l) * .3)},${n1((Y + by) / 2 + P.R(-l, l) * .3)} ${n1(bx)},${n1(by)}"/>`); c.tag(o.tag, X, Y); });
+    strands(P, o, a, b, c) { // loose fibers and collagen; optional head: a dark knob at one end (sperm: head and tail)
+      P.scatter(a, b, o.per, (X, Y) => {
+        const an = P.R(0, 6.28), l = P.R(o.len[0], o.len[1]), bx = X + Math.cos(an) * l, by = Y + Math.sin(an) * l, h = o.head;
+        if (h && !fits(c.fd, X, Y, a, b, (h.inset || 0) + l / U)) return;
+        let s = `<path fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.2}" d="M${n1(X)},${n1(Y)} Q${n1((X + bx) / 2 + P.R(-l, l) * .3)},${n1((Y + by) / 2 + P.R(-l, l) * .3)} ${n1(bx)},${n1(by)}"/>`;
+        if (h) s += `<ellipse cx="${n1(X - Math.cos(an) * h.rx)}" cy="${n1(Y - Math.sin(an) * h.rx)}" rx="${h.rx}" ry="${h.ry}" transform="rotate(${deg(an * 57.2958)} ${n1(X - Math.cos(an) * h.rx)} ${n1(Y - Math.sin(an) * h.rx)})" fill="${h.fill}"/>`;
+        P.push(s); c.tag(o.tag, X, Y);
+      });
     },
     fingers(P, o, a, b, c) { // finger-like folds rooted on the edge: out into the floor (villi) or in into the wall (crypts, glands)
       const out = o.dir !== 'in', e = o.epi, cover = o.cover == null ? 1 : o.cover;
@@ -1080,7 +1086,7 @@ DD.mapart = (function () {
     return art;
   }
 
-  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor. Drift: particles flow along the passages. Spark: action potentials run along axons. Contract: a muscle fiber shortens, striations bunching. Shed: squames lift off the skin surface.
+  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor. Drift: particles flow along the passages. Spark: action potentials run along axons. Contract: a muscle fiber shortens, striations bunching. Shed: squames lift off the skin surface. Wiggle: sperm tails beat in the lumen.
   function floorBase(ctx, art, V, now) {
     const still = !animated(), t = still ? 0 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0), M = art.M;
     art.last = t;
@@ -1114,6 +1120,7 @@ DD.mapart = (function () {
     if (mo && mo.type === 'spark') return spark(ctx, art, V, mo, dt, still);
     if (mo && mo.type === 'contract') return contract(ctx, art, V, mo, dt, still);
     if (mo && mo.type === 'shed') return shed(ctx, art, V, mo, dt, still);
+    if (mo && mo.type === 'wiggle') return wiggle(ctx, art, V, mo, dt, still);
     if (!mo || mo.type !== 'diapedesis' || !art.sinus.length) return;
     const inView = s => s.x > V.x0 - 1 && s.x < V.x0 + V.cols + 1 && s.y > V.y0 - 1 && s.y < V.y0 + V.rows + 1;
     const ports = art.sinus.filter(inView); if (!ports.length) return;
@@ -1205,6 +1212,24 @@ DD.mapart = (function () {
       const x = s.x + s.nx * lift - s.ny * side, y = s.y + s.ny * lift + s.nx * side, al = clamp(Math.min(q / .15, (1 - q) / .3), 0, 1) * mo.alpha;
       ctx.save(); ctx.globalAlpha = al; ctx.translate(x, y); ctx.rotate(Math.atan2(s.ny, s.nx) + Math.PI / 2 + p.sway * q * mo.tumble);
       ctx.beginPath(); ctx.ellipse(0, 0, p.w, mo.size[1], 0, 0, 6.283); ctx.fill(); ctx.stroke(); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // Wiggle: sperm drift slowly down the lumen, each tail beating in a travelling wave behind its head.
+  function wiggle(ctx, art, V, mo, dt, still) {
+    const G = art.G, life = mo.life, rnd = DD.rng(((art.seedN = (art.seedN || 7) + 1) * 2654435761) >>> 0);
+    const spawn = p => { for (let k = 0; k < 20; k++) { const x = V.x0 + rnd() * V.cols, y = V.y0 + rnd() * V.rows; if (x >= 0 && y >= 0 && x < G.W && y < G.H && G.lum[(y | 0) * G.W + (x | 0)]) { p.x = x; p.y = y; p.a = rnd() * 6.283; p.ph = rnd() * 6.283; p.age = still ? rnd() * life : 0; return true; } } return false; };
+    while (art.parts.length < mo.count) { const p = {}; if (!spawn(p)) return; p.age = rnd() * life; art.parts.push(p); }
+    tileT(ctx, V); ctx.lineCap = 'round'; ctx.lineWidth = mo.w;
+    const t = still ? 0 : art.last, n = 10;
+    for (const p of art.parts) {
+      p.age += dt;
+      if (p.age > life || !G.lum[(p.y | 0) * G.W + (p.x | 0)] || p.x < V.x0 - 1 || p.y < V.y0 - 1 || p.x > V.x0 + V.cols + 1 || p.y > V.y0 + V.rows + 1) { if (!spawn(p)) continue; }
+      p.a += (rnd() - .5) * mo.turn * dt; p.x += Math.cos(p.a) * mo.speed * dt; p.y += Math.sin(p.a) * mo.speed * dt;
+      const ca = Math.cos(p.a), sa = Math.sin(p.a), al = clamp(Math.min(p.age / .8, life - p.age), 0, 1) * mo.alpha;
+      ctx.globalAlpha = al; ctx.strokeStyle = mo.tail; ctx.beginPath();
+      for (let i = 0; i <= n; i++) { const u = i / n, d = u * mo.len, off = mo.amp * u * Math.sin(u * mo.waves * 6.283 - t * mo.beat * 6.283 + p.ph); ctx[i ? 'lineTo' : 'moveTo'](p.x - ca * d - sa * off, p.y - sa * d + ca * off); }
+      ctx.stroke(); ctx.fillStyle = mo.head; ctx.beginPath(); ctx.ellipse(p.x + ca * mo.hx, p.y + sa * mo.hx, mo.hx, mo.hy, p.a, 0, 6.283); ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
