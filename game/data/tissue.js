@@ -785,14 +785,61 @@
     edge: { stroke: 'rgba(255,236,244,.82)', w: 1.6 }, lining: [sertoli],
     floor: { fill: 'rgba(236,210,226,.1)', grain: .08, ambient: [goSperm(.9)] }, features: goFeatures(leydigPillar), motion: wiggle
   };
+  const goVessels = per => [
+    { p: 'crossSections', per, r: [9, 13], wall: 'rgba(248,170,190,.6)', ww: 3.5, lumen: 'rgba(90,16,28,.25)', rbc: 0, nuclei: 3, nucleus: goNuc, inset: .2, tag: 'arteriole' },
+    { p: 'crossSections', per, r: [12, 17], wall: 'rgba(255,214,224,.45)', ww: 1.4, lumen: 'rgba(90,16,28,.2)', rbc: 0, nuclei: 2, nucleus: goNuc, inset: .2, tag: 'venule' }
+  ];
+  const rete = { // floor 2: the rooms are channels of the rete testis, a network of anastomosing spaces in the dense connective tissue of the mediastinum testis
+    walls: [{ band: [0, null], fill: 'rgba(222,184,204,.86)', tag: 'mediastinum', painter: [
+      { p: 'fibers', band: [0, 5], n: 5, stroke: 'rgba(255,238,246,.28)', w: 2.2, amp: 4, per: [16, 30] },
+      { p: 'strands', per: 1.6, len: [14, 26], stroke: 'rgba(255,236,244,.24)', w: 2 },
+      { p: 'nuclei', shape: 'flat', per: .8, size: [4.5, 6], fill: goNuc, inset: .04 },
+      { p: 'crossSections', per: .1, pack: true, r: [10, 18], wall: 'rgba(244,196,216,.85)', ww: 3, lumen: 'rgba(36,14,28,.7)', nuclei: 8, nr: [2.4, 2], nucleus: goNuc, inset: .25, tag: 'reteX' } // other rete channels, cut across
+    ].concat(goVessels(.05)) }],
+    edge: { stroke: 'rgba(255,236,244,.82)', w: 1.6 },
+    lining: [{ p: 'lining', at: 0, shape: 'cuboidal', size: [10, 7], fill: 'rgba(240,196,216,.6)', nucleus: goNuc, cover: 1, tag: 'reteCells' }], // simple low cuboidal to squamous epithelium
+    floor: { fill: 'rgba(236,210,226,.1)', grain: .08, ambient: [goSperm(1.1)] },
+    features: goFeatures({ wall: 'rgba(240,196,216,.9)', ww: 3.5, lumen: 'rgba(222,184,204,.86)', rbc: 0, nucleus: goNuc, nr: [2.6, 2.2], every: [8, 12], tag: 'reteStrand' }), // a connective tissue strand between anastomosing channels, lined on all sides
+    motion: wiggle
+  };
+  const epiH = .62; // epithelium height in tiles
+  const epididymis = { // floor 3 (boss): the rooms are the duct of the epididymis, packed with sperm
+    walls: [
+      { band: [1.02, null], fill: 'rgba(40,14,26,.95)', tag: 'epiCT', painter: [ // loose connective tissue with the coiled duct cut across again and again
+        { p: 'strands', per: .8, len: [10, 20], stroke: 'rgba(236,180,200,.14)', w: .9 },
+        { p: 'crossSections', per: .3, pack: true, r: [20, 27], wall: 'rgba(238,186,210,.84)', ww: 11, lumen: 'rgba(236,210,226,.16)', brush: 'rgba(255,236,246,.6)', nuclei: 12, nr: [1.6, 3], nucleus: goNuc, inset: .05, tag: 'ductX' },
+        goCap(.25)
+      ] },
+      { band: [epiH + .05, 1.02], fill: 'rgba(214,132,156,.84)', tag: 'smooth', painter: [ // thin circular layer of smooth muscle
+        { p: 'fibers', band: [epiH + .05, 1.02], n: 3, even: true, stroke: 'rgba(255,220,232,.34)', w: 1.2, amp: .8, per: [20, 34] },
+        { p: 'nuclei', shape: 'elongated', per: 2.4, size: [4, 5], fill: goNuc, inset: .01 }
+      ] },
+      { band: [epiH, epiH + .05], fill: 'rgba(250,226,236,.8)' },  // basement membrane
+      { band: [0, epiH], fill: 'rgba(236,190,212,.82)', tag: 'pseudo', painter: [ // pseudostratified columnar: basal cells, round nuclei on the basement membrane
+        { p: 'nuclei', shape: 'round', per: 3.4, size: [2.2, 2.8], fill: 'rgba(70,26,100,.82)', cell: [3, 3.6], cellFill: 'rgba(250,226,236,.3)', tag: 'basalCell' }
+      ] }
+    ],
+    edge: { stroke: 'rgba(255,240,248,.8)', w: 1.2 },
+    lining: [{ p: 'lining', at: epiH - .1, shape: 'columnar', size: [7, 20], fill: 'rgba(244,200,220,.45)', nucleus: goNuc, cover: 1, tag: 'principal' }, // principal cells: tall columnar, oval nuclei
+      { p: 'lining', at: 0, shape: 'squamous', size: [7, .1], fill: 'rgba(0,0,0,0)', nucleus: 'rgba(0,0,0,0)', cilia: 9, ciliaStroke: 'rgba(255,240,248,.62)', cover: 1, tag: 'stereocilia' }], // long stereocilia (microvilli) in tufts into the lumen
+    floor: { fill: 'rgba(236,210,226,.11)', grain: .08, ambient: [goSperm(2.6)] },
+    features: goFeatures({ wall: 'rgba(248,170,190,.9)', ww: 5, lumen: 'rgba(110,22,34,.7)', rbc: 2, nucleus: goNuc, nr: [5, 1.6], every: [14, 22], tag: 'arteriole' }),
+    motion: Object.assign({}, wiggle, { count: 28 })
+  };
   T.gonads = {
     accent: '#e07ba0',
-    depth: [seminiferous],
+    depth: [seminiferous, rete, epididymis],
     labels: [
       { text: 'Spermatids', at: 'spermatid' }, { text: 'Primary spermatocytes', at: 'spermatocyte' }, { text: 'Spermatogonia', at: 'spermatogonia' },
       { text: 'Sertoli cell', at: 'sertoli' }, { text: 'Basement membrane, myoid cells', at: 'myoid' }, { text: 'Sperm', at: 'sperm' },
       { text: 'Interstitial connective tissue', at: 'interstitium' }, { text: 'Leydig (interstitial) cells', at: 'leydig' }, { text: 'Capillary', at: 'capillary' },
-      { text: 'Seminiferous tubule, cut across', at: 'tubuleX' }, { text: 'Tunica albuginea', at: 'albuginea' }
+      { text: 'Seminiferous tubule, cut across', at: 'tubuleX' }, { text: 'Tunica albuginea', at: 'albuginea' },
+      { text: 'Mediastinum testis: dense connective tissue', at: 'mediastinum' }, { text: 'Rete testis: simple cuboidal epithelium', at: 'reteCells' },
+      { text: 'Rete testis channel, cut across', at: 'reteX' }, { text: 'Connective tissue strand between channels', at: 'reteStrand' },
+      { text: 'Arteriole', at: 'arteriole' }, { text: 'Venule', at: 'venule' },
+      { text: 'Epididymis: pseudostratified columnar epithelium', at: 'pseudo' }, { text: 'Principal cells', at: 'principal' }, { text: 'Basal cells', at: 'basalCell' },
+      { text: 'Stereocilia', at: 'stereocilia' }, { text: 'Smooth muscle', at: 'smooth' }, { text: 'Duct of the epididymis, cut across', at: 'ductX' },
+      { text: 'Loose connective tissue', at: 'epiCT' }
     ]
   };
 })();
