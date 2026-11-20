@@ -1,8 +1,9 @@
 // Dungeon floor map art (V2) in headless Chromium: every walkable tile still looks walkable in the baked bitmap, and
-// every wall tile looks like wall. Also logs frame time at 360 px. Run: node tests/mapart-floors.cjs [shotDir]
+// every wall tile looks like wall. Also logs frame time at 360 px. Run: node tests/mapart-floors.cjs [shotDir] [region...]
+// Regions default to every profile in data/tissue.js. FLOORS=1 limits to floor 1 (preview).
 const assert = require('node:assert/strict'), http = require('node:http'), fs = require('node:fs'), path = require('node:path');
 const { chromium } = require('playwright');
-const root = path.join(__dirname, '..', 'game'), shots = process.argv[2];
+const root = path.join(__dirname, '..', 'game'), shots = process.argv[2] && process.argv[2] !== '-' ? process.argv[2] : null, nFloors = +process.env.FLOORS || 3;
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml' };
 const server = http.createServer((q, s) => { const p = path.join(root, decodeURIComponent(q.url.split('?')[0]).replace(/^\/$/, '/index.html')); fs.readFile(p, (e, b) => { if (e) { s.writeHead(404); s.end(); } else { s.writeHead(200, { 'content-type': types[path.extname(p)] || 'application/octet-stream' }); s.end(b); } }); });
 (async () => {
@@ -11,10 +12,12 @@ const server = http.createServer((q, s) => { const p = path.join(root, decodeURI
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 }), page = await ctx.newPage();
   page.on('pageerror', e => errors.push(String(e)));
   await page.goto(url); await page.waitForFunction(() => window.DD && DD.save && DD.save.profile);
-  await page.evaluate(() => { const p = DD.save.profile; p.classId = p.classId || 'neutrophil'; p.intro = true; p.settings.mapLabels = true; DD.ui.enter('marrow'); });
+  const regions = process.argv.slice(3).length ? process.argv.slice(3) : await page.evaluate(() => Object.keys(DD.data.tissue));
   const seeds = [12345, 777, 4242, 99001, 31337, 8];
-  for (let n = 0; n < seeds.length * 3; n++) {
-    const i = n % 3, seed = seeds[(n / 3) | 0];
+  for (const region of regions) {
+  await page.evaluate(rg => { const p = DD.save.profile; p.classId = p.classId || 'neutrophil'; p.intro = true; p.settings.mapLabels = true; DD.ui.enter(rg); }, region);
+  for (let n = 0; n < seeds.length * nFloors; n++) {
+    const i = n % nFloors, seed = seeds[(n / nFloors) | 0];
     await page.evaluate(([i, seed]) => { DD.game.run.seed = seed; DD.game.loadFloor(i); DD.ui.game(); }, [i, seed]);
     await page.waitForFunction(() => !!DD.mapart.forRun(DD.game.run), null, { timeout: 30000 });
     const r = await page.evaluate(() => {
@@ -31,10 +34,11 @@ const server = http.createServer((q, s) => { const p = path.join(root, decodeURI
       if (f.exit) { const m = f.rooms.find(m => f.exit.x >= m.x && f.exit.x < m.x + m.w && f.exit.y >= m.y && f.exit.y < m.y + m.h); run.px = m.x + 1; run.py = m.y + 1; } // boss floor: frame the hub
       return { bad, fmax, wmin, w: c.width, h: c.height, kb: Math.round(art.svgBytes / 1024), pillars: art.G.pillars.length, labels: art.labels.length };
     });
-    console.log('seed', seed, 'floor', i + 1, JSON.stringify({ ...r, bad: r.bad.length }));
+    console.log(region, 'seed', seed, 'floor', i + 1, JSON.stringify({ ...r, bad: r.bad.length }));
     if (r.bad.length) console.log(r.bad.join('\n'));
-    if (!process.env.ALL) assert.deepEqual(r.bad, [], 'seed ' + seed + ' floor ' + (i + 1) + ': walkable tiles look walkable, walls look like walls');
-    if (shots && seed === seeds[0]) { await page.evaluate(() => DD.ui.refreshMap()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(shots, 'marrow-floor' + (i + 1) + '.png') }); }
+    if (!process.env.ALL) assert.deepEqual(r.bad, [], region + ' seed ' + seed + ' floor ' + (i + 1) + ': walkable tiles look walkable, walls look like walls');
+    if (shots && seed === seeds[0]) { await page.evaluate(() => DD.ui.refreshMap()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(shots, region + '-floor' + (i + 1) + '.png') }); }
+  }
   }
   await page.setViewportSize({ width: 360, height: 740 });
   await page.evaluate(() => { DD.mapart.perf.frames = 0; DD.mapart.perf.ms = 0; DD.ui.refreshMap(); });
