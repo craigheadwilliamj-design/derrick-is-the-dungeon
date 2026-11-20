@@ -682,14 +682,16 @@ DD.mapart = (function () {
   const fits = (fd, X, Y, a, b, m) => { const d = sdU(fd, X, Y); return d - m >= a && d + m <= b; };
   const normalAt = (fd, X, Y) => grad(fd, X, Y); // points into the wall
   const LIB = {
-    fibers(P, o, a, b, c) { // strokes following the wall, evenly or randomly spaced; optional striations; band: own [a, b]; spark: record as axons for the spark motion
+    fibers(P, o, a, b, c) { // strokes following the wall, evenly or randomly spaced; optional striations and peripheral nuclei; band: own [a, b]; spark/trace: record the lines for the spark or contract motion
       if (o.band) { a = o.band[0]; b = o.band[1]; }
       for (let k = 0; k < (o.n || 6); k++) {
         const lv = o.even ? a + (b - a) * (k + .5) / o.n : P.R(a, b);
         const wv = [o.amp == null ? 2 : o.amp, P.R(o.per[0], o.per[1]), P.R(0, 6)], ds = o.dash || [40, 110, P.R(6, 18)]; // dash: [min, max, gap] (short gaps read as intercalated discs)
         P.line(lv, o.stroke, o.w || 1.4, { wave: wv, dash: `${P.R(ds[0], ds[1]) | 0} ${n1(ds[2])}`, off: P.R(0, 60) | 0 });
-        if (o.striate) P.line(lv, o.striate, (o.w || 1.4) * 1.6, { wave: wv, dash: '1.2 3' });
-        if (o.spark && c) for (const l of P.C(lv)) if (l.length > 8) c.axons.push(l.map(q => [q[0] / U - c.M, q[1] / U - c.M]));
+        if (o.striate) P.line(lv, o.striate, o.sw || (o.w || 1.4) * 1.6, { wave: wv, dash: o.sdash || '1.2 3' }); // sdash: striation pattern (skeletal: dark A band, pale I band)
+        if (o.nuclei) for (const sd of [-1, 1]) { const nu = o.nuclei; along(P.C(lv + sd * ((o.w || 1.4) / 2 - nu.size[1]) / U), P.R.bind(null, 0, 1), nu.every[0], nu.every[1], (p, t) => { // peripheral nuclei, flat against the fiber edge
+          P.push(`<ellipse cx="${n1(p[0])}" cy="${n1(p[1])}" rx="${nu.size[0]}" ry="${nu.size[1]}" transform="rotate(${deg(t)} ${n1(p[0])} ${n1(p[1])})" fill="${nu.fill}"/>`); c.tag(nu.tag, p[0], p[1]); }); }
+        if ((o.spark || o.trace) && c) for (const l of P.C(lv)) if (l.length > 8) c.axons.push(l.map(q => [q[0] / U - c.M, q[1] / U - c.M]));
       }
       if (o.branch) P.scatter(a, b, o.branch, (X, Y, t) => { // short oblique strokes joining neighbouring fibers (branching)
         const an = (t + (P.R(0, 1) < .5 ? -1 : 1) * P.R(18, 32)) * .01745, l = P.R(14, 26), bx = X + Math.cos(an) * l, by = Y + Math.sin(an) * l;
@@ -891,6 +893,32 @@ DD.mapart = (function () {
         if (o.base && o.base.tag) c.tag(o.base.tag, p[0] + d[0] * L * .9, p[1] + d[1] * L * .9);
       });
     },
+    bundle(P, o, a, b, c) { // an encapsulated bundle cut across: capsule rings around packed small profiles (nerve fascicle in its perineurium, muscle spindle); max: at most this many
+      let n = 0;
+      P.scatter(a, b, o.per, (X, Y) => {
+        const r = P.R(o.r[0], o.r[1]); if ((o.max && n >= o.max) || !fits(c.fd, X, Y, a, b, (o.inset || 0) + r / U)) return; n++;
+        let s = `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r)}" fill="${o.fill}"/>`;
+        for (let k = 0; k < (o.rings || 1); k++) s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r - k * 2.2)}" fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.2}"/>`;
+        const q = o.inner, pts = [], R0 = r - (o.rings || 1) * 2.2 - .5;
+        for (let t = 0; t < q.n * 30 && pts.length < q.n; t++) { const an = P.R(0, 6.28), d = Math.sqrt(P.R(0, 1)) * R0, rr = P.R(q.r[0], q.r[1]), x = X + Math.cos(an) * d, y = Y + Math.sin(an) * d; if (d + rr > R0 || pts.some(p => Math.hypot(p[0] - x, p[1] - y) < p[2] + rr + (q.gap || .6))) continue; pts.push([x, y, rr]); }
+        for (const [x, y, rr] of pts) {
+          s += `<circle cx="${n1(x)}" cy="${n1(y)}" r="${n1(rr)}" fill="${q.fill}" stroke="${q.stroke}" stroke-width="${q.w || .9}"/>`;
+          for (let k = 0; k < (q.nuclei || 0); k++) { const an = P.R(0, 6.28), d = q.central ? P.R(0, rr * .45) : rr - 1; s += `<circle cx="${n1(x + Math.cos(an) * d)}" cy="${n1(y + Math.sin(an) * d)}" r="${q.nr || 1.4}" fill="${q.nucleus}"/>`; }
+        }
+        for (let k = 0; k < (o.nuclei || 0); k++) { const an = P.R(0, 6.28), d = P.R(0, R0); s += `<ellipse cx="${n1(X + Math.cos(an) * d)}" cy="${n1(Y + Math.sin(an) * d)}" rx="2.4" ry="1.3" transform="rotate(${P.R(0, 180) | 0} ${n1(X + Math.cos(an) * d)} ${n1(Y + Math.sin(an) * d)})" fill="${o.nucleus}"/>`; } // Schwann or fibroblast nuclei between the profiles
+        P.push(s); c.tag(o.tag, X, Y);
+      });
+    },
+    endings(P, o, a, b, c) { // nerve endings on the wall surface: a twig from the nerve at level `from` to the edge, ending in a cluster of terminal boutons (motor end plate)
+      along(P.C(o.from), P.R.bind(null, 0, 1), o.every[0], o.every[1], p => {
+        const nv = normalAt(c.fd, p[0], p[1]), d = (-o.from + o.depth) * U, ex = p[0] + nv[0] * d, ey = p[1] + nv[1] * d;
+        if (Math.abs(sdU(c.fd, ex, ey) - o.depth) > .12) return;
+        const mx = (p[0] + ex) / 2 + nv[1] * P.R(-6, 6), my = (p[1] + ey) / 2 - nv[0] * P.R(-6, 6);
+        let s = `<path fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.4}" d="M${n1(p[0])},${n1(p[1])} Q${n1(mx)},${n1(my)} ${n1(ex)},${n1(ey)}"/>`;
+        for (let k = 0; k < o.boutons; k++) { const an = P.R(0, 6.28), dd = P.R(1, 6); s += `<circle cx="${n1(ex + Math.cos(an) * dd)}" cy="${n1(ey + Math.sin(an) * dd)}" r="${n1(P.R(1.4, 2.4))}" fill="${o.fill}"/>`; }
+        P.push(s); c.tag(o.tag, ex, ey);
+      });
+    },
     pits(P, o, a, b, c) { // a shallow resorption pit in the wall surface holding a large multinucleated cell
       along(P.C(0), P.R.bind(null, 0, 1), o.every[0], o.every[1], (p, t) => {
         const hub = c.inHub(p[0], p[1]); if ((o.hub === false && hub) || (o.hub === true && !hub)) return;
@@ -1028,7 +1056,7 @@ DD.mapart = (function () {
     return art;
   }
 
-  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor. Drift: particles flow along the passages. Spark: action potentials run along axons.
+  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor. Drift: particles flow along the passages. Spark: action potentials run along axons. Contract: a muscle fiber shortens, striations bunching.
   function floorBase(ctx, art, V, now) {
     const still = !animated(), t = still ? 0 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0), M = art.M;
     art.last = t;
@@ -1060,6 +1088,7 @@ DD.mapart = (function () {
     } else if (bx > ax && by > ay) ctx.drawImage(art.bmp, ax * k, ay * k, (bx - ax) * k, (by - ay) * k, ax, ay, bx - ax, by - ay);
     if (mo && mo.type === 'drift') return drift(ctx, art, V, mo, dt, still);
     if (mo && mo.type === 'spark') return spark(ctx, art, V, mo, dt, still);
+    if (mo && mo.type === 'contract') return contract(ctx, art, V, mo, dt, still);
     if (!mo || mo.type !== 'diapedesis' || !art.sinus.length) return;
     const inView = s => s.x > V.x0 - 1 && s.x < V.x0 + V.cols + 1 && s.y > V.y0 - 1 && s.y < V.y0 + V.rows + 1;
     const ports = art.sinus.filter(inView); if (!ports.length) return;
@@ -1113,6 +1142,28 @@ DD.mapart = (function () {
       for (let k = 0, i = p.i; k < mo.tail; k++) { const j = (i - p.dir + n) % n; ctx.globalAlpha = al * (1 - k / mo.tail); ctx.beginPath(); ctx.moveTo(p.l[i][0], p.l[i][1]); ctx.lineTo(p.l[j][0], p.l[j][1]); ctx.stroke(); i = j; }
       ctx.globalAlpha = al; ctx.fillStyle = mo.fill; ctx.beginPath(); ctx.arc(p.l[p.i][0], p.l[p.i][1], mo.w * 1.4, 0, 6.283); ctx.fill();
     }
+    ctx.globalAlpha = 1;
+  }
+  // Contract: now and then one traced muscle fiber shortens, its striations bunching toward the middle of the stretch, then relaxes.
+  function contract(ctx, art, V, mo, dt, still) {
+    if (still || !art.axons.length) return;
+    const st = S().floor.contract, rnd = DD.rng(((art.seedN = (art.seedN || 7) + 1) * 2654435761) >>> 0), inV = q => q[0] > V.x0 && q[1] > V.y0 && q[0] < V.x0 + V.cols && q[1] < V.y0 + V.rows;
+    const p = art.parts[0] || (art.parts[0] = { age: st.life + 1, wait: st.every * rnd() });
+    p.age += dt;
+    if (p.age > st.life + p.wait) {
+      p.l = null; for (let k = 0; k < 30 && !p.l; k++) { const l = art.axons[(rnd() * art.axons.length) | 0], i = (rnd() * l.length) | 0; if (inV(l[i])) { p.l = l; p.i = i; } }
+      p.age = 0; p.wait = st.every * (.5 + rnd()); if (!p.l) return;
+    }
+    if (!p.l || p.age > st.life) return;
+    const l = p.l, n = l.length, pts = [l[p.i]]; // walk the stretch out from the chosen point both ways (loops are closed)
+    for (const dir of [1, -1]) for (let len = 0, i = p.i; len < st.span / 2;) { const j = (i + dir + n) % n; len += Math.hypot(l[j][0] - l[i][0], l[j][1] - l[i][1]); i = j; dir > 0 ? pts.push(l[j]) : pts.unshift(l[j]); }
+    const acc = [0]; for (let i = 1; i < pts.length; i++) acc.push(acc[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const L = acc[acc.length - 1], q = Math.sin(Math.PI * p.age / st.life), fade = clamp(Math.min(p.age, st.life - p.age) / .25, 0, 1);
+    const at = s => { let i = 1; while (i < acc.length - 1 && acc[i] < s) i++; const u = (s - acc[i - 1]) / Math.max(1e-6, acc[i] - acc[i - 1]), a = pts[i - 1], b = pts[i]; return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, Math.atan2(b[1] - a[1], b[0] - a[0])]; };
+    tileT(ctx, V); ctx.lineCap = 'round'; ctx.globalAlpha = fade;
+    ctx.strokeStyle = mo.fill; ctx.lineWidth = mo.w * (1 + .25 * q); ctx.beginPath(); pts.forEach((pt, i) => ctx[i ? 'lineTo' : 'moveTo'](pt[0], pt[1])); ctx.stroke(); // the fiber thickens as it shortens
+    ctx.strokeStyle = mo.band; ctx.lineWidth = mo.bw; const h = mo.w * (1 + .25 * q) / 2;
+    for (let d = -L / 2; d <= L / 2; d += mo.gap) { const x = d / (L / 2), s = L / 2 + d * (1 - st.amp * q * (1 - x * x)), [px, py, an] = at(s), nx = -Math.sin(an) * h, ny = Math.cos(an) * h; ctx.beginPath(); ctx.moveTo(px - nx, py - ny); ctx.lineTo(px + nx, py + ny); ctx.stroke(); }
     ctx.globalAlpha = 1;
   }
   const floorProfile = run => !!(run && !run.trip && run.floor && !run.floor.tiles && DD.data.tissue && DD.data.tissue[run.regionId]);
