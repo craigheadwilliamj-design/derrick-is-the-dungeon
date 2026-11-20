@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders), nodules (rim/loops), strands, pits, fingers.
+// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders/feet), nodules (rim/loops), strands, pits, fingers, somata.
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -415,6 +415,48 @@
       { text: 'Macula densa', at: 'md' }, { text: 'Thick ascending limb', at: 'tal' }, { text: 'Collecting duct', at: 'cd' },
       { text: 'Collecting duct cells: clear borders', at: 'cdCells' }, { text: 'Thin limb (simple squamous)', at: 'thin' }, { text: 'Vasa recta', at: 'vr' },
       { text: 'Interstitial cells', at: 'interstitium' }
+    ]
+  };
+  // ---------- Brain (floors go cortex grey matter -> white matter -> lateral ventricle). Walls are white matter tracts ----------
+  const bNuc = 'rgba(84,44,140,.85)';
+  const oligoRow = at => ({ p: 'lining', at, shape: 'round', size: [7, 7], fill: 'rgba(250,246,255,.42)', nucleus: bNuc, cover: .55, tag: 'oligo' }); // interfascicular oligodendrocytes: round nuclei with a clear halo, in rows between the axons
+  const tract = (band, n) => ({ // white matter: myelinated axons running in bundles, pale
+    band, fill: 'rgba(222,206,238,.84)', tag: 'tract',
+    painter: [
+      { p: 'fibers', n, even: true, stroke: 'rgba(255,250,255,.4)', w: 1.5, amp: 1.2, per: [18, 34], dash: [60, 140, 1.6], spark: true },
+      oligoRow(band[0] + (band[1] - band[0]) * .3), oligoRow(band[0] + (band[1] - band[0]) * .7)
+    ]
+  });
+  const bDark = a => ({ band: [a, null], fill: 'rgba(20,12,28,.95)', painter: [{ p: 'fibers', n: 4, stroke: 'rgba(200,180,230,.1)', w: 1.4, amp: 2, per: [20, 40] }] });
+  const bCap = (per, astro) => ({ p: 'crossSections', per, r: [5, 7], wall: 'rgba(255,214,226,.4)', ww: 1.4, lumen: 'rgba(170,40,56,.26)', rbc: 0, nuclei: 1, nucleus: bNuc, inset: .2, tag: 'capillary',
+    feet: { w: 2.6, fill: 'rgba(236,214,250,.26)', nucleus: 'rgba(120,90,170,.45)', astro, tag: 'astro' } });             // capillary wrapped by astrocyte end-feet; astrocytes have pale oval nuclei
+  const glia = per => ({ p: 'nuclei', shape: 'round', per, size: [2, 2.8], fill: 'rgba(84,44,140,.42)', tag: 'glia' });  // small dark glial nuclei in the neuropil
+  const bFeatures = pillar => ({
+    pillar,
+    door: { lip: 'rgba(222,206,238,.74)', rim: 'rgba(250,244,255,.8)' },
+    stairs: { rim: 'rgba(250,244,255,.75)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  });
+  const arteriole = { wall: 'rgba(240,180,200,.9)', ww: 5, lumen: 'rgba(110,22,34,.7)', rbc: 2, nucleus: bNuc, nr: [5, 1.6], every: [14, 22], tag: 'arteriole' }; // penetrating arteriole: smooth muscle in its wall
+  const sparks = { type: 'spark', count: 10, speed: 7, life: 1.4, gap: 2.5, tail: 5, w: .06, fill: 'rgb(214,236,255)', alpha: .85 };
+  const greyMatter = { // cortex: neuropil (a felt of axons, dendrites and glial processes) holding neurons, glia and capillaries
+    walls: [bDark(2.2), tract([0, 2.2], 10)],
+    edge: { stroke: 'rgba(246,236,255,.82)', w: 1.8 }, lining: [],
+    floor: { fill: 'rgba(206,164,214,.26)', grain: .14, ambient: [
+      { p: 'strands', per: 2.2, len: [8, 18], stroke: 'rgba(240,220,250,.1)', w: .9 },                           // neuropil
+      glia(1.4),
+      { p: 'somata', shape: 'pyramidal', per: .1, size: [8, 10.5], fill: 'rgba(150,100,206,.42)', nissl: { n: 16, fill: 'rgba(70,36,140,.55)' },
+        opacity: .75, nucleus: 'rgba(244,236,255,.4)', nucleolus: 'rgba(60,28,110,.9)', dendrites: { stroke: 'rgba(160,116,214,.42)', w: 2.2 }, inset: .15, tag: 'neuron' },
+      bCap(.05, .6)
+    ] }, features: bFeatures(arteriole), motion: sparks
+  };
+  T.brain = {
+    accent: '#9a8ee8',
+    depth: [greyMatter],
+    labels: [
+      { text: 'White matter tract (myelinated axons)', at: 'tract' }, { text: 'Oligodendrocyte nuclei', at: 'oligo' },
+      { text: 'Neuron: Nissl substance, nucleolus', at: 'neuron' }, { text: 'Glial nuclei', at: 'glia' },
+      { text: 'Capillary', at: 'capillary' }, { text: 'Astrocyte end-feet', at: 'astro' }, { text: 'Penetrating arteriole', at: 'arteriole' }
     ]
   };
 })();

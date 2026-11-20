@@ -682,12 +682,14 @@ DD.mapart = (function () {
   const fits = (fd, X, Y, a, b, m) => { const d = sdU(fd, X, Y); return d - m >= a && d + m <= b; };
   const normalAt = (fd, X, Y) => grad(fd, X, Y); // points into the wall
   const LIB = {
-    fibers(P, o, a, b) { // strokes following the wall, evenly or randomly spaced; optional striations
+    fibers(P, o, a, b, c) { // strokes following the wall, evenly or randomly spaced; optional striations; band: own [a, b]; spark: record as axons for the spark motion
+      if (o.band) { a = o.band[0]; b = o.band[1]; }
       for (let k = 0; k < (o.n || 6); k++) {
         const lv = o.even ? a + (b - a) * (k + .5) / o.n : P.R(a, b);
         const wv = [o.amp == null ? 2 : o.amp, P.R(o.per[0], o.per[1]), P.R(0, 6)], ds = o.dash || [40, 110, P.R(6, 18)]; // dash: [min, max, gap] (short gaps read as intercalated discs)
         P.line(lv, o.stroke, o.w || 1.4, { wave: wv, dash: `${P.R(ds[0], ds[1]) | 0} ${n1(ds[2])}`, off: P.R(0, 60) | 0 });
         if (o.striate) P.line(lv, o.striate, (o.w || 1.4) * 1.6, { wave: wv, dash: '1.2 3' });
+        if (o.spark && c) for (const l of P.C(lv)) if (l.length > 8) c.axons.push(l.map(q => [q[0] / U - c.M, q[1] / U - c.M]));
       }
       if (o.branch) P.scatter(a, b, o.branch, (X, Y, t) => { // short oblique strokes joining neighbouring fibers (branching)
         const an = (t + (P.R(0, 1) < .5 ? -1 : 1) * P.R(18, 32)) * .01745, l = P.R(14, 26), bx = X + Math.cos(an) * l, by = Y + Math.sin(an) * l;
@@ -760,6 +762,14 @@ DD.mapart = (function () {
         if (o.pack) { const R0 = r + ww / 2; if (placed.some(q => Math.hypot(q[0] - X, q[1] - Y) < q[2] + R0 + 1)) return; placed.push([X, Y, R0]); }
         let s = `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r)}" fill="${o.lumen}" stroke="${o.wall}" stroke-width="${ww}"${o.dash ? ` stroke-dasharray="${o.dash}"` : ''}/>`;
         if (o.brush) s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r - ww / 2 - 1)}" fill="none" stroke="${o.brush}" stroke-width="2.4" stroke-dasharray=".9 .9"/>`;
+        if (o.feet) { // astrocyte end-feet clasping the outside of the wall, with the odd astrocyte nearby sending a process to it
+          const fr = r + ww / 2 + o.feet.w / 2; s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(fr)}" fill="none" stroke="${o.feet.fill}" stroke-width="${o.feet.w}" stroke-dasharray="${o.feet.dash || '5 1.6'}"/>`;
+          if (P.R(0, 1) < (o.feet.astro || 0)) {
+            const an = P.R(0, 6.28), d = fr + P.R(12, 18), ax = X + Math.cos(an) * d, ay = Y + Math.sin(an) * d;
+            for (let k = 0; k < 5; k++) { const b2 = k ? P.R(0, 6.28) : an + Math.PI, l = k ? P.R(7, 13) : d - fr; s += `<line x1="${n1(ax)}" y1="${n1(ay)}" x2="${n1(ax + Math.cos(b2) * l)}" y2="${n1(ay + Math.sin(b2) * l)}" stroke="${o.feet.fill}" stroke-width="1.1"/>`; }
+            s += `<ellipse cx="${n1(ax)}" cy="${n1(ay)}" rx="3.4" ry="2.8" fill="${o.feet.nucleus}"/>`; c.tag(o.feet.tag, ax, ay);
+          }
+        }
         if (o.borders) for (let k = 0, t0 = P.R(0, 6.28); k < o.borders; k++) { const an = t0 + k / o.borders * 6.283, ca = Math.cos(an), sa = Math.sin(an), r0 = r - ww / 2, r1 = r + ww / 2; s += `<line x1="${n1(X + ca * r0)}" y1="${n1(Y + sa * r0)}" x2="${n1(X + ca * r1)}" y2="${n1(Y + sa * r1)}" stroke="${o.borderStroke}" stroke-width=".9"/>`; }
         const nr = o.nr || [5, 1.8], inn = o.nr ? nr[1] : 0; // stave nuclei bulge into the lumen
         for (let k = 0; k < (o.nuclei || 0); k++) { const an = P.R(0, 6.28), nx = X + Math.cos(an) * (r - inn), ny = Y + Math.sin(an) * (r - inn); s += `<ellipse cx="${n1(nx)}" cy="${n1(ny)}" rx="${nr[0]}" ry="${nr[1]}" transform="rotate(${deg(an * 57.2958 + 90)} ${n1(nx)} ${n1(ny)})" fill="${o.nucleus || 'rgba(122,58,128,.8)'}"/>`; }
@@ -806,6 +816,23 @@ DD.mapart = (function () {
         if (ce) { const g = at(gx, 0); c.tag(ce.tag, g[0], g[1]); }
         if (ar) { const g = at(ax, 0); c.tag(ar.tag, g[0], g[1]); }
         if (m) { const g = at(0, r + mz * .5); c.tag(m.tag, g[0], g[1]); }
+      });
+    },
+    somata(P, o, a, b, c) { // neuron cell bodies: pyramidal or round soma with Nissl granules, a large pale nucleus with a dark nucleolus, dendrites and an axon
+      const placed = [];
+      P.scatter(a, b, o.per, (X, Y) => {
+        const r = P.R(o.size[0], o.size[1]); if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + r * 1.7 / U)) return;
+        if (placed.some(q => Math.hypot(q[0] - X, q[1] - Y) < q[2] + r * 1.7)) return; placed.push([X, Y, r * 1.7]);
+        const pyr = o.shape === 'pyramidal', t = P.R(0, 360), dl = o.dendrites || {};
+        let s = `<g transform="translate(${n1(X)} ${n1(Y)}) rotate(${deg(t)})" opacity="${o.opacity || 1}"><g stroke="${dl.stroke || o.fill}" stroke-width="${dl.w || 2}" fill="none" stroke-linecap="round">`;
+        if (pyr) s += `<path d="M0,${n1(-r * 1.4)} Q${n1(P.R(-2, 2))},${n1(-r * 2.6)} ${n1(P.R(-4, 4))},${n1(-r * 3.6)}"/>`; // apical dendrite
+        for (let k = 0, n = pyr ? 2 : (dl.n || 4); k < n; k++) { const an = pyr ? (k ? 2.4 : .74) : k / n * 6.28 + P.R(-.4, .4), x0 = Math.cos(an) * r * .9, y0 = Math.sin(an) * r * .9, l = r * P.R(1.4, 2.2); s += `<path d="M${n1(x0)},${n1(y0)} Q${n1(x0 + Math.cos(an) * l * .5 + P.R(-3, 3))},${n1(y0 + Math.sin(an) * l * .5 + P.R(-3, 3))} ${n1(x0 + Math.cos(an) * l)},${n1(y0 + Math.sin(an) * l)}"/>`; }
+        s += `<path stroke-width="${n1((dl.w || 2) * .55)}" d="M0,${n1(r * .9)} L${n1(P.R(-2, 2))},${n1(r * 2.4)}"/></g>`; // axon from the hillock
+        s += pyr ? `<path fill="${o.fill}" d="M0,${n1(-r * 1.5)} Q${n1(r * .5)},${n1(-r * .3)} ${n1(r * 1.05)},${n1(r * .75)} Q0,${n1(r * 1.05)} ${n1(-r * 1.05)},${n1(r * .75)} Q${n1(-r * .5)},${n1(-r * .3)} 0,${n1(-r * 1.5)}Z"/>` : `<circle r="${n1(r)}" fill="${o.fill}"/>`;
+        const nr = r * .46, ny = pyr ? r * .1 : 0;
+        for (let k = 0, n = o.nissl ? o.nissl.n : 0; k < n; k++) { const an = P.R(0, 6.28), q = P.R(nr + 1.2, r * .92), gx = Math.cos(an) * q, gy = ny + Math.sin(an) * q; if (gy > r * .7 && Math.abs(gx) < r * .3) continue; s += `<circle cx="${n1(gx)}" cy="${n1(gy)}" r="${n1(P.R(.7, 1.3))}" fill="${o.nissl.fill}"/>`; } // none in the axon hillock
+        s += `<circle cy="${n1(ny)}" r="${n1(nr)}" fill="${o.nucleus}"/><circle cx="${n1(P.R(-1, 1))}" cy="${n1(ny + P.R(-1, 1))}" r="${n1(Math.max(1.2, nr * .28))}" fill="${o.nucleolus}"/></g>`;
+        P.push(s); c.tag(o.tag, X, Y);
       });
     },
     strands(P, o, a, b, c) { // loose fibers and collagen
@@ -888,10 +915,10 @@ DD.mapart = (function () {
     const st = S(), sf = st.floor, D = prof.depth[Math.min(idx, prof.depth.length - 1)], next = prof.depth[idx + 1];
     const G = floorGrid(f), M = G.M, TW = G.W + 2 * M, TH = G.H + 2 * M, Wu = TW * U, Hu = TH * U, cap = sf.cap;
     const r = DD.rng((seed ^ hash(regionId + ':' + idx)) >>> 0), fd = pin(field(G, G.walk, cap), G, G.walk, sf.pin), P = painter(fd, r, Wu, Hu);
-    const anchors = {}, sinus = [];
+    const anchors = {}, sinus = [], axons = [];
     const hubRoom = D.hub && f.exit ? (f.rooms || []).find(m => f.exit.x >= m.x && f.exit.x < m.x + m.w && f.exit.y >= m.y && f.exit.y < m.y + m.h) : null;
     const hb = hubRoom && [(hubRoom.x + M - .6) * U, (hubRoom.y + M - .6) * U, (hubRoom.x + hubRoom.w + M + .6) * U, (hubRoom.y + hubRoom.h + M + .6) * U];
-    const c = { fd, sinus, M, tag: (k, X, Y) => { if (k) (anchors[k] = anchors[k] || []).push([X, Y]); }, inHub: (X, Y) => !!hb && X >= hb[0] && X <= hb[2] && Y >= hb[1] && Y <= hb[3] };
+    const c = { fd, sinus, axons, M, tag: (k, X, Y) => { if (k) (anchors[k] = anchors[k] || []).push([X, Y]); }, inHub: (X, Y) => !!hb && X >= hb[0] && X <= hb[2] && Y >= hb[1] && Y <= hb[3] };
     // walls, outermost band first
     for (const w of D.walls) {
       P.band(w.band[0], w.band[1], w.fill); paint(P, w.painter, w.band[0], w.band[1], c);
@@ -961,7 +988,7 @@ DD.mapart = (function () {
       `<clipPath id="tis"><path clip-rule="evenodd" d="M0,0H${Wu}V${Hu}H0Z${pathD(P.C(0))}"/></clipPath><clipPath id="flo"><path d="${pathD(P.C(0))}"/></clipPath></defs>` +
       `<g filter="url(#wob)">${P.out.join('')}</g><rect width="${Wu}" height="${Hu}" filter="url(#grain)" opacity="${st.grain}" clip-path="url(#tis)" style="mix-blend-mode:overlay"/>` +
       `<rect width="${Wu}" height="${Hu}" filter="url(#grain)" opacity="${D.floor.grain}" clip-path="url(#flo)" style="mix-blend-mode:overlay"/></svg>`;
-    const art = { floorArt: true, kind: 'floor', regionId, D, G, M, f, fd, labels, ready: false, bmp: null, sinus, parts: [], last: 0, k, Wu, Hu };
+    const art = { floorArt: true, kind: 'floor', regionId, D, G, M, f, fd, labels, ready: false, bmp: null, sinus, axons, parts: [], last: 0, k, Wu, Hu };
     art.rbc = rbcSprite(['#ffb3b0', '#d8323f'], false);
     art.fog = document.createElement('canvas'); art.fog.width = TW; art.fog.height = TH;
     store.set(f, art);
@@ -977,7 +1004,7 @@ DD.mapart = (function () {
     return art;
   }
 
-  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor. Drift: particles flow along the passages.
+  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor. Drift: particles flow along the passages. Spark: action potentials run along axons.
   function floorBase(ctx, art, V, now) {
     const still = !animated(), t = still ? 0 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0), M = art.M;
     art.last = t;
@@ -1008,6 +1035,7 @@ DD.mapart = (function () {
       ctx.restore();
     } else if (bx > ax && by > ay) ctx.drawImage(art.bmp, ax * k, ay * k, (bx - ax) * k, (by - ay) * k, ax, ay, bx - ax, by - ay);
     if (mo && mo.type === 'drift') return drift(ctx, art, V, mo, dt, still);
+    if (mo && mo.type === 'spark') return spark(ctx, art, V, mo, dt, still);
     if (!mo || mo.type !== 'diapedesis' || !art.sinus.length) return;
     const inView = s => s.x > V.x0 - 1 && s.x < V.x0 + V.cols + 1 && s.y > V.y0 - 1 && s.y < V.y0 + V.rows + 1;
     const ports = art.sinus.filter(inView); if (!ports.length) return;
@@ -1040,6 +1068,26 @@ DD.mapart = (function () {
       p.x += tx * mo.speed * dt; p.y += ty * mo.speed * dt;
       const u = p.age, al = u < .8 ? u / .8 : u > life - 1 ? (life - u) : 1;
       ctx.globalAlpha = clamp(al, 0, 1) * mo.alpha; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // Spark: action potentials run along the myelinated axons recorded at bake time, a bright pulse with a fading tail.
+  function spark(ctx, art, V, mo, dt, still) {
+    if (still || !art.axons.length) return;
+    const rnd = DD.rng(((art.seedN = (art.seedN || 7) + 1) * 2654435761) >>> 0), inV = q => q[0] > V.x0 - 1 && q[1] > V.y0 - 1 && q[0] < V.x0 + V.cols + 1 && q[1] < V.y0 + V.rows + 1;
+    const spawn = p => { for (let k = 0; k < 24; k++) { const l = art.axons[(rnd() * art.axons.length) | 0], i = (rnd() * l.length) | 0; if (inV(l[i])) { p.l = l; p.i = i; p.u = 0; p.dir = rnd() < .5 ? -1 : 1; p.age = -rnd() * mo.gap; return true; } } return false; };
+    while (art.parts.length < mo.count) { const p = {}; if (!spawn(p)) return; art.parts.push(p); }
+    tileT(ctx, V); ctx.lineCap = 'round';
+    for (const p of art.parts) {
+      p.age += dt;
+      if (p.age > mo.life || !inV(p.l[p.i])) { if (!spawn(p)) continue; }
+      if (p.age < 0) continue;
+      p.u += mo.speed * dt; const n = p.l.length;
+      while (p.u > 0) { const a = p.l[p.i], j = (p.i + p.dir + n) % n, b = p.l[j], d = Math.hypot(b[0] - a[0], b[1] - a[1]); if (d > p.u) break; p.u -= d; p.i = j; } // walk the polyline (loops are closed)
+      const al = clamp(Math.min(p.age / .1, (mo.life - p.age) / .3), 0, 1) * mo.alpha;
+      ctx.strokeStyle = mo.fill; ctx.lineWidth = mo.w;
+      for (let k = 0, i = p.i; k < mo.tail; k++) { const j = (i - p.dir + n) % n; ctx.globalAlpha = al * (1 - k / mo.tail); ctx.beginPath(); ctx.moveTo(p.l[i][0], p.l[i][1]); ctx.lineTo(p.l[j][0], p.l[j][1]); ctx.stroke(); i = j; }
+      ctx.globalAlpha = al; ctx.fillStyle = mo.fill; ctx.beginPath(); ctx.arc(p.l[p.i][0], p.l[p.i][1], mo.w * 1.4, 0, 6.283); ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
