@@ -165,11 +165,11 @@ DD.mapart = (function () {
       fibers(a, b, n, stroke, w, amp, per) { for (let i = 0; i < n; i++) P.line(R(a, b), stroke, w, { wave: [amp, R(per[0], per[1]), R(0, 6)], dash: `${R(30, 90) | 0} ${R(8, 24) | 0}`, off: R(0, 60) | 0 }); },
       // scatter shapes in a band by rejection sampling; fn(X, Y, tangentDeg)
       scatter(a, b, per, fn) {
-        let area = 0; const F = fd.F; for (let i = 0; i < F.length; i++) if (F[i] >= a && F[i] < b) area++;
+        let area = 0; const F = fd.F, mk = P.mask; for (let i = 0; i < F.length; i++) if (F[i] >= a && F[i] < b && (!mk || mk((i % fd.nx) / fd.s * U, ((i / fd.nx) | 0) / fd.s * U))) area++; // mask: only where mask(X, Y) (town zones)
         const n = Math.round(area / (fd.s * fd.s) * per);
         for (let k = 0, tries = 0; k < n && tries < n * 30; tries++) {
           const X = R(0, Wu), Y = R(0, Hu), d = sdU(fd, X, Y);
-          if (d < a || d >= b) continue;
+          if (d < a || d >= b || (mk && !mk(X, Y))) continue;
           const g = grad(fd, X, Y); fn(X, Y, Math.atan2(g[0], -g[1]) * 57.2958); k++;
         }
       },
@@ -738,7 +738,7 @@ DD.mapart = (function () {
           if (s < w * 1.1) continue; s = 0;
           if (++run > P.R(3, 9)) { run = 0; on = P.R(0, 1) < (o.cover == null ? 1 : o.cover); }
           const hub = c.inHub(p[0], p[1]);
-          if (!on || (o.hub === false && hub) || (o.hub === true && !hub)) continue;
+          if (!on || (o.hub === false && hub) || (o.hub === true && !hub) || (P.mask && !P.mask(p[0], p[1]))) continue;
           const t = Math.atan2(p[1] - q[1], p[0] - q[0]), nv = normalAt(c.fd, p[0], p[1]);
           const X = p[0] - nv[0] * h / 2, Y = p[1] - nv[1] * h / 2, side = -Math.sin(t) * nv[0] + Math.cos(t) * nv[1] > 0 ? 1 : -1; // +y local toward the wall
           let nu;
@@ -753,12 +753,14 @@ DD.mapart = (function () {
         }
       }
     },
-    nuclei(P, o, a, b, c) { // scatter by shape: round, flat, elongated, lobed; optional cytoplasm or lacuna with canaliculi
-      P.scatter(a, b, o.per, (X, Y, t) => {
+    nuclei(P, o, a, b, c) { // scatter by shape: round, flat, elongated, lobed; optional cytoplasm or lacuna with canaliculi; granules in the cytoplasm; eccentric nucleus with clock-face chromatin
+      P.scatter(a, b, o.per, (X0, Y0, t) => {
         const r = P.R(o.size[0], o.size[1]), cr = o.cell ? P.R(o.cell[0], o.cell[1]) : r;
-        if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + cr / U)) return;
-        let s = '';
+        if (!fits(c.fd, X0, Y0, a, b, (o.inset || 0) + cr / U)) return;
+        let s = '', X = X0, Y = Y0;
         if (o.cell) s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(cr)}" fill="${o.cellFill}"/>`;
+        if (o.granules) for (let k = 0, gr = o.granules; k < gr.n; k++) { const an = P.R(0, 6.283), q = Math.sqrt(P.R(0, 1)) * cr * .85; s += `<circle cx="${n1(X + Math.cos(an) * q)}" cy="${n1(Y + Math.sin(an) * q)}" r="${n1(P.R(gr.r[0], gr.r[1]))}" fill="${gr.fill}"/>`; }
+        if (o.eccentric) { const an = P.R(0, 6.283); X += Math.cos(an) * cr * o.eccentric; Y += Math.sin(an) * cr * o.eccentric; s += `<circle cx="${n1(X0 - (X - X0) * .9)}" cy="${n1(Y0 - (Y - Y0) * .9)}" r="${n1(cr * .3)}" fill="rgba(240,226,246,.22)"/>`; } // the pale Golgi beside the nucleus
         const rot = n1(t + P.R(-15, 15)), tr = `transform="rotate(${rot} ${n1(X)} ${n1(Y)})"`;
         if (o.lacuna) {
           s += `<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="${n1(r * 1.9)}" ry="${n1(r * .95)}" ${tr} fill="${o.lacuna}"/>`;
@@ -766,6 +768,7 @@ DD.mapart = (function () {
         }
         if (o.shape === 'lobed') { s += `<g fill="${o.fill}" opacity="${o.opacity || 1}">`; for (let k = 0, n = P.R(3, 5.99) | 0; k < n; k++) { const an = k / n * 6.28 + P.R(-.3, .3); s += `<circle cx="${n1(X + Math.cos(an) * r * .55)}" cy="${n1(Y + Math.sin(an) * r * .55)}" r="${n1(r * .55)}"/>`; } s += '</g>'; }
         else { const ry = o.shape === 'flat' ? r * .3 : o.shape === 'elongated' ? r * .55 : r; s += `<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="${n1(r)}" ry="${n1(ry)}" ${tr} fill="${o.fill}"/>`; }
+        if (o.clock) for (let k = 0; k < o.clock.n; k++) { const an = k / o.clock.n * 6.283 + P.R(-.3, .3); s += `<circle cx="${n1(X + Math.cos(an) * r * .62)}" cy="${n1(Y + Math.sin(an) * r * .62)}" r="${n1(r * .26)}" fill="${o.clock.fill}"/>`; } // chromatin clumps at the rim
         P.push(s); c.tag(o.tag, X, Y);
       });
     },
@@ -1086,6 +1089,151 @@ DD.mapart = (function () {
     return art;
   }
 
+  // ---------- lymph node towns (V13): DD.data.townTissue over the hand-built layout in data/townmap.js ----------
+  // Open ground is every walkable or bump tile; zones come from the layout's legend. FOV stays off (towns are fully lit).
+  // One bake is kept, keyed by accent and seed, so walking around a town never rebakes.
+  let townCache = null;
+  function buildTown(f, accent, seed) {
+    const prof = DD.data.townTissue, TM = DD.data.townmap;
+    if (!f || !prof || !TM || !can()) return null;
+    const key = accent + ':' + seed;
+    if (townCache && townCache.key === key) { townCache.art.f = f; return townCache.art; }
+    const st = S(), sf = st.floor, W = f.W, H = f.H, M = 0, cap = sf.cap, Wu = W * U, Hu = H * U;
+    const info = (x, y) => { const row = TM.rows[y]; return row && TM.legend[[...row][x]] || null; };
+    const zoneOf = [], lum = new Uint8Array(W * H), chOf = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const d = info(x, y), i = y * W + x; zoneOf[i] = d && d.zone || ''; chOf[i] = f.g[y][x]; if (d && (d.walk || d.bump)) lum[i] = 1; }
+    const inG = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+    const G = { W, H, M, lum, pillars: [], walk: (x, y) => inG(x, y) && lum[y * W + x] > 0 };
+    const zoneAt = (X, Y) => { const x = Math.floor(X / U), y = Math.floor(Y / U); return inG(x, y) ? zoneOf[y * W + x] : ''; };
+    const r = DD.rng((seed ^ hash('town:' + accent)) >>> 0), fd = pin(field(G, G.walk, cap), G, G.walk, sf.pin), P = painter(fd, r, Wu, Hu);
+    const anchors = {}, c = { fd, sinus: [], axons: [], M, tag: (k, X, Y) => { if (k) (anchors[k] = anchors[k] || []).push([X, Y]); }, inHub: () => false };
+    const tileSet = pred => { const out = []; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (pred(x, y)) out.push([x, y]); return out; };
+    const zfield = (pred, lv) => contours(pin(field(G, (x, y) => inG(x, y) && pred(x, y), 2), G, (x, y) => inG(x, y) && pred(x, y), sf.pin), lv || 0);
+    // walls: dense connective tissue, fat beyond. Tiles within 2 of the outside are capsule, the rest trabeculae.
+    const outside = (x, y) => !inG(x, y) || f.g[y][x] === ' ';
+    const nearOut = (x, y) => { for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (outside(x + dx, y + dy)) return true; return false; };
+    for (const w of prof.walls) {
+      P.band(w.band[0], w.band[1], w.fill); paint(P, w.painter, w.band[0], w.band[1], c);
+      if (w.tag) along(P.C(w.band[0] + .5), r, U * 6, U * 10, p => { const x = Math.floor(p[0] / U), y = Math.floor(p[1] / U); c.tag(nearOut(x, y) ? 'capsule' : 'trabecula', p[0], p[1]); });
+    }
+    // follicles: wall islands around a germinal centre are the dark mantle zone of resting B cells
+    const ml = prof.mantle, seen = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      if (lum[i] || seen[i] || f.g[(i / W) | 0][i % W] !== '#') continue;
+      const q = [i], cells = []; let edge = false; seen[i] = 1;
+      while (q.length) { const k = q.pop(), x = k % W, y = (k / W) | 0; cells.push(k); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy; if (outside(a, b)) { edge = true; continue; } const j = b * W + a; if (!lum[j] && !seen[j] && f.g[b][a] === '#') { seen[j] = 1; q.push(j); } } }
+      if (edge) continue;
+      const set = new Set(cells), xs = cells.map(k => k % W), ys = cells.map(k => (k / W) | 0), box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+      let gc = false; for (let y = box[1] - 2; y <= box[3] + 2 && !gc; y++) for (let x = box[0] - 2; x <= box[2] + 2; x++) if (inG(x, y) && zoneOf[y * W + x] === 'g') { gc = true; break; } // follicle wall pieces sit within 2 tiles of the centre
+      if (!gc) continue;
+      const isI = (x, y) => inG(x, y) && set.has(y * W + x), ifd = pin(field(G, isI, 2, box), G, isI, sf.pin);
+      P.push(`<path fill="${ml.fill}" d="${pathD(contours(ifd, -.02))}"/>`);
+      for (let k = 0, n = cells.length * ml.cells * 3; k < n; k++) { const X = P.R(box[0] - .4, box[2] + 1.4) * U, Y = P.R(box[1] - .4, box[3] + 1.4) * U; if (sdU(ifd, X, Y) < -.08) P.push(`<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(P.R(2.2, 3))}" fill="${ml.cellFill}"/>`); }
+      c.tag(ml.tag, (box[0] + box[2] + 1) / 2 * U, box[1] * U + U * .5);
+    }
+    // floor: base fill, then each zone's fill and cells (masked to its tiles), clipped to the open ground
+    P.band(-999, 0, prof.floor.fill);
+    P.push('<g clip-path="url(#flo)">');
+    const zl = [];
+    for (const z of Object.keys(prof.zones)) {
+      const Z = prof.zones[z], tiles = tileSet((x, y) => zoneOf[y * W + x] === z); if (!tiles.length) continue;
+      P.push(`<path fill="${Z.fill}" d="${pathD(zfield((x, y) => zoneOf[y * W + x] === z))}"/>`);
+      if (z === 'g') { // the mantle continues as a darker ring on the cortex around each germinal centre
+        const gfd = pin(field(G, (x, y) => inG(x, y) && zoneOf[y * W + x] === 'g', 2), G, (x, y) => inG(x, y) && zoneOf[y * W + x] === 'g', sf.pin);
+        P.push(`<path fill-rule="evenodd" fill="${ml.ringFill}" d="${pathD(contours(gfd, ml.ring))}${pathD(contours(gfd, 0))}"/>`);
+        for (let k = 0, n = tiles.length * ml.ringCells * 8; k < n; k++) { const X = P.R(0, Wu), Y = P.R(0, Hu), d = sdU(gfd, X, Y); if (d > .05 && d < ml.ring && zoneAt(X, Y) === 'c') P.push(`<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(P.R(2.2, 3))}" fill="${ml.ringCellFill}"/>`); }
+      }
+      P.mask = (X, Y) => zoneAt(X, Y) === z; paint(P, Z.ambient, -999, 0, c); if (Z.lining) zl.push([z, Z.lining]); P.mask = null;
+      if (Z.tag) for (let k = 0, n = Math.min(4, tiles.length); k < n; k++) { const t = tiles[(r() * tiles.length) | 0]; c.tag(Z.tag, (t[0] + .5) * U, (t[1] + .5) * U); }
+    }
+    P.push('</g>');
+    // the HEV gate: a venule cut lengthwise, plump cuboidal endothelium, lymphocytes squeezing through its wall
+    const hv = prof.hev, gate = tileSet((x, y) => chOf[y * W + x] === '≈');
+    if (gate.length) {
+      const x0 = Math.min(...gate.map(t => t[0])), x1 = Math.max(...gate.map(t => t[0])) + 1, cy = (gate[0][1] + .5) * U, cx = (x0 + x1) / 2 * U, rx = (x1 - x0) / 2 * U + U * .3, ry = U * .5;
+      let s2 = `<ellipse cx="${n1(cx)}" cy="${n1(cy)}" rx="${n1(rx)}" ry="${n1(ry)}" fill="${hv.lumen}"/>`;
+      for (let k = 0; k < 7; k++) s2 += `<ellipse cx="${n1(cx + P.R(-rx, rx) * .6)}" cy="${n1(cy + P.R(-ry, ry) * .3)}" rx="6" ry="${n1(P.R(3, 5))}" fill="url(#rbc)" opacity=".8"/>`;
+      const n = Math.round(Math.PI * (rx + ry) / 9);
+      for (let k = 0; k < n; k++) {
+        const an = k / n * 6.283, ex = cx + Math.cos(an) * rx, ey = cy + Math.sin(an) * ry, t = Math.atan2(Math.cos(an) * ry, -Math.sin(an) * rx) * 57.2958;
+        s2 += k % 6 === 3 ? `<circle cx="${n1(ex)}" cy="${n1(ey)}" r="3.4" fill="${hv.lymph}"/>` // a lymphocyte crossing the wall
+          : `<g transform="translate(${n1(ex)} ${n1(ey)}) rotate(${deg(t)})"><rect x="-4.4" y="-4" width="8.8" height="8" rx="2.6" fill="${hv.cell}"/><circle r="2.6" fill="${hv.nucleus}"/></g>`;
+      }
+      P.push(s2); c.tag(hv.tag, cx, cy - ry);
+    }
+    // afferent lymphatics: a valve near the capsule, its cusps pointing into the node
+    for (const y of [...new Set(tileSet((x, y) => chOf[y * W + x] === 'e').map(t => t[1]))]) {
+      const xs = tileSet((x, yy) => yy === y && chOf[yy * W + x] === 'e').map(t => t[0]), X = (Math.max(...xs) + .3) * U, Y = (y + .5) * U;
+      P.push(`<path fill="none" stroke="rgba(236,224,244,.6)" stroke-width="1.6" d="M${n1(X - U * .5)},${n1(Y - U * .5)} Q${n1(X - U * .1)},${n1(Y - U * .3)} ${n1(X + U * .3)},${n1(Y - U * .06)} M${n1(X - U * .5)},${n1(Y + U * .5)} Q${n1(X - U * .1)},${n1(Y + U * .3)} ${n1(X + U * .3)},${n1(Y + U * .06)}"/>`);
+      c.tag('valve', X, Y);
+    }
+    // vessels past the hilum, running off the map
+    for (const ch of Object.keys(prof.vessels)) {
+      const v = prof.vessels[ch], ts = tileSet((x, y) => chOf[y * W + x] === ch); if (!ts.length) continue;
+      const y = ts[0][1], xa = (Math.min(...ts.map(t => t[0])) - (ch === 'f' ? .5 : 0)) * U, xb = Wu + U, Y = (y + .5) * U, h = U * (ch === 'V' ? .44 : .38);
+      let s2 = `<rect x="${n1(xa)}" y="${n1(Y - h)}" width="${n1(xb - xa)}" height="${n1(2 * h)}" rx="${n1(h)}" fill="${v.lumen}" stroke="${v.wall}" stroke-width="${v.ww}"/>`;
+      if (ch === 'A') s2 += `<path fill="none" stroke="rgba(255,236,240,.7)" stroke-width="1" d="M${n1(xa + h)},${n1(Y - h + v.ww / 2 + 1)}H${n1(xb)}M${n1(xa + h)},${n1(Y + h - v.ww / 2 - 1)}H${n1(xb)}" stroke-dasharray="3 2"/>`; // internal elastic lamina
+      if (v.rbc) for (let x = xa + 8; x < xb; x += P.R(8, 14)) s2 += `<ellipse cx="${n1(x)}" cy="${n1(Y + P.R(-h, h) * .45)}" rx="5" ry="${n1(P.R(3, 5))}" fill="url(#rbc)"/>`;
+      if (v.cells) for (let x = xa + 10; x < xb; x += P.R(14, 26)) s2 += `<circle cx="${n1(x)}" cy="${n1(Y + P.R(-h, h) * .5)}" r="2.8" fill="rgba(70,28,124,.6)"/>`;
+      if (v.valve) for (const vx of [xa + U * 2.6, xa + U * 5.6]) s2 += `<path fill="none" stroke="${v.wall}" stroke-width="1.4" d="M${n1(vx)},${n1(Y - h)} Q${n1(vx + U * .3)},${n1(Y - h * .4)} ${n1(vx + U * .55)},${n1(Y - 1)} M${n1(vx)},${n1(Y + h)} Q${n1(vx + U * .3)},${n1(Y + h * .4)} ${n1(vx + U * .55)},${n1(Y + 1)}"/>`; // cusps point away from the node
+      P.push(s2); c.tag(v.tag, xa + U * 3, Y);
+    }
+    // sinus linings, the glossy edge in the town's accent, membranes around the buildings
+    for (const [z, o] of zl) { P.mask = (X, Y) => zoneAt(X, Y) === z; LIB.lining(P, o, 0, 0, c); P.mask = null; }
+    P.push(`<path fill="none" stroke="${accent}" stroke-opacity=".75" stroke-width="2.2" filter="url(#glow)" d="${pathD(P.C(0))}"/>`);
+    for (const z of prof.buildings || []) {
+      const L = zfield((x, y) => zoneOf[y * W + x] === z, 0);
+      P.push(`<path fill="none" stroke="${accent}" stroke-opacity=".9" stroke-width="2.4" filter="url(#glow)" d="${pathD(L)}"/>`);
+    }
+    const labels = [];
+    for (const lb of prof.labels || []) { const list = anchors[lb.at] || []; const step = Math.max(1, Math.floor(list.length / sf.anchorsPer)); for (let i = 0; i < list.length; i += step) labels.push({ X: list[i][0], Y: list[i][1], text: lb.text, d: 0 }); }
+    // lymph flow: distance to the hilum exit through the sinuses (afferent -> subcapsular -> medullary -> hilum), as a per-tile direction
+    const sinusZ = { e: 1, s: 1, n: 1, h: 1 }, dist = new Float32Array(W * H).fill(Infinity), q = [];
+    for (let i = 0; i < W * H; i++) if (chOf[i] === '<') { dist[i] = 0; q.push(i); }
+    while (q.length) { const k = q.shift(), x = k % W, y = (k / W) | 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy, j = b * W + a; if (inG(a, b) && sinusZ[zoneOf[j]] && dist[j] > dist[k] + 1) { dist[j] = dist[k] + 1; q.push(j); } } }
+    const flow = new Float32Array(W * H * 2);
+    for (let i = 0; i < W * H; i++) { if (!isFinite(dist[i])) continue; const x = i % W, y = (i / W) | 0; let vx = 0, vy = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const a = x + dx, b = y + dy; if ((dx || dy) && inG(a, b) && dist[b * W + a] < dist[i]) { const l = Math.hypot(dx, dy); vx += dx / l; vy += dy / l; } } const l = Math.hypot(vx, vy) || 1; flow[i * 2] = vx / l; flow[i * 2 + 1] = vy / l; }
+    const k = Math.min(st.px / U, st.maxSide / Math.max(Wu, Hu));
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(Wu * k)}" height="${Math.round(Hu * k)}" viewBox="0 0 ${Wu} ${Hu}"><defs>` +
+      `<filter id="wob" x="-2%" y="-2%" width="104%" height="104%"><feTurbulence type="turbulence" baseFrequency="0.012 0.02" numOctaves="2" seed="${(seed % 997) + 1}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="${st.wobble}" xChannelSelector="R" yChannelSelector="G"/></filter>` +
+      `<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` +
+      `<filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 .92  0 0 0 0 .9  0 0 0 1.1 -.55"/></filter>` +
+      `<radialGradient id="rbc"><stop offset="0" stop-color="#ffb3b0" stop-opacity=".55"/><stop offset=".5" stop-color="#d8323f" stop-opacity=".75"/><stop offset=".8" stop-color="#d8323f" stop-opacity=".98"/><stop offset="1" stop-color="#d8323f" stop-opacity=".6"/></radialGradient>` +
+      `<clipPath id="tis"><path clip-rule="evenodd" d="M0,0H${Wu}V${Hu}H0Z${pathD(P.C(0))}"/></clipPath><clipPath id="flo"><path d="${pathD(P.C(0))}"/></clipPath></defs>` +
+      `<g filter="url(#wob)">${P.out.join('')}</g><rect width="${Wu}" height="${Hu}" filter="url(#grain)" opacity="${st.grain}" clip-path="url(#tis)" style="mix-blend-mode:overlay"/>` +
+      `<rect width="${Wu}" height="${Hu}" filter="url(#grain)" opacity="${prof.floor.grain}" clip-path="url(#flo)" style="mix-blend-mode:overlay"/></svg>`;
+    const art = { floorArt: true, town: true, kind: 'town', D: { motion: prof.motion }, G, M, f, fd, labels, glyphs: prof.glyphs, flow, ready: false, bmp: null, sinus: [], axons: [], shedAt: [], parts: [], last: 0, k, Wu, Hu };
+    art.fog = null; townCache = { key, art };
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas'); cv.width = Math.round(Wu * k); cv.height = Math.round(Hu * k);
+      try { cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); art.bmp = cv; art.ready = true; } catch (e) { art.failed = true; }
+      if (onReady) onReady();
+    };
+    img.onerror = () => { art.failed = true; };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    art.svgBytes = svg.length;
+    return art;
+  }
+  // Lymph: pale particles (and the odd lymphocyte) carried along the sinuses toward the hilum.
+  function lymph(ctx, art, V, mo, dt, still) {
+    const G = art.G, W = G.W, H = G.H, fl = art.flow, rnd = DD.rng(((art.seedN = (art.seedN || 7) + 1) * 2654435761) >>> 0);
+    const ok = (x, y) => x >= 0 && y >= 0 && x < W && y < H && (fl[((y | 0) * W + (x | 0)) * 2] || fl[((y | 0) * W + (x | 0)) * 2 + 1]);
+    const spawn = p => { for (let k = 0; k < 24; k++) { const x = V.x0 + rnd() * V.cols, y = V.y0 + rnd() * V.rows; if (ok(x, y)) { p.x = x; p.y = y; p.age = still ? rnd() * mo.life : 0; p.r = mo.size[0] + rnd() * (mo.size[1] - mo.size[0]); p.cell = rnd() < .15; return true; } } return false; };
+    while (art.parts.length < mo.count) { const p = {}; if (!spawn(p)) return; p.age = rnd() * mo.life; art.parts.push(p); }
+    tileT(ctx, V);
+    for (const p of art.parts) {
+      p.age += dt;
+      if (p.age > mo.life || !ok(p.x, p.y) || p.x < V.x0 - 1 || p.y < V.y0 - 1 || p.x > V.x0 + V.cols + 1 || p.y > V.y0 + V.rows + 1) { if (!spawn(p)) continue; }
+      const fx = p.x - .5, fy = p.y - .5, x0 = Math.floor(fx), y0 = Math.floor(fy), u = fx - x0, v = fy - y0; let vx = 0, vy = 0; // bilinear blend of the tile directions
+      for (const [dx, dy, w] of [[0, 0, (1 - u) * (1 - v)], [1, 0, u * (1 - v)], [0, 1, (1 - u) * v], [1, 1, u * v]]) { const a = x0 + dx, b = y0 + dy; if (a >= 0 && b >= 0 && a < W && b < H) { vx += fl[(b * W + a) * 2] * w; vy += fl[(b * W + a) * 2 + 1] * w; } }
+      const l = Math.hypot(vx, vy) || 1; p.x += vx / l * mo.speed * dt; p.y += vy / l * mo.speed * dt;
+      const al = clamp(Math.min(p.age / .8, mo.life - p.age), 0, 1) * mo.alpha;
+      ctx.globalAlpha = al; ctx.fillStyle = p.cell ? mo.cell : mo.fill; ctx.beginPath(); ctx.arc(p.x, p.y, p.cell ? .08 : p.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor. Drift: particles flow along the passages. Spark: action potentials run along axons. Contract: a muscle fiber shortens, striations bunching. Shed: squames lift off the skin surface. Wiggle: sperm tails beat in the lumen.
   function floorBase(ctx, art, V, now) {
     const still = !animated(), t = still ? 0 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0), M = art.M;
@@ -1121,6 +1269,7 @@ DD.mapart = (function () {
     if (mo && mo.type === 'contract') return contract(ctx, art, V, mo, dt, still);
     if (mo && mo.type === 'shed') return shed(ctx, art, V, mo, dt, still);
     if (mo && mo.type === 'wiggle') return wiggle(ctx, art, V, mo, dt, still);
+    if (mo && mo.type === 'lymph') return lymph(ctx, art, V, mo, dt, still);
     if (!mo || mo.type !== 'diapedesis' || !art.sinus.length) return;
     const inView = s => s.x > V.x0 - 1 && s.x < V.x0 + V.cols + 1 && s.y > V.y0 - 1 && s.y < V.y0 + V.rows + 1;
     const ports = art.sinus.filter(inView); if (!ports.length) return;
@@ -1238,6 +1387,7 @@ DD.mapart = (function () {
   function animated() { return !reduce.matches; }
   function forRun(run) {
     if (!run || !run.floor || !can()) return null;
+    if (run.townArt) { const ta = buildTown(run.floor, run.accent, run.seed >>> 0); return ta && ta.ready ? ta : null; } // V13: lymph node towns
     if (!run.trip) {
       if (!floorProfile(run)) return null;
       const fa = store.get(run.floor) || buildFloor(run.floor, run.regionId, run.floorIdx, (run.seed + run.floorIdx * 7919) >>> 0);
@@ -1248,7 +1398,7 @@ DD.mapart = (function () {
     return art && art.ready ? art : null;
   }
   return {
-    build, buildFloor, floorProfile, forRun, base, fog, sprite, glucose, labels, animated, kindOf,
+    build, buildFloor, buildTown, floorProfile, forRun, base, fog, sprite, glucose, labels, animated, kindOf,
     onReady(fn) { onReady = fn; },
     perf: { frames: 0, ms: 0 },
     has: f => !!store.get(f)
