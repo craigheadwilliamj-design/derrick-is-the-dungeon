@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers (dash/striate/branch), lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders/feet), nodules (rim/loops), strands, pits, fingers, somata, lamellae (pack/cells/vessel/cement/remnant), bundle, endings.
+// Painters (js/mapart.js): fibers (dash/striate/branch), lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders/feet), nodules (rim/loops), strands, pits, fingers, somata, lamellae (pack/cells/vessel/cement/remnant), bundle (encapsulated profiles), endings (cell), fingers (loop/tip), crossSections (central), vacuoles (pack).
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -610,6 +610,77 @@
       { text: 'Capillary', at: 'capillary' }, { text: 'Arteriole', at: 'arteriole' },
       { text: 'Perimysium', at: 'perimysium' }, { text: 'Neuromuscular junction (motor end plate)', at: 'nmj' }, { text: 'Muscle spindle: capsule, intrafusal fibers', at: 'spindle' },
       { text: 'Tendon: dense regular connective tissue', at: 'tendon' }, { text: 'Tenocytes in rows', at: 'tenocyte' }
+    ]
+  };
+
+  // ---------- Skin (thin skin; floors go epidermis over papillary dermis -> reticular dermis -> hypodermis) ----------
+  const skNuc = 'rgba(92,40,118,.84)', melanin = 'rgba(122,74,34,.75)';
+  const basale = { // stratum basale: one row of cuboidal to columnar keratinocytes with melanin caps, melanocytes (pale, dendritic, full of melanosomes)
+    band: [0, .4], fill: 'rgba(176,84,124,.9)', tag: 'basale',
+    painter: [
+      { p: 'nuclei', shape: 'elongated', per: 7, size: [2.6, 3.4], fill: skNuc, inset: .02 },
+      { p: 'nuclei', shape: 'round', per: 4, size: [.8, 1.3], fill: melanin },
+      { p: 'somata', shape: 'round', per: .25, size: [2.8, 3.2], fill: 'rgba(244,230,216,.5)', nissl: { n: 10, fill: melanin }, dendrites: { n: 4, stroke: 'rgba(200,150,110,.55)', w: 1 },
+        nucleus: 'rgba(92,40,118,.6)', nucleolus: 'rgba(92,40,118,.6)', inset: .01, tag: 'melanocyte' }
+    ]
+  };
+  const spinosum = { // stratum spinosum: polygonal keratinocytes, round central nuclei, spiny desmosome junctions; Langerhans cells (pale, dendritic)
+    band: [.4, 1.05], fill: 'rgba(212,124,154,.88)', tag: 'spinosum',
+    painter: [
+      { p: 'crossSections', per: 9, pack: true, r: [5.4, 7], wall: 'rgba(255,226,234,.5)', ww: 1.4, dash: '1 1.1', lumen: 'rgba(232,154,176,.42)', rbc: 0, nuclei: 0, central: 2.3, nucleus: skNuc, inset: .02 },
+      { p: 'somata', shape: 'round', per: .2, size: [3.2, 3.8], fill: 'rgba(246,228,238,.55)', dendrites: { n: 5, stroke: 'rgba(246,228,238,.5)', w: 1.1 },
+        nucleus: 'rgba(110,52,124,.75)', nucleolus: 'rgba(110,52,124,.75)', inset: .05, tag: 'langerhans' }
+    ]
+  };
+  const granulosum = { // stratum granulosum: flattened cells packed with dark keratohyalin granules
+    band: [1.05, 1.3], fill: 'rgba(178,92,150,.9)', tag: 'granulosum',
+    painter: [
+      { p: 'fibers', band: [1.05, 1.3], n: 2, even: true, stroke: 'rgba(255,226,240,.3)', w: 1, amp: 1, per: [20, 34] },
+      { p: 'nuclei', shape: 'flat', per: 1.4, size: [4, 5], fill: skNuc, inset: .02 },
+      { p: 'nuclei', shape: 'round', per: 9, size: [.7, 1.3], fill: 'rgba(54,18,70,.85)', tag: 'keratohyalin' }
+    ]
+  };
+  const corneum = { // stratum corneum: layers of flat, anucleate, keratin-filled squames in a loose basket weave. Thin skin, so no stratum lucidum
+    band: [1.3, 2.1], fill: 'rgba(240,168,190,.8)', tag: 'corneum',
+    painter: [{ p: 'fibers', band: [1.3, 2.1], n: 7, even: true, stroke: 'rgba(255,232,240,.5)', w: 1.1, amp: 1.8, per: [18, 30], dash: [26, 70, 6] }]
+  };
+  const skAir = { band: [2.1, null], fill: 'rgba(10,8,12,.94)', painter: [ // outside the body: a few loose squames already shed
+    { p: 'nuclei', shape: 'flat', per: .25, size: [6, 9], fill: 'rgba(240,168,190,.16)', inset: .2 }] };
+  const papillae = { // dermal papillae push up into the epidermis: basal cells around a loose connective tissue core with a capillary loop; some hold a tactile (Meissner) corpuscle
+    p: 'fingers', dir: 'in', at: 0, max: 1, every: [30, 48], len: [.5, .8], width: [18, 24], bend: .3, epi: 4,
+    epiFill: 'rgba(170,78,118,.92)', coreFill: 'rgba(226,176,188,.86)', nucleus: skNuc, goblets: [0, 0], core: 'rgba(214,52,68,.62)', coreW: 1.8, loop: true,
+    tip: { chance: .3, rx: 4.2, ry: 7.5, n: 5, fill: 'rgba(248,222,232,.7)', stroke: 'rgba(120,58,130,.55)', tag: 'meissner' }, tag: 'papilla', coreTag: 'capLoop'
+  };
+  const merkel = { p: 'endings', from: -.3, depth: .22, every: [160, 300], stroke: 'rgba(232,214,150,.7)', w: 1.2, fill: 'rgba(232,214,150,.85)', boutons: 2, // a sensory twig ending in a disc on a tactile (Merkel) cell
+    cell: { rx: 4.5, ry: 2.6, fill: 'rgba(246,236,226,.75)' }, tag: 'merkel' };
+  const skCap = per => ({ p: 'crossSections', per, r: [3.5, 5], wall: 'rgba(255,214,222,.5)', ww: 1, lumen: 'rgba(200,44,58,.3)', rbc: 0, nuclei: 1, nucleus: skNuc, inset: .1, tag: 'capillary' });
+  const hairF = { wall: 'rgba(250,214,222,.85)', ww: 2.6, lumen: 'rgba(234,206,208,.66)', rbc: 0, nucleus: skNuc, nr: [3.4, 2], every: [8, 12], tag: 'follicle', // hair follicle cut across: connective tissue sheath, pale outer root sheath
+    core: { inset: .22, fill: 'rgba(90,52,30,.88)', stroke: 'rgba(232,96,120,.85)', w: 3, tag: 'hair' } };                                     // inner root sheath (eosinophilic) ring around the pigmented hair shaft
+  const skFeatures = pillar => ({
+    pillar,
+    door: { lip: 'rgba(212,124,154,.74)', rim: 'rgba(252,232,238,.8)' },
+    stairs: { rim: 'rgba(252,232,238,.76)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  });
+  const epidermis = { // floor 1: the rooms are papillary dermis (loose connective tissue); the walls are the epidermis, basale to corneum, then outside skAir
+    walls: [skAir, corneum, granulosum, spinosum, basale],
+    edge: { stroke: 'rgba(255,236,242,.84)', w: 1.6 }, lining: [papillae, merkel],
+    floor: { fill: 'rgba(224,176,186,.15)', grain: .12, ambient: [
+      { p: 'strands', per: 1.6, len: [8, 18], stroke: 'rgba(252,228,234,.18)', w: .9, tag: 'papillary' },  // fine collagen and elastic fibers
+      { p: 'nuclei', shape: 'flat', per: .5, size: [4.5, 6], fill: 'rgba(92,40,118,.45)', tag: 'fibroblast' }, skCap(.12)
+    ] }, features: skFeatures(hairF),
+    motion: { type: 'shed', at: 2.1, count: 14, life: 9, dist: .9, sway: .15, tumble: .6, size: [.28, .05], fill: 'rgba(246,190,206,.5)', rim: 'rgba(255,236,242,.6)', alpha: .8 }
+  };
+  T.skin = {
+    accent: '#e0a57b',
+    depth: [epidermis, epidermis, epidermis],
+    labels: [
+      { text: 'Stratum basale', at: 'basale' }, { text: 'Melanocyte', at: 'melanocyte' }, { text: 'Stratum spinosum', at: 'spinosum' },
+      { text: 'Langerhans cell', at: 'langerhans' }, { text: 'Stratum granulosum: keratohyalin granules', at: 'granulosum' },
+      { text: 'Stratum corneum (thin skin: no stratum lucidum)', at: 'corneum' }, { text: 'Dermal papilla', at: 'papilla' }, { text: 'Capillary loop', at: 'capLoop' },
+      { text: 'Tactile (Meissner) corpuscle', at: 'meissner' }, { text: 'Tactile (Merkel) cell and nerve disc', at: 'merkel' },
+      { text: 'Papillary dermis: loose connective tissue', at: 'papillary' }, { text: 'Fibroblast', at: 'fibroblast' }, { text: 'Capillary', at: 'capillary' },
+      { text: 'Hair follicle', at: 'follicle' }, { text: 'Hair shaft', at: 'hair' }
     ]
   };
 })();
