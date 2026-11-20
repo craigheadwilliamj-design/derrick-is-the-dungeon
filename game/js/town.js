@@ -166,6 +166,8 @@ DD.town = (function () {
     g.floor.replaceChildren(el('b', null, town().name), el('small', null, st.zone ? TM.zones[st.zone].name : 'Lymph node'));
     g.glu.replaceChildren('Glucose ', el('b', null, p.glucose));
     g.run.replaceChildren(r ? 'HP ' : 'Run ', el('b', null, r ? Math.round(r.hp) + '/' + s.maxHP + ' · ATP ' + Math.round(r.atp) + '/' + s.maxATP : 'none'));
+    g.xp.replaceChildren('Lv ' + p.level + ' XP ', el('b', null, p.xp + '/' + s.xpToNext), DD.ui.pctBar('xp', DD.ui.pct(p.xp, s.xpToNext)));
+    if (g.bt) g.bt.update();
     g.log.replaceChildren(...st.msgs.slice(-DD.S.log.lines).reverse().map(t => el('div', null, t)));
   }
 
@@ -365,10 +367,14 @@ DD.town = (function () {
     if (st.f.npcs.some(n => n.kind === 'merchant')) say('A dendritic merchant is presenting its wares in the paracortex.');
     ui.mode = 'town';
     g.floor = el('div', { class: 'floorname' });
-    g.glu = el('div', { class: 'stat' }); g.run = el('div', { class: 'stat' });
+    g.glu = el('div', { class: 'stat' }); g.run = el('div', { class: 'stat' }); g.xp = el('div', { class: 'stat' });
+    g.bt = ui.bountyTracker();
+    g.atlas = el('div');
+    g.atlasPanel = el('details', { class: 'travel-atlas', ontoggle: () => { if (g.atlasPanel.open) g.atlas.replaceChildren(ui.circulationMap()); } },
+      el('summary', null, 'Body map'), g.atlas);
     g.canvas = el('canvas', { 'aria-label': t.name + ' town map' });
     g.banner = el('div', { class: 'banner', hidden: true, role: 'status' });
-    g.mapbox = el('div', { class: 'mapbox' }, g.canvas, g.banner);
+    g.mapbox = el('div', { class: 'mapbox' }, g.canvas, g.banner, g.atlasPanel);
     g.log = el('div', { class: 'log', 'aria-live': 'polite' });
     g.over = el('div', { class: 'overlay', hidden: true });
     const key = (label, dx, dy, cls) => {
@@ -379,9 +385,12 @@ DD.town = (function () {
     };
     const L = (ch, label, color) => el('span', null, el('b', { style: { color } }, ch), label);
     ui.mount(el('div', { class: 'screen game town', style: { '--accent': t.accent } },
-      el('div', { class: 'hud' }, g.floor, g.glu, g.run,
-        el('button', { class: 'btn small', type: 'button', title: 'Equipment and supplies', onclick: () => { savePos(); DD.gear.screen(() => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Gear')),
-      g.mapbox, g.log,
+      el('div', { class: 'hud' }, g.floor, g.run, g.xp, g.glu,
+        el('button', { class: 'btn small chartbtn', type: 'button', onclick: DD.derrickui.chart, title: 'Derrick’s vitals and what he has been up to' }, 'Chart'),
+        el('button', { class: 'btn small', type: 'button', title: 'Equipment and supplies', onclick: () => { savePos(); DD.gear.screen(() => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Gear'),
+        el('button', { class: 'btn small', type: 'button', title: 'Save and return to the title screen; Continue brings you back here', onclick: () => {
+          savePos(); if (g.ro) g.ro.disconnect(); g = {}; DD.save.save(); DD.save.flush(); DD.ui.title(); } }, 'Save & quit')),
+      g.bt.node, g.mapbox, g.log,
       el('div', { class: 'controls' },
         el('div', { class: 'dpad' }, key('↑', 0, -1, 'u'), key('←', -1, 0, 'l'), key('↓', 0, 1, 'd'), key('→', 1, 0, 'r')),
         el('div', { class: 'legend' }, L('@', 'you', '#fff'), L('☺', 'town cell', '#7fd6c2'), L('b t o f r', 'resident cells', '#9fc4ba'), L('¥', 'merchant', '#e0c060'),

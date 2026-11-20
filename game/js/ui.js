@@ -21,15 +21,23 @@ DD.ui = (function () {
     g.glu.replaceChildren('Glucose ', el('b', null, p.glucose), el('span', null, 'Tonics ' + (p.inventory.tonic || 0) + '/' + tonicCap));
   }
   // Existing town bounties stay visible while exploring; rewards are claimed at the helper T.
-  function hudBounties() {
-    if (!g.bounties) return;
+  // A collapsible bounty tracker; towns use it too. Returns { node, update }.
+  ui.bountyTracker = function () {
+    const o = { summary: el('summary'), rows: el('div', { class: 'bountyrows' }) };
+    o.node = el('details', { class: 'bountytracker' }, o.summary, o.rows,
+      el('p', { class: 'small dim' }, 'Collect completed rewards from the helper T cell in any lymph node town.'));
+    o.update = () => fillBounties(o);
+    o.update(); return o;
+  };
+  function hudBounties() { if (g.bt) g.bt.update(); }
+  function fillBounties(o) {
     const active = DD.save.profile.bounties.active;
     const signature = JSON.stringify(active);
-    if (signature === g.bountySignature) return;
-    g.bountySignature = signature;
+    if (signature === o.sig) return;
+    o.sig = signature;
     const ready = active.filter(b => b.done).length;
-    g.bountySummary.textContent = 'Bounties · ' + (ready ? ready + ' ready to claim' : active.length + ' active');
-    g.bountyRows.replaceChildren(...(active.length ? active.map(b =>
+    o.summary.textContent = 'Bounties · ' + (ready ? ready + ' ready to claim' : active.length + ' active');
+    o.rows.replaceChildren(...(active.length ? active.map(b =>
       el('div', { class: 'bountyrow' },
         el('div', { class: 'rhead' }, el('b', null, DD.bounty.text(b)),
           el('span', { class: 'chip' + (b.done ? ' ok' : '') }, b.done ? 'Ready to claim' : b.have + '/' + b.need)),
@@ -130,10 +138,7 @@ DD.ui = (function () {
       DD.gear.screen(ui.game);
     } }, 'Gear');
     g.abort = trip ? el('button', { class: 'btn small', onclick: ui.abortTrip, title: 'Give up this trip and wash back up where you set out' }, 'Abort') : null;
-    g.bountySummary = el('summary');
-    g.bountyRows = el('div', { class: 'bountyrows' });
-    g.bounties = el('details', { class: 'bountytracker' }, g.bountySummary, g.bountyRows,
-      el('p', { class: 'small dim' }, 'Collect completed rewards from the helper T cell in any lymph node town.'));
+    g.bt = ui.bountyTracker(); g.bounties = g.bt.node;
     g.strip = trip ? el('div', { class: 'strip', 'aria-label': 'Route' }) : null;
     g.canvas = el('canvas', { 'aria-label': trip ? 'Vessel map' : 'Dungeon map' });
     g.banner = el('div', { class: 'banner', hidden: true, role: 'status' });

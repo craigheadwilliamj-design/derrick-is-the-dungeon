@@ -203,8 +203,8 @@ DD.gear = (function () {
     return true;
   };
   function supplies(rerender){
-    const r=resources(),st=DD.game.stats(),ids=Object.keys(FIELD_USE).filter(id=>DD.combat.count(id));
-    const btn=id=>{const why=out.fieldWhy(id);
+    const r=resources(),st=DD.game.stats(),ids=DD.data.itemOrder.filter(id=>DD.combat.count(id));
+    const btn=id=>{if(!FIELD_USE[id])return el('span',{class:'chip'},'Battle only');const why=out.fieldWhy(id);
       if(id!=='lymphDrain'||why)return el('button',{class:'btn small',type:'button',disabled:!!why,title:why,onclick:()=>{out.useField(id);rerender();}},why||'Use');
       return drainArmed?el('button',{class:'btn small primary',type:'button',onclick:()=>out.useField(id)},'Confirm: return to the '+DD.data.town(DD.game.drainTown()).name)
         :el('button',{class:'btn small',type:'button',onclick:()=>{drainArmed=true;rerender();}},'Use');};
@@ -213,8 +213,8 @@ DD.gear = (function () {
       ids.length?ids.map(id=>{const d=DD.data.items[id];
         return el('div',{class:'shoprow',style:{alignSelf:'stretch'}},el('div',{class:'shopinfo'},el('b',null,d.name),el('span',{class:'chip'},'×'+DD.combat.count(id)+(d.cap?' / '+d.cap:'')),
           el('div',{class:'small'},d.tip),el('div',{class:'small dim'},d.real)),btn(id));})
-        :el('p',{class:'small dim'},'No O-Neg Bags, Creatine Shakes or Lymph Drains on you. The plasma cell shop in every lymph node town sells them.'),
-      el('p',{class:'small dim'},'Other supplies are used from the Items menu in battle.'));
+        :el('p',{class:'small dim'},'You are not carrying any supplies. The plasma cell shop in every lymph node town sells them.'),
+      el('p',{class:'small dim'},'O-Neg Bag, Creatine Shake and Lymph Drain work here. Everything else is used from the Items menu in battle.'));
   }
   out.summary=()=>out.equippedIds().map(id=>by(id).name).join(', ')||'nothing equipped';
   return out;
