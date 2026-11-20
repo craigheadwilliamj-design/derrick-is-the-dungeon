@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers (dash/striate/branch), lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders/feet), nodules (rim/loops), strands, pits, fingers, somata, lamellae (pack/cells/vessel/cement/remnant).
+// Painters (js/mapart.js): fibers (dash/striate/branch), lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders/feet), nodules (rim/loops), strands, pits, fingers, somata, lamellae (pack/cells/vessel/cement/remnant), bundle, endings.
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -542,6 +542,49 @@
       { text: 'Bone lining cells (endosteum)', at: 'liningCells' }, { text: 'Vessel in the canal', at: 'canalVessel' },
       { text: 'Spongy bone trabecula', at: 'trabecula' }, { text: 'Osteoblasts', at: 'osteoblast' }, { text: 'Yellow marrow: adipocytes', at: 'adipocyte' },
       { text: 'Sinusoid', at: 'sinusoid' }, { text: 'Medullary cavity', at: 'medullary' }
+    ]
+  };
+  // ---------- Quadriceps (skeletal muscle; floors go epimysium and fascia -> fascicles -> deep fascicles toward the tendon) ----------
+  const qNuc = 'rgba(96,42,120,.86)';
+  const skm = band => ({ // skeletal muscle fibers cut lengthwise: long, unbranched, cross-striated (dark A bands, pale I bands), nuclei flat at the edge; pale endomysium between fibers
+    band, fill: 'rgba(236,190,196,.82)', tag: 'skm',
+    painter: [{ p: 'fibers', band, n: Math.round((band[1] - band[0]) * 4), even: true, stroke: 'rgba(206,70,86,.9)', w: 8, amp: 1.2, per: [60, 110], dash: [420, 900, 1.5],
+      striate: 'rgba(110,22,44,.4)', sw: 8, sdash: '2 1.8', nuclei: { every: [26, 60], size: [5, 1.5], fill: qNuc, tag: 'periph' }, trace: true }]
+  });
+  const skmX = a => ({ // fibers of the next fascicle cut across: polygonal profiles, nuclei at the periphery, endomysium between them
+    band: [a, null], fill: 'rgba(40,12,18,.94)',
+    painter: [{ p: 'crossSections', per: 3, pack: true, r: [7, 10], wall: 'rgba(240,200,206,.4)', ww: 1.1, lumen: 'rgba(200,66,82,.42)', rbc: 0, nuclei: 1, nr: [2.6, 1.3], nucleus: qNuc, inset: .03, tag: 'skmX' }]
+  });
+  const qCap = per => ({ p: 'crossSections', per, r: [3.5, 5], wall: 'rgba(255,214,222,.5)', ww: 1, lumen: 'rgba(200,44,58,.3)', rbc: 0, nuclei: 1, nucleus: qNuc, inset: .1, tag: 'capillary' });
+  const looseCT = (fb, fat) => [ // loose connective tissue: thin collagen and elastic fibers, fibroblasts, capillaries, the odd adipocyte
+    { p: 'strands', per: 1.4, len: [10, 22], stroke: 'rgba(250,226,232,.16)', w: 1, tag: 'loose' },
+    { p: 'nuclei', shape: 'flat', per: fb, size: [4.5, 6], fill: 'rgba(96,42,120,.45)', tag: 'fibroblast' },
+    { p: 'vacuoles', per: fat, r: [12, 17], stroke: 'rgba(250,236,214,.36)', fill: 'rgba(14,8,10,.1)', nucleus: 'rgba(96,42,120,.45)', inset: .15, tag: 'fat' },
+    qCap(.08)
+  ];
+  const qFeatures = {
+    pillar: { wall: 'rgba(240,176,194,.9)', ww: 5, lumen: 'rgba(110,22,34,.7)', rbc: 2, nucleus: qNuc, nr: [5, 1.6], every: [14, 22], tag: 'arteriole' }, // arterioles running in the connective tissue
+    door: { lip: 'rgba(206,70,86,.74)', rim: 'rgba(255,220,224,.8)' },
+    stairs: { rim: 'rgba(255,220,224,.76)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  };
+  const contract = { type: 'contract', fill: 'rgb(214,92,106)', band: 'rgba(110,22,44,.7)', w: .2, bw: .05, gap: .095 }; // matches the baked fiber and its striation period (3.8 units)
+  const epimysium = { // floor 1: the room is loose connective tissue of the fascia; the wall is the epimysium wrapping the muscle, then the fibers
+    walls: [skmX(2.8), skm([1.2, 2.8]),
+      { band: [0, 1.2], fill: 'rgba(230,186,196,.86)', tag: 'epimysium', painter: [   // epimysium: dense irregular connective tissue, coarse collagen bundles, flat fibroblast nuclei
+        { p: 'fibers', band: [0, 1.2], n: 8, stroke: 'rgba(255,236,240,.36)', w: 1.8, amp: 2.6, per: [16, 30] },
+        { p: 'nuclei', shape: 'flat', per: 1.2, size: [5, 6.5], fill: qNuc, inset: .04 }] }],
+    edge: { stroke: 'rgba(255,236,240,.86)', w: 1.8 }, lining: [],
+    floor: { fill: 'rgba(210,160,170,.15)', grain: .12, ambient: looseCT(.5, .3) }, features: qFeatures, motion: contract
+  };
+  T.quads = {
+    accent: '#d8665f',
+    depth: [epimysium],
+    labels: [
+      { text: 'Epimysium: dense irregular connective tissue', at: 'epimysium' }, { text: 'Skeletal muscle fibers: striated, A and I bands', at: 'skm' },
+      { text: 'Peripheral nuclei', at: 'periph' }, { text: 'Muscle fibers cut across', at: 'skmX' },
+      { text: 'Loose connective tissue', at: 'loose' }, { text: 'Fibroblast', at: 'fibroblast' }, { text: 'Adipocyte', at: 'fat' },
+      { text: 'Capillary', at: 'capillary' }, { text: 'Arteriole', at: 'arteriole' }
     ]
   };
 })();
