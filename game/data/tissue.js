@@ -299,8 +299,8 @@
   });
   const dark = (a, painter) => ({ band: [a, null], fill: 'rgba(22,8,14,.94)', painter });
   const ganglion = (per, tag) => ({ // enteric plexus ganglion: large neuron cell bodies (big pale nucleus, nucleolus) with satellite glial cells
-    p: 'nodules', per, r: [20, 30], stretch: [1.2, 1.8], fill: 'rgba(240,200,214,.16)', inset: .1, tag,
-    cells: { per: 7, size: [4, 5.5], fill: 'rgba(130,70,150,.42)' }
+    p: 'nodules', per, r: [14, 20], stretch: [1.2, 1.6], fill: 'rgba(240,200,214,.12)', inset: .1, tag,
+    cells: { per: 5, size: [3.6, 4.6], fill: 'rgba(130,70,150,.34)' }
   });
   const chyme = [ // the lumen: chyme haze (food particles, fat droplets) and mucus strands
     { p: 'nuclei', shape: 'round', per: 1.8, size: [2, 4.5], fill: 'rgba(214,180,96,.14)' },
@@ -326,21 +326,22 @@
       { // 2: submucosa with Meissner's plexus, between the muscularis mucosae and the inner circular layer
         walls: [dark(.9, [{ p: 'nuclei', shape: 'round', per: 1, size: [2.2, 3], cell: [6, 8], cellFill: 'rgba(204,96,120,.14)', fill: 'rgba(100,46,128,.3)' }]), gSmooth([0, .9], 'mm')],
         edge: { stroke: 'rgba(255,226,234,.8)', w: 1.8 }, lining: [],
-        floor: { fill: 'rgba(214,150,170,.2)', grain: .12, ambient: [
-          { p: 'fibers', n: 4, stroke: 'rgba(255,226,234,.12)', w: 1.6, amp: 3, per: [16, 30] },
+        floor: { fill: 'rgba(214,150,170,.24)', grain: .12, ambient: [
+          { p: 'strands', per: 1.4, len: [12, 26], stroke: 'rgba(255,226,234,.2)', w: 1.4 },
+          { p: 'fibers', n: 4, stroke: 'rgba(255,226,234,.16)', w: 1.6, amp: 3, per: [16, 30] },
           { p: 'nuclei', shape: 'flat', per: .5, size: [4.5, 6], fill: 'rgba(100,46,128,.42)' },
-          ganglion(.02, 'meissner'),
-          { p: 'crossSections', per: .03, r: [9, 13], wall: 'rgba(248,170,190,.6)', ww: 3.5, lumen: 'rgba(90,16,28,.3)', rbc: 1, nuclei: 3, nucleus: gNuc, inset: .2, tag: 'arteriole' },
-          { p: 'crossSections', per: .03, r: [12, 17], wall: 'rgba(255,214,224,.45)', ww: 1.4, lumen: 'rgba(90,16,28,.25)', rbc: 2, nuclei: 2, nucleus: gNuc, inset: .2, tag: 'venule' }
+          ganglion(.035, 'meissner'),
+          { p: 'crossSections', per: .03, r: [9, 13], wall: 'rgba(248,170,190,.5)', ww: 3, lumen: 'rgba(90,16,28,.2)', rbc: 0, nuclei: 3, nucleus: gNuc, inset: .2, tag: 'arteriole' },
+          { p: 'crossSections', per: .03, r: [12, 17], wall: 'rgba(255,214,224,.4)', ww: 1.4, lumen: 'rgba(90,16,28,.18)', rbc: 0, nuclei: 2, nucleus: gNuc, inset: .2, tag: 'venule' }
         ] }, features: gFeatures(artX), motion: { type: 'peristalsis' }
       },
       { // 3: muscularis externa: the floor is the plane between the inner circular and outer longitudinal layers, holding Auerbach's plexus
         walls: [dark(2.2), gSmooth([1, 2.2], 'outerLong', true), gSmooth([0, 1], 'innerCirc')],
         edge: { stroke: 'rgba(255,214,224,.8)', w: 1.8 }, lining: [],
-        floor: { fill: 'rgba(214,160,176,.16)', grain: .12, ambient: [
-          { p: 'strands', per: .9, len: [10, 22], stroke: 'rgba(255,230,236,.14)', w: .9 },
-          ganglion(.045, 'auerbach'),
-          { p: 'crossSections', per: .08, r: [4.5, 6], wall: 'rgba(255,220,230,.4)', ww: 1, lumen: 'rgba(150,30,44,.3)', rbc: 1, nuclei: 1, nucleus: gNuc, inset: .05, tag: 'capillary' }
+        floor: { fill: 'rgba(214,160,176,.22)', grain: .12, ambient: [
+          { p: 'strands', per: 1.4, len: [10, 22], stroke: 'rgba(255,230,236,.2)', w: 1 },
+          ganglion(.06, 'auerbach'),
+          { p: 'crossSections', per: .08, r: [4.5, 6], wall: 'rgba(255,220,230,.4)', ww: 1, lumen: 'rgba(150,30,44,.3)', rbc: 0, nuclei: 1, nucleus: gNuc, inset: .05, tag: 'capillary' }
         ] }, features: gFeatures(artX), motion: { type: 'peristalsis' }
       }
     ],
