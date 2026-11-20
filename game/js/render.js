@@ -13,9 +13,9 @@ DD.render = (function () {
     }
     return { w, h, dpr };
   }
-  // Circulation segments with map art (V1) animate: one frame per display refresh while the map is showing.
+  // Circulation segments (V1) and dungeon floors (V2) with map art animate: one frame per display refresh while the map is showing.
   let raf = 0, live = null;
-  const tick = () => { raf = 0; const run = DD.game && DD.game.run; if (live && live.isConnected && run && run.trip && !DD.game.combat) draw(live, run); };
+  const tick = () => { raf = 0; const run = DD.game && DD.game.run; if (live && live.isConnected && run && run.floor && !DD.game.combat) draw(live, run); };
   if (DD.mapart) DD.mapart.onReady(() => { if (DD.ui && DD.ui.refreshMap) DD.ui.refreshMap(true); });
   function draw(canvas, run) {
     if (!colors) loadColors();

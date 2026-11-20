@@ -1,4 +1,4 @@
-// Map art for circulation segments (phase V1). A segment's tile grid becomes translucent SVG tissue, baked once into a
+// Map art for circulation segments (phase V1) and dungeon floors (V2, profiles in data/tissue.js). A segment's tile grid becomes translucent SVG tissue, baked once into a
 // bitmap, plus a cheap live layer (arterial pulse, flowing cells, valve leaflets, heartbeat). Grid, movement, FOV and
 // game logic are untouched; nothing is saved. See docs/design.html "Map art: tissue, not glyphs" and the V1 card.
 DD.mapart = (function () {
@@ -494,6 +494,7 @@ DD.mapart = (function () {
   const localT = (ctx, V, M) => { const s = V.dpr * V.ts / U; ctx.setTransform(s, 0, 0, s, V.dpr * (V.ox + (-M - V.x0) * V.ts), V.dpr * (V.oy + (-M - V.y0) * V.ts)); };
 
   function base(ctx, art, V, now) {
+    if (art.floorArt) return floorBase(ctx, art, V, now);
     const st = S(), G = art.G, M = G.M, still = !animated();
     const t = still ? 0.3 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0);
     art.last = t;
@@ -674,15 +675,252 @@ DD.mapart = (function () {
   }
   function nearExplored(f, x, y) { for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const a = x + dx, b = y + dy; if (a >= 0 && b >= 0 && a < f.W && b < f.H && f.explored[b * f.W + a]) return true; } return false; }
 
+  // ---------- dungeon floors (V2): tissue profiles from data/tissue.js ----------
+  // Painter library. Each paints the band [a, b] (tiles from the room edge; negative is floor) into P, seeded by P.R.
+  // c: { fd, tag(name, X, Y), sinus: [], inHub(X, Y) }. Later cards reuse these and add one only when none fits.
+  const deg = t => n1(t);
+  const fits = (fd, X, Y, a, b, m) => { const d = sdU(fd, X, Y); return d - m >= a && d + m <= b; };
+  const normalAt = (fd, X, Y) => grad(fd, X, Y); // points into the wall
+  const LIB = {
+    fibers(P, o, a, b) { // strokes following the wall, evenly or randomly spaced; optional striations
+      for (let k = 0; k < (o.n || 6); k++) {
+        const lv = o.even ? a + (b - a) * (k + .5) / o.n : P.R(a, b);
+        P.line(lv, o.stroke, o.w || 1.4, { wave: [o.amp == null ? 2 : o.amp, P.R(o.per[0], o.per[1]), P.R(0, 6)], dash: `${P.R(40, 110) | 0} ${P.R(6, 18) | 0}`, off: P.R(0, 60) | 0 });
+        if (o.striate) P.line(lv, o.striate, (o.w || 1.4) * 1.6, { dash: '1.2 3' });
+      }
+    },
+    lamellae(P, o, a, b, c) { // concentric rings around a central canal
+      P.scatter(a, b, o.per, (X, Y) => {
+        const r = P.R(o.r[0], o.r[1]); if (!fits(c.fd, X, Y, a, b, r / U)) return;
+        let s = ''; for (let k = 1; k <= (o.rings || 4); k++) s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r * k / (o.rings || 4))}" fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.2}"/>`;
+        P.push(s + `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r * .18)}" fill="${o.canal || 'rgba(20,8,12,.6)'}"/>`); c.tag(o.tag, X, Y);
+      });
+    },
+    lining(P, o, a, b, c) { // a row of cells along an edge, on the floor side; nuclei placed by cell shape
+      const [w, h] = o.size, L = P.C(o.at || 0);
+      for (const l of L) {
+        let on = P.R(0, 1) < (o.cover == null ? 1 : o.cover), run = 0, s = 0;
+        for (let i = 1; i < l.length; i++) {
+          const p = l[i], q = l[i - 1]; s += Math.hypot(p[0] - q[0], p[1] - q[1]);
+          if (s < w * 1.1) continue; s = 0;
+          if (++run > P.R(3, 9)) { run = 0; on = P.R(0, 1) < (o.cover == null ? 1 : o.cover); }
+          const hub = c.inHub(p[0], p[1]);
+          if (!on || (o.hub === false && hub) || (o.hub === true && !hub)) continue;
+          const t = Math.atan2(p[1] - q[1], p[0] - q[0]), nv = normalAt(c.fd, p[0], p[1]);
+          const X = p[0] - nv[0] * h / 2, Y = p[1] - nv[1] * h / 2, side = -Math.sin(t) * nv[0] + Math.cos(t) * nv[1] > 0 ? 1 : -1; // +y local toward the wall
+          let nu;
+          if (o.shape === 'squamous') nu = `<ellipse cx="0" cy="0" rx="${n1(w * .3)}" ry="${n1(h * .32)}" fill="${o.nucleus}"/>`;
+          else if (o.shape === 'columnar') nu = `<ellipse cx="0" cy="${n1(side * h * .22)}" rx="${n1(w * .22)}" ry="${n1(h * .2)}" fill="${o.nucleus}"/>`;
+          else nu = `<circle cx="0" cy="0" r="${n1(Math.min(w, h) * .3)}" fill="${o.nucleus}"/>`;
+          P.push(`<g transform="translate(${n1(X)} ${n1(Y)}) rotate(${deg(t * 57.2958)})"><rect x="${n1(-w / 2)}" y="${n1(-h / 2)}" width="${w}" height="${h}" rx="${n1(Math.min(w, h) * .4)}" fill="${o.fill}"/>${nu}</g>`);
+          c.tag(o.tag, X, Y);
+        }
+      }
+    },
+    nuclei(P, o, a, b, c) { // scatter by shape: round, flat, elongated, lobed; optional cytoplasm or lacuna with canaliculi
+      P.scatter(a, b, o.per, (X, Y, t) => {
+        const r = P.R(o.size[0], o.size[1]), cr = o.cell ? P.R(o.cell[0], o.cell[1]) : r;
+        if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + cr / U)) return;
+        let s = '';
+        if (o.cell) s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(cr)}" fill="${o.cellFill}"/>`;
+        const rot = n1(t + P.R(-15, 15)), tr = `transform="rotate(${rot} ${n1(X)} ${n1(Y)})"`;
+        if (o.lacuna) {
+          s += `<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="${n1(r * 1.9)}" ry="${n1(r * .95)}" ${tr} fill="${o.lacuna}"/>`;
+          if (o.canaliculi) for (let k = 0; k < 6; k++) { const an = P.R(0, 6.28), l = P.R(8, 14); s += `<line x1="${n1(X)}" y1="${n1(Y)}" x2="${n1(X + Math.cos(an) * l)}" y2="${n1(Y + Math.sin(an) * l)}" stroke="${o.canaliculi}" stroke-width=".8"/>`; }
+        }
+        if (o.shape === 'lobed') { s += `<g fill="${o.fill}" opacity="${o.opacity || 1}">`; for (let k = 0, n = P.R(3, 5.99) | 0; k < n; k++) { const an = k / n * 6.28 + P.R(-.3, .3); s += `<circle cx="${n1(X + Math.cos(an) * r * .55)}" cy="${n1(Y + Math.sin(an) * r * .55)}" r="${n1(r * .55)}"/>`; } s += '</g>'; }
+        else { const ry = o.shape === 'flat' ? r * .3 : o.shape === 'elongated' ? r * .55 : r; s += `<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="${n1(r)}" ry="${n1(ry)}" ${tr} fill="${o.fill}"/>`; }
+        P.push(s); c.tag(o.tag, X, Y);
+      });
+    },
+    vacuoles(P, o, a, b, c) { // empty round cells (adipocytes): thin rim, a flattened nucleus pushed to the edge
+      const placed = [];
+      P.scatter(a, b, o.per, (X, Y) => {
+        const r = P.R(o.r[0], o.r[1]); if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + r / U)) return;
+        if (placed.some(q => Math.hypot(q[0] - X, q[1] - Y) < q[2] + r - 2)) return;
+        placed.push([X, Y, r]);
+        let s = `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r)}" fill="${o.fill || 'none'}" stroke="${o.stroke}" stroke-width="1.3"/>`;
+        if (o.nucleus && P.R(0, 1) < .5) { const an = P.R(0, 6.28), nx = X + Math.cos(an) * r * .86, ny = Y + Math.sin(an) * r * .86; s += `<ellipse cx="${n1(nx)}" cy="${n1(ny)}" rx="${n1(r * .32)}" ry="${n1(r * .12)}" transform="rotate(${deg(an * 57.2958 + 90)} ${n1(nx)} ${n1(ny)})" fill="${o.nucleus}"/>`; }
+        P.push(s); c.tag(o.tag, X, Y);
+      });
+    },
+    crossSections(P, o, a, b, c) { // tubes or vessels cut across: wall ring, lumen, flat wall nuclei, optional red cells
+      P.scatter(a, b, o.per, (X, Y) => {
+        const r = P.R(o.r[0], o.r[1]); if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + r / U)) return;
+        let s = `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r)}" fill="${o.lumen}" stroke="${o.wall}" stroke-width="${o.ww || 2}"/>`;
+        for (let k = 0; k < (o.nuclei || 0); k++) { const an = P.R(0, 6.28), nx = X + Math.cos(an) * r, ny = Y + Math.sin(an) * r; s += `<ellipse cx="${n1(nx)}" cy="${n1(ny)}" rx="5" ry="1.8" transform="rotate(${deg(an * 57.2958 + 90)} ${n1(nx)} ${n1(ny)})" fill="rgba(122,58,128,.8)"/>`; }
+        for (let k = 0; k < (o.rbc || 0); k++) { const an = P.R(0, 6.28), d = P.R(0, r * .6); s += `<ellipse cx="${n1(X + Math.cos(an) * d)}" cy="${n1(Y + Math.sin(an) * d)}" rx="5" ry="${n1(P.R(3, 5))}" fill="url(#rbc)"/>`; }
+        P.push(s); c.tag(o.tag, X, Y);
+        if (o.sinus) for (let k = 0; k < 8; k++) { const an = k / 8 * 6.28; c.sinus.push({ x: X / U - c.M + Math.cos(an) * r / U, y: Y / U - c.M + Math.sin(an) * r / U, nx: -Math.cos(an), ny: -Math.sin(an), span: r / U * .8 }); }
+      });
+    },
+    strands(P, o, a, b, c) { // loose fibers and collagen
+      P.scatter(a, b, o.per, (X, Y) => { const an = P.R(0, 6.28), l = P.R(o.len[0], o.len[1]), bx = X + Math.cos(an) * l, by = Y + Math.sin(an) * l; P.push(`<path fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.2}" d="M${n1(X)},${n1(Y)} Q${n1((X + bx) / 2 + P.R(-l, l) * .3)},${n1((Y + by) / 2 + P.R(-l, l) * .3)} ${n1(bx)},${n1(by)}"/>`); c.tag(o.tag, X, Y); });
+    },
+    pits(P, o, a, b, c) { // a shallow resorption pit in the wall surface holding a large multinucleated cell
+      along(P.C(0), P.R.bind(null, 0, 1), o.every[0], o.every[1], (p, t) => {
+        const hub = c.inHub(p[0], p[1]); if ((o.hub === false && hub) || (o.hub === true && !hub)) return;
+        const nv = normalAt(c.fd, p[0], p[1]), w = P.R(o.width[0], o.width[1]), dp = o.depth * U, rot = `rotate(${deg(t)} `;
+        const px = p[0] + nv[0] * dp * .3, py = p[1] + nv[1] * dp * .3, cx = p[0] - nv[0] * dp * .15, cy = p[1] - nv[1] * dp * .15;
+        let s = `<ellipse cx="${n1(px)}" cy="${n1(py)}" rx="${n1(w / 2)}" ry="${n1(dp * .7)}" transform="${rot}${n1(px)} ${n1(py)})" fill="${o.fill}" stroke="${o.rim}" stroke-width="1.4" stroke-dasharray="3 2"/>`;
+        s += `<ellipse cx="${n1(cx)}" cy="${n1(cy)}" rx="${n1(w * .46)}" ry="${n1(dp * .62)}" transform="${rot}${n1(cx)} ${n1(cy)})" fill="${o.cell}"/>`;
+        for (let k = 0, n = P.R(o.nuclei[0], o.nuclei[1] + .99) | 0; k < n; k++) { const u = (k + .5) / n - .5, ex = cx + Math.cos(t * .01745) * u * w * .75, ey = cy + Math.sin(t * .01745) * u * w * .75; s += `<circle cx="${n1(ex)}" cy="${n1(ey)}" r="3.4" fill="${o.nucleus}"/>`; }
+        P.push(s); c.tag(o.tag, cx, cy);
+      });
+    }
+  };
+  const paint = (P, list, a, b, c) => { for (const o of [].concat(list || [])) LIB[o.p](P, o, a, b == null ? 999 : b, c); };
+
+  // Collision stays on the tiles: pin each tile centre (and the samples around it) to its own side of the edge, so a
+  // smoothed contour can never cover a walkable tile or expose a wall tile as floor.
+  function pin(fd, G, pred, m) {
+    const s = fd.s, nx = fd.nx;
+    for (let y = -G.M; y < G.H + G.M; y++) for (let x = -G.M; x < G.W + G.M; x++) {
+      const inside = pred(x, y), ci = (x + G.M) * s + (s >> 1), cj = (y + G.M) * s + (s >> 1);
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const i = ci + di, j = cj + dj; if (i < 1 || j < 1 || i >= nx - 1 || j >= fd.ny - 1) continue;
+        const k = j * nx + i; fd.F[k] = inside ? Math.min(fd.F[k], -m) : Math.max(fd.F[k], m);
+      }
+    }
+    return fd;
+  }
+  function floorGrid(f) {
+    const W = f.W, H = f.H, g = f.g, M = S().floor.margin, lum = new Uint8Array(W * H), pill = new Uint8Array(W * H), pillars = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g[y][x] !== '#') lum[y * W + x] = 1;
+    const seen = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) { // pillars: small wall islands cut off by corridors
+      if (lum[i] || seen[i]) continue;
+      const q = [i], cells = []; let edge = false; seen[i] = 1;
+      while (q.length) { const k = q.pop(), x = k % W, y = (k / W) | 0; cells.push(k); if (!x || !y || x === W - 1 || y === H - 1) edge = true; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy, j = b * W + a; if (a >= 0 && b >= 0 && a < W && b < H && !lum[j] && !seen[j]) { seen[j] = 1; q.push(j); } } }
+      if (!edge && cells.length <= S().floor.pillarMax) { pillars.push(cells); for (const k of cells) pill[k] = 1; }
+    }
+    const walk = (tx, ty) => tx >= 0 && ty >= 0 && tx < W && ty < H && (lum[ty * W + tx] || pill[ty * W + tx]) > 0;
+    return { W, H, M, lum, pill, pillars, walk };
+  }
+
+  function buildFloor(f, regionId, idx, seed) {
+    const prof = DD.data.tissue && DD.data.tissue[regionId];
+    if (!f || !prof || f.tiles || !can()) return null;
+    const have = store.get(f); if (have) return have;
+    const st = S(), sf = st.floor, D = prof.depth[Math.min(idx, prof.depth.length - 1)], next = prof.depth[idx + 1];
+    const G = floorGrid(f), M = G.M, TW = G.W + 2 * M, TH = G.H + 2 * M, Wu = TW * U, Hu = TH * U, cap = sf.cap;
+    const r = DD.rng((seed ^ hash(regionId + ':' + idx)) >>> 0), fd = pin(field(G, G.walk, cap), G, G.walk, sf.pin), P = painter(fd, r, Wu, Hu);
+    const anchors = {}, sinus = [];
+    const hubRoom = D.hub && f.exit ? (f.rooms || []).find(m => f.exit.x >= m.x && f.exit.x < m.x + m.w && f.exit.y >= m.y && f.exit.y < m.y + m.h) : null;
+    const hb = hubRoom && [(hubRoom.x + M - .6) * U, (hubRoom.y + M - .6) * U, (hubRoom.x + hubRoom.w + M + .6) * U, (hubRoom.y + hubRoom.h + M + .6) * U];
+    const c = { fd, sinus, M, tag: (k, X, Y) => { if (k) (anchors[k] = anchors[k] || []).push([X, Y]); }, inHub: (X, Y) => !!hb && X >= hb[0] && X <= hb[2] && Y >= hb[1] && Y <= hb[3] };
+    // walls, outermost band first
+    for (const w of D.walls) {
+      P.band(w.band[0], w.band[1], w.fill); paint(P, w.painter, w.band[0], w.band[1], c);
+      if (w.tag) along(P.C((w.band[0] + Math.min(w.band[1] == null ? cap : w.band[1], cap)) / 2), r, U * 10, U * 16, p => c.tag(w.tag, p[0], p[1]));
+    }
+    // floor: fill and baked ambient haze; the hub room is a sinusoid lumen
+    P.band(-999, 0, D.floor.fill);
+    if (hb) {
+      P.push(`<clipPath id="hubc"><rect x="${n1(hb[0])}" y="${n1(hb[1])}" width="${n1(hb[2] - hb[0])}" height="${n1(hb[3] - hb[1])}"/></clipPath><path clip-path="url(#hubc)" fill="${D.hub.fill}" d="${pathD(P.C(0))}"/>`);
+      P.scatter(-999, -.3, D.hub.rbc, (X, Y) => { if (c.inHub(X, Y)) P.push(`<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="6" ry="${n1(P.R(3, 6))}" transform="rotate(${P.R(0, 180) | 0} ${n1(X)} ${n1(Y)})" fill="url(#rbc)" opacity=".4"/>`); });
+      c.tag(D.hub.tag, (hb[0] + hb[2]) / 2, (hb[1] + hb[3]) / 2);
+    }
+    paint(P, D.floor.ambient, -999, 0, c);
+    // pillars: small wall islands drawn as the profile's pillar feature (marrow: venous sinusoids)
+    const pf = D.features && D.features.pillar;
+    if (pf) for (const cells of G.pillars) {
+      const set = new Set(cells), xs = cells.map(k => k % G.W), ys = cells.map(k => (k / G.W) | 0);
+      const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+      const isP = (x, y) => x >= 0 && y >= 0 && x < G.W && y < G.H && set.has(y * G.W + x), pfd = pin(field(G, isP, 2, box), G, isP, sf.pin), L = contours(pfd, 0);
+      P.push(`<path fill="${pf.lumen}" stroke="${pf.wall}" stroke-width="2.4" d="${pathD(L)}"/>`);
+      along(L, r, 26, 48, (p, t) => P.push(`<ellipse cx="${n1(p[0])}" cy="${n1(p[1])}" rx="6" ry="1.8" transform="rotate(${deg(t)} ${n1(p[0])} ${n1(p[1])})" fill="${pf.nucleus}"/>`));
+      for (let k = 0; k < cells.length * pf.rbc; k++) { const X = (P.R(box[0], box[2] + 1) + M) * U, Y = (P.R(box[1], box[3] + 1) + M) * U; if (sdU(pfd, X, Y) < -.15) P.push(`<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="6" ry="${n1(P.R(3, 6))}" transform="rotate(${P.R(0, 180) | 0} ${n1(X)} ${n1(Y)})" fill="url(#rbc)"/>`); }
+      c.tag(pf.tag, (box[0] + box[2] + 1) / 2 * U + M * U, (box[1] + box[3] + 1) / 2 * U + M * U);
+      for (const l of L) for (let i = 0; i < l.length; i += 6) { const p = l[i], g2 = grad(pfd, p[0], p[1]); sinus.push({ x: p[0] / U - M, y: p[1] / U - M, nx: -g2[0], ny: -g2[1], span: .5 }); }
+    }
+    // doors narrow the passage; stairs open into the next depth, tinted with its colours; rest pockets glow
+    const ft = D.features || {};
+    for (let y = 0; y < G.H; y++) for (let x = 0; x < G.W; x++) {
+      const ch = f.g[y][x], X = (x + .5 + M) * U, Y = (y + .5 + M) * U;
+      if (ch === '+' && ft.door) {
+        const horiz = f.g[y][x - 1] === '#' && f.g[y][x + 1] === '#', dx = horiz ? 1 : 0, dy = horiz ? 0 : 1;
+        for (const s of [-1, 1]) P.push(`<ellipse cx="${n1(X + s * dx * U * .62)}" cy="${n1(Y + s * dy * U * .62)}" rx="${n1(U * (horiz ? .3 : .55))}" ry="${n1(U * (horiz ? .55 : .3))}" fill="${ft.door.lip}" stroke="${ft.door.rim}" stroke-width="1.6"/>`);
+      } else if (ch === '>' && ft.stairs) {
+        const nf = (next || D).floor.fill;
+        P.push(`<radialGradient id="st${x}_${y}"><stop offset="0" stop-color="${nf.replace(/[\d.]+\)$/, '1)')}" stop-opacity=".22"/><stop offset=".6" stop-color="${nf.replace(/[\d.]+\)$/, '1)')}" stop-opacity=".2"/><stop offset="1" stop-color="#0c0809" stop-opacity="0"/></radialGradient><circle cx="${n1(X)}" cy="${n1(Y)}" r="${U * .72}" fill="url(#st${x}_${y})"/><circle cx="${n1(X)}" cy="${n1(Y)}" r="${U * .42}" fill="none" stroke="${ft.stairs.rim}" stroke-width="2" filter="url(#glow)"/>`);
+      }
+    }
+    if (ft.rest) for (const p of f.rests || []) P.push(`<circle cx="${n1((p.x + .5 + M) * U)}" cy="${n1((p.y + .5 + M) * U)}" r="${U * .46}" fill="${ft.rest.fill}" stroke="${ft.rest.stroke}" stroke-width="1.4" stroke-dasharray="4 3"/>`);
+    // surface: lining cells and pits, hub endothelium, then the glossy edge
+    paint(P, D.lining, -999, 999, c);
+    if (D.hub && D.hub.lining) LIB.lining(P, Object.assign({ hub: true }, D.hub.lining), 0, 0, c);
+    if (hubRoom && D.motion) along(P.C(0), r, 30, 60, p => { if (c.inHub(p[0], p[1])) { const nv = normalAt(fd, p[0], p[1]); sinus.push({ x: p[0] / U - M, y: p[1] / U - M, nx: -nv[0], ny: -nv[1], span: 2.5 }); } });
+    P.line(0, D.edge.stroke, D.edge.w, { glow: 1 });
+    const labels = [];
+    for (const lb of prof.labels || []) { const list = anchors[lb.at] || []; const step = Math.max(1, Math.floor(list.length / sf.anchorsPer)); for (let i = 0; i < list.length; i += step) labels.push({ X: list[i][0], Y: list[i][1], text: lb.text, d: 0 }); }
+    const k = Math.min(st.px / U, st.maxSide / Math.max(Wu, Hu));
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(Wu * k)}" height="${Math.round(Hu * k)}" viewBox="0 0 ${Wu} ${Hu}"><defs>` +
+      `<filter id="wob" x="-2%" y="-2%" width="104%" height="104%"><feTurbulence type="turbulence" baseFrequency="0.012 0.02" numOctaves="2" seed="${(seed % 997) + 1}" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="${st.wobble}" xChannelSelector="R" yChannelSelector="G"/></filter>` +
+      `<filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` +
+      `<filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 .92  0 0 0 0 .9  0 0 0 1.1 -.55"/></filter>` +
+      `<radialGradient id="rbc"><stop offset="0" stop-color="#ffb3b0" stop-opacity=".55"/><stop offset=".5" stop-color="#d8323f" stop-opacity=".75"/><stop offset=".8" stop-color="#d8323f" stop-opacity=".98"/><stop offset="1" stop-color="#d8323f" stop-opacity=".6"/></radialGradient>` +
+      `<clipPath id="tis"><path clip-rule="evenodd" d="M0,0H${Wu}V${Hu}H0Z${pathD(P.C(0))}"/></clipPath><clipPath id="flo"><path d="${pathD(P.C(0))}"/></clipPath></defs>` +
+      `<g filter="url(#wob)">${P.out.join('')}</g><rect width="${Wu}" height="${Hu}" filter="url(#grain)" opacity="${st.grain}" clip-path="url(#tis)" style="mix-blend-mode:overlay"/>` +
+      `<rect width="${Wu}" height="${Hu}" filter="url(#grain)" opacity="${D.floor.grain}" clip-path="url(#flo)" style="mix-blend-mode:overlay"/></svg>`;
+    const art = { floorArt: true, kind: 'floor', regionId, D, G, M, f, labels, ready: false, bmp: null, sinus, parts: [], last: 0, k, Wu, Hu };
+    art.rbc = rbcSprite(['#ffb3b0', '#d8323f'], false);
+    art.fog = document.createElement('canvas'); art.fog.width = TW; art.fog.height = TH;
+    store.set(f, art);
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas'); cv.width = Math.round(Wu * k); cv.height = Math.round(Hu * k);
+      try { cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); art.bmp = cv; art.ready = true; } catch (e) { art.failed = true; }
+      if (onReady) onReady();
+    };
+    img.onerror = () => { art.failed = true; };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    art.svgBytes = svg.length;
+    return art;
+  }
+
+  // Live layer for floors: only the profile's motion. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away.
+  function floorBase(ctx, art, V, now) {
+    const still = !animated(), t = still ? 0 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0), M = art.M;
+    art.last = t;
+    const sx = (V.x0 + M - 1) * U, sy = (V.y0 + M - 1) * U, sw = (V.cols + 2) * U, sh = (V.rows + 2) * U, k = art.k;
+    localT(ctx, V, M);
+    const ax = clamp(sx, 0, art.Wu), ay = clamp(sy, 0, art.Hu), bx = clamp(sx + sw, 0, art.Wu), by = clamp(sy + sh, 0, art.Hu);
+    if (bx > ax && by > ay) ctx.drawImage(art.bmp, ax * k, ay * k, (bx - ax) * k, (by - ay) * k, ax, ay, bx - ax, by - ay);
+    const mo = art.D.motion; if (!mo || mo.type !== 'diapedesis' || !art.sinus.length) return;
+    const inView = s => s.x > V.x0 - 1 && s.x < V.x0 + V.cols + 1 && s.y > V.y0 - 1 && s.y < V.y0 + V.rows + 1;
+    const ports = art.sinus.filter(inView); if (!ports.length) return;
+    const life = S().floor.cellLife, rnd = DD.rng(((art.seedN = (art.seedN || 7) + 1) * 2654435761) >>> 0);
+    while (art.parts.length < mo.count) art.parts.push({ age: rnd() * life, port: null });
+    tileT(ctx, V);
+    for (const p of art.parts) {
+      p.age += dt;
+      if (!p.port || p.age > life || !inView(p.port)) { p.port = ports[(rnd() * ports.length) | 0]; p.age = still ? rnd() * life : 0; p.side = rnd() < .5 ? -1 : 1; p.spin = rnd() * 6.3; }
+      const s = p.port, u = p.age, sq = S().floor.squeeze, tx = -s.ny * p.side, ty = s.nx * p.side;
+      let d, along = 0, wsc = 1, hsc = 1;
+      if (u < sq) { const q = u / sq; d = -.28 + .56 * q; const pinch = Math.sin(q * Math.PI); wsc = 1 - .35 * pinch; hsc = 1 + .2 * pinch; }
+      else { const q = (u - sq) * mo.speed; d = .28 + Math.min(q * .4, s.span * .5); along = q; }
+      const x = s.x + s.nx * d + tx * along, y = s.y + s.ny * d + ty * along, al = u < .3 ? u / .3 : u > life - .8 ? (life - u) / .8 : 1;
+      ctx.save(); ctx.globalAlpha = clamp(al, 0, 1) * .95; ctx.translate(x, y); ctx.rotate(Math.atan2(s.ny, s.nx)); ctx.scale(hsc, wsc * (.75 + .25 * Math.abs(Math.cos(p.spin + u * .5)))); ctx.drawImage(art.rbc, -.2, -.2, .4, .4); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+  const floorProfile = run => !!(run && !run.trip && run.floor && !run.floor.tiles && DD.data.tissue && DD.data.tissue[run.regionId]);
+
   function animated() { return !reduce.matches; }
   function forRun(run) {
-    if (!run || !run.trip || !run.floor || !can()) return null;
+    if (!run || !run.floor || !can()) return null;
+    if (!run.trip) {
+      if (!floorProfile(run)) return null;
+      const fa = store.get(run.floor) || buildFloor(run.floor, run.regionId, run.floorIdx, (run.seed + run.floorIdx * 7919) >>> 0);
+      return fa && fa.ready ? fa : null;
+    }
     const n = DD.travel.segs(run)[run.trip.idx];
     const art = store.get(run.floor) || build(run.floor, n, (run.seed + run.trip.idx * 7919) >>> 0);
     return art && art.ready ? art : null;
   }
   return {
-    build, forRun, base, fog, sprite, glucose, labels, animated, kindOf,
+    build, buildFloor, floorProfile, forRun, base, fog, sprite, glucose, labels, animated, kindOf,
     onReady(fn) { onReady = fn; },
     perf: { frames: 0, ms: 0 },
     has: f => !!store.get(f)

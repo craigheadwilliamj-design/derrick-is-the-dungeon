@@ -70,6 +70,7 @@ DD.game = (function () {
     if (!saved) run.genLevel = prof().level;
     const f = DD.dungeon.generate({ regionId: run.regionId, floorIdx: idx, boss, seed: (run.seed + idx * 7919) >>> 0, playerLevel: run.genLevel, gm: run.gm });
     run.floor = f;
+    if (DD.mapart) DD.mapart.buildFloor(f, run.regionId, idx, (run.seed + idx * 7919) >>> 0); // map art (V2): baked from the grid, never saved
     if (saved) {
       saved.explored.split('').forEach((c, i) => { f.explored[i] = c === '1' ? 1 : 0; });
       saved.en.forEach((s, i) => { const e = f.enemies[i]; if (e) { e.x = s[0]; e.y = s[1]; e.alive = !!s[2]; } });
