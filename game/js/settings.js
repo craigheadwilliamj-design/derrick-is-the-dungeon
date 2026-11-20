@@ -108,6 +108,15 @@ DD.S = {
     bannerMs: 2800, diapedesisMs: 650,
     accent: { artery: '#e0474f', vein: '#6c8fe0', lymph: '#6fcfb8', capillary: '#e08fc0', chamber: '#ff7a59', valve: '#d9b44a', nodeRoom: '#6fcfb8' }
   },
+  // Map art for circulation segments (V1). Distances are in tiles from the lumen edge; speeds in tiles per second mid-lumen.
+  mapart: {
+    px: 40, maxSide: 4096, margin: 4, samples: 4, chaikin: 2, blur: 2, cap: 7, wobble: 9, grain: 0.32,
+    bpm: 72, pulsePx: 5, rbcPerScreen: 40, lymphPerScreen: 6, spriteTiles: 2, fogDim: 0.62, fogReach: 3,
+    speed: { artery: 5.5, vein: 1.5, lymph: 0.6, capillary: 1.4, chamber: 2.4, valve: 2.4 },
+    layers: { artery: { intima: 0.22, media: 2.0, externa: 4.1 }, vein: { media: 0.55, externa: 3.5 }, lymph: { support: 0.5 }, capillary: { endo: 0.14 }, heart: { endo: 0.18, myo: 6 } },
+    deoxy: ['pulmTrunk', 'pulmArt', 'ra', 'rv', 'tricuspid', 'pulmValve'],   // dark red blood (veins are dark unless listed in oxy)
+    oxy: ['pulmVeins', 'la', 'lv', 'mitral', 'aorticValve']
+  },
   // NPCs, merchant, bounties, thymus (phase 3b).
   npc: { lootGlucose: { min: 8, max: 15 }, lootItemChance: 0.35 },   // native cell reward for a right answer: glucose, or a consumable
   merchant: { chance: 0.2, stockMin: 3, stockMax: 4, qtyMax: 2, priceMult: 1.5, restMult: 2, tipCost: 5, fadedCount: 2 },  // chance is per non-boss floor

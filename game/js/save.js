@@ -43,7 +43,7 @@ DD.save = (function () {
     o.ngPlus = Math.max(0, Math.floor(+o.ngPlus) || 0);
     o.conditions = Array.isArray(o.conditions) ? o.conditions.filter((id, i, a) => DD.data.chronicIds.includes(id) && a.indexOf(id) === i) : [];
     if (!o.event || typeof o.event !== 'object' || !DD.data.eventById[o.event.id] || DD.data.eventById[o.event.id].kind === 'chronic') o.event = null;
-    o.settings = Object.assign({ sourceFilter: 'all' }, o.settings);
+    o.settings = Object.assign({ sourceFilter: 'all', mapLabels: false }, o.settings);
     if (!o.flagged || typeof o.flagged !== 'object' || Array.isArray(o.flagged)) o.flagged = {}; // v5 (4a): flagged question ids, out of rotation
     return o;
   }

@@ -200,6 +200,7 @@ DD.travel = (function () {
     run.accent = n.kind === 'place' ? (DD.data.region(n.id)?.accent || T.accent.lymph) : accentFor(n);
     run.floor = t.mode === 'explore' ? DD.walkWorld.floor(n, run, idx) : X.generate(n, run.seed, idx, t.amb.includes(idx));
     run.px = run.floor.start.x; run.py = run.floor.start.y;
+    if (DD.mapart) DD.mapart.build(run.floor, n, (run.seed + idx * 7919) >>> 0); // map art (V1): baked from the grid, never saved
     DD.dungeon.computeFov(run.floor, run.px, run.py);
     X.persist();
     return n;
