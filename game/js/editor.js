@@ -20,7 +20,7 @@ DD.editor = (function () {
 
   // ---------- list ----------
   ed.open = function () { DD.ui.mode = 'editor'; confirmId = null; listMsg = ''; list(); };
-  function leave() { detach(); E = null; view = ''; DD.ui.menu(); }
+  function leave() { detach(); E = null; view = ''; DD.ui.leaveStudy(); }
 
   function list() {
     detach(); E = null; view = 'list'; DD.ui.mode = 'editor';

@@ -46,6 +46,23 @@ DD.ui = (function () {
       : [el('p', { class: 'small dim' }, 'Visit the helper T cell in a lymph node town to pick up bounties.')]));
   }
   // Called when leaving the map without ending the run (Lymph Drain to the town).
+  // Study screens (writer, lab images, flagged) can open mid-run; Back returns to where you were.
+  ui.studyBack = null;
+  ui.leaveStudy = function () { const f = ui.studyBack; ui.studyBack = null; (f || ui.menu)(); };
+  ui.studyMenu = function (prep, back) {
+    const previous = ui.mode, dialog = el('dialog', { style: { width: 'min(360px,92vw)', padding: '16px', background: 'var(--panel)', color: 'var(--bone)', border: '1px solid var(--line)', borderRadius: '8px' } });
+    const go = open => () => { dialog.close(); prep(); ui.studyBack = back; open(); };
+    const box = el('div', { class: 'stack' });
+    dialog.append(box);
+    box.append(el('h3', null, 'Study'),
+      el('button', { class: 'btn', type: 'button', onclick: go(DD.writer.open) }, 'Add study material'),
+      el('button', { class: 'btn', type: 'button', onclick: go(DD.editor.open) }, 'Lab images'),
+      el('button', { class: 'btn', type: 'button', onclick: go(DD.writer.flagged) }, 'Flagged questions'),
+      el('p', { class: 'small dim' }, 'Your spot is saved. Back on any of these returns you here.'),
+      el('button', { class: 'btn small', type: 'button', onclick: () => dialog.close() }, 'Close'));
+    dialog.addEventListener('close', () => { if (ui.mode === 'study') ui.mode = previous; dialog.remove(); });
+    document.body.append(dialog); ui.mode = 'study'; dialog.showModal();
+  };
   ui.stopMap = function () { if (g.ro) g.ro.disconnect(); stopTimer(); g = {}; };
   ui.init = function (r) { root = r; };
   ui.refresh = function () { if (ui.mode === 'title') ui.title(); else if (ui.mode === 'menu') ui.menu(); };
@@ -137,6 +154,10 @@ DD.ui = (function () {
       ui.stopMap();
       DD.gear.screen(ui.game);
     } }, 'Gear');
+    g.study = el('button', { class: 'btn small', type: 'button', title: 'Write questions, lab images, flagged questions', onclick: () => {
+      if (ui.mode !== 'map' || DD.gear.locked()) return;
+      ui.studyMenu(() => { DD.game.persist(); ui.stopMap(); }, ui.game);
+    } }, 'Study');
     g.abort = trip ? el('button', { class: 'btn small', onclick: ui.abortTrip, title: 'Give up this trip and wash back up where you set out' }, 'Abort') : null;
     g.bt = ui.bountyTracker(); g.bounties = g.bt.node;
     g.strip = trip ? el('div', { class: 'strip', 'aria-label': 'Route' }) : null;
@@ -161,7 +182,7 @@ DD.ui = (function () {
       ? [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gg', '$', 'glucose'), L('gg', '!', 'item'), L('gc', '%', 'clot'), L('gd', '=', 'plaque'), L('gv', '»', 'one-way valve'), L('gt', '^', 'trap'), L('gs', '>', 'walk into branch'), L('gs', 'O', 'enter organ/town')]
       : [L('gp', '@', 'you'), L('gm', 'a–z', 'pathogen'), L('gm', 'A–Z', 'boss'), L('gc', '☺', 'native cell'), L('gg', '¥', 'merchant'), L('gg', '$', 'glucose'), L('gg', '&', 'chest'), L('gc', '~', 'rest'), L('gd', '+', 'door'), L('gs', '>', 'stairs'), L('gt', '^', 'trap')]);
     mount(el('div', { class: 'screen game' },
-      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.gear, g.leave, g.abort),
+      el('div', { class: 'hud' }, g.floor, g.hp, g.atp, g.xp, g.glu, g.chart, g.gear, g.study, g.leave, g.abort),
       g.bounties, g.strip, g.mapbox, g.log,
       el('div', { class: 'controls' }, dpad, legend),
       g.combat));

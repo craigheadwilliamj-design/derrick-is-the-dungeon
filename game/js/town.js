@@ -388,6 +388,8 @@ DD.town = (function () {
       el('div', { class: 'hud' }, g.floor, g.run, g.xp, g.glu,
         el('button', { class: 'btn small chartbtn', type: 'button', onclick: DD.derrickui.chart, title: 'Derrick’s vitals and what he has been up to' }, 'Chart'),
         el('button', { class: 'btn small', type: 'button', title: 'Equipment and supplies', onclick: () => { savePos(); DD.gear.screen(() => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Gear'),
+        el('button', { class: 'btn small', type: 'button', title: 'Write questions, lab images, flagged questions', onclick: () => {
+          if (DD.ui.mode === 'town') DD.ui.studyMenu(savePos, () => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Study'),
         el('button', { class: 'btn small', type: 'button', title: 'Save and return to the title screen; Continue brings you back here', onclick: () => {
           savePos(); if (g.ro) g.ro.disconnect(); g = {}; DD.save.save(); DD.save.flush(); DD.ui.title(); } }, 'Save & quit')),
       g.bt.node, g.mapbox, g.log,

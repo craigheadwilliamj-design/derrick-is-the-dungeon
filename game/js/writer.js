@@ -142,7 +142,7 @@ DD.writer = (function () {
   // ---------- screens ----------
   const mount = (...kids) => DD.ui.mount(el('div', { class: 'screen menu editor' }, ...kids));
   const head = (title, back) => el('div', { class: 'ed-head' }, back ? el('button', { class: 'btn small', type: 'button', onclick: back }, '← Back') : null, el('h1', null, title));
-  const leave = () => { if (W.ctl) W.ctl.abort(); W.phase = 'input'; DD.ui.menu(); };
+  const leave = () => { if (W.ctl) W.ctl.abort(); W.phase = 'input'; DD.ui.leaveStudy(); };
 
   out.open = async function () {
     DD.ui.mode = 'writer';
@@ -260,7 +260,7 @@ DD.writer = (function () {
     DD.ui.mode = 'flagged';
     const p = DD.save.profile, byId = new Map(DD.q.all().map(q => [q.id, q]));
     const rows = Object.keys(p.flagged || {}).map(id => byId.get(id)).filter(Boolean);
-    mount(head('Flagged questions', () => { editId = delId = null; DD.ui.menu(); }),
+    mount(head('Flagged questions', () => { editId = delId = null; DD.ui.leaveStudy(); }),
       el('p', { class: 'dim small' }, rows.length ? rows.length + ' question' + (rows.length === 1 ? ' is' : 's are') + ' out of rotation. Fix a question you wrote and unflag it, or delete it. Built-in questions can be unflagged but not deleted.'
         : 'Nothing flagged. Use the flag button on any question that is wrong, unclear or badly worded, and it leaves rotation until you decide.'),
       rows.map(q => {
