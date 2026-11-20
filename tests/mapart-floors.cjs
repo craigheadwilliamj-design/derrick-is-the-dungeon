@@ -11,9 +11,9 @@ const server = http.createServer((q, s) => { const p = path.join(root, decodeURI
   const url = 'http://localhost:' + server.address().port + '/', browser = await chromium.launch(), errors = [];
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 }), page = await ctx.newPage();
   page.on('pageerror', e => errors.push(String(e)));
-  await page.goto(url); await page.waitForFunction(() => window.DD && DD.save && DD.save.profile);
+  await page.addInitScript(v => { window.__pillar = v; }, !!process.env.PILLAR); await page.goto(url); await page.waitForFunction(() => window.DD && DD.save && DD.save.profile);
   const regions = process.argv.slice(3).length ? process.argv.slice(3) : await page.evaluate(() => Object.keys(DD.data.tissue));
-  const seeds = [12345, 777, 4242, 99001, 31337, 8];
+  const seeds = [12345, 777, 4242, 99001, 31337, 8], shotSeed = +process.env.SHOTSEED || seeds[0]; // SHOTSEED: which seed to screenshot; PILLAR=1 frames a pillar
   for (const region of regions) {
   await page.evaluate(rg => { const p = DD.save.profile; p.classId = p.classId || 'neutrophil'; p.intro = true; p.settings.mapLabels = true; DD.ui.enter(rg); }, region);
   for (let n = 0; n < seeds.length * nFloors; n++) {
@@ -31,13 +31,13 @@ const server = http.createServer((q, s) => { const p = path.join(root, decodeURI
       }
       // explore the floor for the screenshot so the tissue shows beyond the torch radius
       f.explored.fill(1); f.vis.fill(1);
-      if (f.exit) { const m = f.rooms.find(m => f.exit.x >= m.x && f.exit.x < m.x + m.w && f.exit.y >= m.y && f.exit.y < m.y + m.h); run.px = m.x + 1; run.py = m.y + 1; } // boss floor: frame the hub
+      if (window.__pillar && art.G.pillars.length) { const k2 = art.G.pillars[0][0]; run.px = k2 % f.W; run.py = (k2 / f.W) | 0; } else if (f.exit) { const m = f.rooms.find(m => f.exit.x >= m.x && f.exit.x < m.x + m.w && f.exit.y >= m.y && f.exit.y < m.y + m.h); run.px = m.x + 1; run.py = m.y + 1; } // boss floor: frame the hub
       return { bad, fmax, wmin, w: c.width, h: c.height, kb: Math.round(art.svgBytes / 1024), pillars: art.G.pillars.length, labels: art.labels.length };
     });
     console.log(region, 'seed', seed, 'floor', i + 1, JSON.stringify({ ...r, bad: r.bad.length }));
     if (r.bad.length) console.log(r.bad.join('\n'));
     if (!process.env.ALL) assert.deepEqual(r.bad, [], region + ' seed ' + seed + ' floor ' + (i + 1) + ': walkable tiles look walkable, walls look like walls');
-    if (shots && seed === seeds[0]) { await page.evaluate(() => DD.ui.refreshMap()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(shots, region + '-floor' + (i + 1) + '.png') }); }
+    if (shots && seed === shotSeed) { await page.evaluate(() => DD.ui.refreshMap()); await page.waitForTimeout(400); await page.screenshot({ path: path.join(shots, region + '-floor' + (i + 1) + '.png') }); }
   }
   }
   await page.setViewportSize({ width: 360, height: 740 });
