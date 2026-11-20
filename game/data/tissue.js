@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining (cilia/foam), nuclei, vacuoles, crossSections, nodules, strands, pits, fingers.
+// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders), nodules (rim/loops), strands, pits, fingers.
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -352,6 +352,48 @@
       { text: "Submucosal (Meissner's) plexus", at: 'meissner' }, { text: 'Arteriole', at: 'arteriole' }, { text: 'Venule', at: 'venule' },
       { text: 'Inner circular smooth muscle', at: 'innerCirc' }, { text: 'Outer longitudinal smooth muscle, cut across', at: 'outerLong' },
       { text: "Myenteric (Auerbach's) plexus", at: 'auerbach' }
+    ]
+  };
+  // ---------- Kidneys (floors go cortex -> outer medulla -> inner medulla and papilla). The floor is a tubule lumen carrying filtrate ----------
+  const kNuc = 'rgba(98,44,130,.82)';
+  const interstitium = (fill, painter) => ({ band: [0, null], fill, painter }); // the tubules sit in a thin interstitium with peritubular capillaries
+  const pct = per => ({ p: 'crossSections', per, pack: true, r: [12, 16], wall: 'rgba(236,128,156,.92)', ww: 9, lumen: 'rgba(40,12,22,.5)', brush: 'rgba(255,214,226,.75)',
+    nuclei: 4, nr: [2.8, 2.6], nucleus: kNuc, inset: .05, tag: 'pct' });   // PCT: large, deep pink cuboidal cells, brush border, fuzzy narrow lumen, few nuclei per section
+  const kDct = per => ({ p: 'crossSections', per, pack: true, r: [9, 12], wall: 'rgba(232,170,190,.82)', ww: 6, lumen: 'rgba(18,8,14,.7)',
+    nuclei: 7, nr: [2.4, 2.2], nucleus: kNuc, inset: .05, tag: 'dct' });   // DCT: smaller, paler, no brush border, clear lumen, more nuclei per section
+  const ptc = per => ({ p: 'crossSections', per, r: [3.5, 5], wall: 'rgba(255,220,230,.45)', ww: 1, lumen: 'rgba(150,30,44,.55)', rbc: 1, nuclei: 1, nucleus: kNuc, inset: .02, tag: 'ptc' });
+  const pctCells = { p: 'lining', at: 0, shape: 'cuboidal', size: [12, 11], fill: 'rgba(236,128,156,.6)', nucleus: kNuc, cover: .95, cilia: 2.6, ciliaStroke: 'rgba(255,224,232,.75)', tag: 'brush' }; // brush border (microvilli) faces the lumen
+  const corpuscle = { // renal corpuscle: parietal layer of Bowman's capsule (simple squamous), Bowman's space, glomerular capillary tuft; macula densa beside some
+    wall: 'rgba(250,222,234,.9)', ww: 1.6, lumen: 'rgba(214,196,214,.42)', rbc: 0, nucleus: kNuc, nr: [5.5, 1.6], every: [16, 24], tag: 'bowman',
+    tuft: { inset: .13, fill: 'rgba(200,94,128,.86)', per: 7, r: [3.2, 5], lumen: 'rgba(120,24,40,.6)', wall: 'rgba(250,190,210,.7)', rbc: .5, nuclei: 7, tag: 'glomerulus' },
+    beside: { every: 2, r: 9, ww: 5, wall: 'rgba(232,170,190,.92)', lumen: 'rgba(18,8,14,.8)', n: 6, tag: 'md' }
+  };
+  const kCorpuscle = per => ({ // renal corpuscle in the cortex: glomerular tuft (capillary loops, podocyte and mesangial nuclei), Bowman's space, parietal layer
+    p: 'nodules', per, pack: true, r: [26, 32], fill: 'rgba(200,94,128,.9)', inset: .05, tag: 'glomerulus',
+    cells: { per: 7, size: [1.8, 2.6], fill: kNuc },
+    loops: { per: 9, r: [3.4, 5.2], lumen: 'rgba(120,24,40,.6)', wall: 'rgba(250,190,210,.7)', rbc: .5 },
+    marginal: { w: .3, fill: 'rgba(214,196,214,.4)', tag: 'bowmanSpace' },
+    rim: { stroke: 'rgba(250,222,234,.9)', w: 1.6, nuclei: 9, nucleus: kNuc }
+  });
+  const kFeatures = pillar => ({
+    pillar,
+    door: { lip: 'rgba(236,140,166,.74)', rim: 'rgba(252,230,238,.8)' },
+    stairs: { rim: 'rgba(252,230,238,.75)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  });
+  const filtrate = { type: 'drift', count: 34, speed: .35, size: [.05, .09], fill: 'rgb(240,236,250)', alpha: .28, life: 7 };
+  const cortex = {
+    walls: [interstitium('rgba(30,10,18,.95)', [kCorpuscle(.05), pct(2.2), kDct(1.4), ptc(.7)])],
+    edge: { stroke: 'rgba(255,226,236,.85)', w: 1.8 }, lining: [pctCells],
+    floor: { fill: 'rgba(230,206,222,.1)', grain: .08, ambient: [] }, features: kFeatures(corpuscle), motion: filtrate
+  };
+  T.kidneys = {
+    accent: '#c9a35f',
+    depth: [cortex, cortex, cortex],
+    labels: [
+      { text: 'Proximal convoluted tubule', at: 'pct' }, { text: 'PCT cells: brush border', at: 'brush' }, { text: 'Distal convoluted tubule', at: 'dct' },
+      { text: 'Peritubular capillary', at: 'ptc' }, { text: "Bowman's capsule (parietal layer)", at: 'bowman' }, { text: 'Glomerulus', at: 'glomerulus' }, { text: "Bowman's space", at: 'bowmanSpace' },
+      { text: 'Macula densa', at: 'md' }
     ]
   };
 })();

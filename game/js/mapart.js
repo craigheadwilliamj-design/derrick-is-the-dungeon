@@ -753,9 +753,14 @@ DD.mapart = (function () {
       });
     },
     crossSections(P, o, a, b, c) { // tubes or vessels cut across: wall ring, lumen, flat wall nuclei, optional red cells
+      // optional: pack (no overlap with other packed sections), brush (fuzzy apical border), borders (lateral cell borders across the wall)
+      const placed = c.packed = c.packed || [];
       P.scatter(a, b, o.per, (X, Y) => {
-        const r = P.R(o.r[0], o.r[1]); if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + r / U)) return;
-        let s = `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r)}" fill="${o.lumen}" stroke="${o.wall}" stroke-width="${o.ww || 2}"${o.dash ? ` stroke-dasharray="${o.dash}"` : ''}/>`;
+        const r = P.R(o.r[0], o.r[1]), ww = o.ww || 2; if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + r / U)) return;
+        if (o.pack) { const R0 = r + ww / 2; if (placed.some(q => Math.hypot(q[0] - X, q[1] - Y) < q[2] + R0 + 1)) return; placed.push([X, Y, R0]); }
+        let s = `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r)}" fill="${o.lumen}" stroke="${o.wall}" stroke-width="${ww}"${o.dash ? ` stroke-dasharray="${o.dash}"` : ''}/>`;
+        if (o.brush) s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r - ww / 2 - 1)}" fill="none" stroke="${o.brush}" stroke-width="2.4" stroke-dasharray=".9 .9"/>`;
+        if (o.borders) for (let k = 0, t0 = P.R(0, 6.28); k < o.borders; k++) { const an = t0 + k / o.borders * 6.283, ca = Math.cos(an), sa = Math.sin(an), r0 = r - ww / 2, r1 = r + ww / 2; s += `<line x1="${n1(X + ca * r0)}" y1="${n1(Y + sa * r0)}" x2="${n1(X + ca * r1)}" y2="${n1(Y + sa * r1)}" stroke="${o.borderStroke}" stroke-width=".9"/>`; }
         const nr = o.nr || [5, 1.8], inn = o.nr ? nr[1] : 0; // stave nuclei bulge into the lumen
         for (let k = 0; k < (o.nuclei || 0); k++) { const an = P.R(0, 6.28), nx = X + Math.cos(an) * (r - inn), ny = Y + Math.sin(an) * (r - inn); s += `<ellipse cx="${n1(nx)}" cy="${n1(ny)}" rx="${nr[0]}" ry="${nr[1]}" transform="rotate(${deg(an * 57.2958 + 90)} ${n1(nx)} ${n1(ny)})" fill="${o.nucleus || 'rgba(122,58,128,.8)'}"/>`; }
         for (let k = 0; k < (o.rbc || 0); k++) { const an = P.R(0, 6.28), d = P.R(0, r * .6); s += `<ellipse cx="${n1(X + Math.cos(an) * d)}" cy="${n1(Y + Math.sin(an) * d)}" rx="5" ry="${n1(P.R(3, 5))}" fill="url(#rbc)"/>`; }
@@ -767,13 +772,22 @@ DD.mapart = (function () {
       const placed = [], m = o.marginal, ce = o.centre, ar = o.arteriole, ly = o.cells;
       P.scatter(a, b, o.per, (X, Y) => {
         const r = P.R(o.r[0], o.r[1]), sx = o.stretch ? P.R(o.stretch[0], o.stretch[1]) : 1, mz = m ? r * m.w : 0, R0 = r * sx + mz;
-        if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + R0 / U) || placed.some(q => Math.hypot(q[0] - X, q[1] - Y) < q[2] + R0)) return;
-        placed.push([X, Y, R0]);
+        const pk = c.packed = c.packed || [];
+        if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + R0 / U) || placed.some(q => Math.hypot(q[0] - X, q[1] - Y) < q[2] + R0) || (o.pack && pk.some(q => Math.hypot(q[0] - X, q[1] - Y) < q[2] + R0 + 1))) return;
+        placed.push([X, Y, R0]); if (o.pack) pk.push([X, Y, R0]);
         const t = P.R(0, 6.283), ct = Math.cos(t), st = Math.sin(t), at = (lx, ly2) => [X + ct * lx - st * ly2, Y + st * lx + ct * ly2];
         const gx = ce ? -r * sx * (ce.off || 0) : 0, gr = ce ? r * ce.r : 0, ax = ar ? r * sx * (ar.off || 0) : 0;
         let s = `<g transform="translate(${n1(X)} ${n1(Y)}) rotate(${deg(t * 57.2958)})">`;
         if (m) s += `<ellipse rx="${n1(r * sx + mz)}" ry="${n1(r + mz)}" fill="${m.fill}"/>`;
+        if (o.rim) { // optional outer rim with flat nuclei along it (Bowman's capsule, parietal layer)
+          s += `<ellipse rx="${n1(r * sx + mz)}" ry="${n1(r + mz)}" fill="none" stroke="${o.rim.stroke}" stroke-width="${o.rim.w}"/>`;
+          for (let k = 0, n = o.rim.nuclei; k < n; k++) { const an = (k + P.R(0, .6)) / n * 6.283; s += `<ellipse cx="${n1(Math.cos(an) * (r * sx + mz))}" cy="${n1(Math.sin(an) * (r + mz))}" rx="5" ry="1.6" transform="rotate(${deg(an * 57.2958 + 90)} ${n1(Math.cos(an) * (r * sx + mz))} ${n1(Math.sin(an) * (r + mz))})" fill="${o.rim.nucleus}"/>`; }
+        }
         s += `<ellipse rx="${n1(r * sx)}" ry="${n1(r)}" fill="${o.fill}"/>`;
+        if (o.loops) for (let k = 0, lp = o.loops, n = Math.round(Math.PI * r * r * sx / (U * U) * lp.per); k < n; k++) { // optional capillary loops packed in the nodule (glomerular tuft)
+          const an = P.R(0, 6.283), rr = P.R(lp.r[0], lp.r[1]), q = Math.sqrt(P.R(0, 1)), x2 = Math.cos(an) * (r * sx - rr) * q, y2 = Math.sin(an) * (r - rr) * q;
+          s += `<circle cx="${n1(x2)}" cy="${n1(y2)}" r="${n1(rr)}" fill="${lp.lumen}" stroke="${lp.wall}" stroke-width="1.3"/>` + (P.R(0, 1) < lp.rbc ? `<ellipse cx="${n1(x2)}" cy="${n1(y2)}" rx="${n1(rr * .7)}" ry="${n1(rr * .5)}" fill="url(#rbc)" opacity=".8"/>` : '');
+        }
         if (m && m.cells) for (let k = 0, n = Math.round(m.cells * R0 * 6.28 / U); k < n; k++) { const an = P.R(0, 6.283), q = P.R(1.02, 1 + m.w * .9); s += `<circle cx="${n1(Math.cos(an) * r * sx * q)}" cy="${n1(Math.sin(an) * r * q)}" r="${n1(P.R(ly.size[0], ly.size[1]))}" fill="${m.cellFill}"/>`; }
         if (ce) s += `<circle cx="${n1(gx)}" cy="0" r="${n1(gr)}" fill="${ce.fill}"/>`;
         for (let k = 0, n = Math.round(Math.PI * r * r * sx / (U * U) * ly.per); k < n; k++) {
@@ -902,6 +916,20 @@ DD.mapart = (function () {
       along(L, r, pf.every ? pf.every[0] : 26, pf.every ? pf.every[1] : 48, (p, t) => P.push(`<ellipse cx="${n1(p[0])}" cy="${n1(p[1])}" rx="${pn[0]}" ry="${pn[1]}" transform="rotate(${deg(t)} ${n1(p[0])} ${n1(p[1])})" fill="${pf.nucleus}"/>`));
       for (let k = 0; k < cells.length * pf.rbc; k++) { const X = (P.R(box[0], box[2] + 1) + M) * U, Y = (P.R(box[1], box[3] + 1) + M) * U; if (sdU(pfd, X, Y) < -.15) P.push(`<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="6" ry="${n1(P.R(3, 6))}" transform="rotate(${P.R(0, 180) | 0} ${n1(X)} ${n1(Y)})" fill="url(#rbc)"/>`); }
       c.tag(pf.tag, (box[0] + box[2] + 1) / 2 * U + M * U, (box[1] + box[3] + 1) / 2 * U + M * U);
+      const tu = pf.tuft; // optional tuft of capillary loops inside the pillar (renal corpuscle: glomerulus inside Bowman's space)
+      if (tu) {
+        P.push(`<path fill="${tu.fill}" d="${pathD(contours(pfd, -tu.inset))}"/>`);
+        for (let k = 0, n = Math.max(4, Math.round(cells.length * tu.per)); k < n; k++) { const X = (P.R(box[0], box[2] + 1) + M) * U, Y = (P.R(box[1], box[3] + 1) + M) * U, rr = P.R(tu.r[0], tu.r[1]); if (sdU(pfd, X, Y) > -tu.inset - rr / U) continue; P.push(`<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(rr)}" fill="${tu.lumen}" stroke="${tu.wall}" stroke-width="1.3"/>` + (P.R(0, 1) < tu.rbc ? `<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="${n1(rr * .7)}" ry="${n1(rr * .5)}" fill="url(#rbc)" opacity=".8"/>` : '')); }
+        for (let k = 0, n = Math.round(cells.length * tu.nuclei); k < n; k++) { const X = (P.R(box[0], box[2] + 1) + M) * U, Y = (P.R(box[1], box[3] + 1) + M) * U; if (sdU(pfd, X, Y) < -tu.inset - .04) P.push(`<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(P.R(1.8, 2.6))}" fill="${pf.nucleus}"/>`); }
+        c.tag(tu.tag, (box[0] + box[2] + 1) / 2 * U + M * U, (box[1] + box[3] + 1) / 2 * U + M * U + 4);
+      }
+      const md = pf.beside; // optional tubule cut across beside every Nth pillar, its wall nuclei crowded on the pillar side (macula densa)
+      if (md && L.length && L[0].length > 8 && (G.pillars.indexOf(cells) % md.every) === 0) {
+        const p = L[0][(L[0].length / 3) | 0], g2 = grad(pfd, p[0], p[1]), X = p[0] + g2[0] * md.r * .3, Y = p[1] + g2[1] * md.r * .3;
+        let s = `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${md.r}" fill="${md.lumen}" stroke="${md.wall}" stroke-width="${md.ww}"/>`;
+        for (let k = 0; k < md.n; k++) { const an = Math.atan2(-g2[1], -g2[0]) + (k - (md.n - 1) / 2) * .34, nx = X + Math.cos(an) * md.r, ny = Y + Math.sin(an) * md.r; s += `<ellipse cx="${n1(nx)}" cy="${n1(ny)}" rx="1.6" ry="2.8" transform="rotate(${deg(an * 57.2958 + 90)} ${n1(nx)} ${n1(ny)})" fill="${pf.nucleus}"/>`; }
+        P.push(s); c.tag(md.tag, X, Y);
+      }
       for (const l of L) for (let i = 0; i < l.length; i += 6) { const p = l[i], g2 = grad(pfd, p[0], p[1]); sinus.push({ x: p[0] / U - M, y: p[1] / U - M, nx: -g2[0], ny: -g2[1], span: .5 }); }
     }
     // doors narrow the passage; stairs open into the next depth, tinted with its colours; rest pockets glow
@@ -933,7 +961,7 @@ DD.mapart = (function () {
       `<clipPath id="tis"><path clip-rule="evenodd" d="M0,0H${Wu}V${Hu}H0Z${pathD(P.C(0))}"/></clipPath><clipPath id="flo"><path d="${pathD(P.C(0))}"/></clipPath></defs>` +
       `<g filter="url(#wob)">${P.out.join('')}</g><rect width="${Wu}" height="${Hu}" filter="url(#grain)" opacity="${st.grain}" clip-path="url(#tis)" style="mix-blend-mode:overlay"/>` +
       `<rect width="${Wu}" height="${Hu}" filter="url(#grain)" opacity="${D.floor.grain}" clip-path="url(#flo)" style="mix-blend-mode:overlay"/></svg>`;
-    const art = { floorArt: true, kind: 'floor', regionId, D, G, M, f, labels, ready: false, bmp: null, sinus, parts: [], last: 0, k, Wu, Hu };
+    const art = { floorArt: true, kind: 'floor', regionId, D, G, M, f, fd, labels, ready: false, bmp: null, sinus, parts: [], last: 0, k, Wu, Hu };
     art.rbc = rbcSprite(['#ffb3b0', '#d8323f'], false);
     art.fog = document.createElement('canvas'); art.fog.width = TW; art.fog.height = TH;
     store.set(f, art);
@@ -949,7 +977,7 @@ DD.mapart = (function () {
     return art;
   }
 
-  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor.
+  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor. Drift: particles flow along the passages.
   function floorBase(ctx, art, V, now) {
     const still = !animated(), t = still ? 0 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0), M = art.M;
     art.last = t;
@@ -979,6 +1007,7 @@ DD.mapart = (function () {
       }
       ctx.restore();
     } else if (bx > ax && by > ay) ctx.drawImage(art.bmp, ax * k, ay * k, (bx - ax) * k, (by - ay) * k, ax, ay, bx - ax, by - ay);
+    if (mo && mo.type === 'drift') return drift(ctx, art, V, mo, dt, still);
     if (!mo || mo.type !== 'diapedesis' || !art.sinus.length) return;
     const inView = s => s.x > V.x0 - 1 && s.x < V.x0 + V.cols + 1 && s.y > V.y0 - 1 && s.y < V.y0 + V.rows + 1;
     const ports = art.sinus.filter(inView); if (!ports.length) return;
@@ -994,6 +1023,23 @@ DD.mapart = (function () {
       else { const q = (u - sq) * mo.speed; d = .28 + Math.min(q * .4, s.span * .5); along = q; }
       const x = s.x + s.nx * d + tx * along, y = s.y + s.ny * d + ty * along, al = u < .3 ? u / .3 : u > life - .8 ? (life - u) / .8 : 1;
       ctx.save(); ctx.globalAlpha = clamp(al, 0, 1) * .95; ctx.translate(x, y); ctx.rotate(Math.atan2(s.ny, s.nx)); ctx.scale(hsc, wsc * (.75 + .25 * Math.abs(Math.cos(p.spin + u * .5)))); ctx.drawImage(art.rbc, -.2, -.2, .4, .4); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // Drift: faint particles carried along the floor's passages (kidney: filtrate flowing down the tubules). Each follows the wall
+  // tangent, signed toward one preferred direction so both sides of a passage flow the same way.
+  function drift(ctx, art, V, mo, dt, still) {
+    const G = art.G, M = art.M, life = mo.life || 6, rnd = DD.rng(((art.seedN = (art.seedN || 7) + 1) * 2654435761) >>> 0);
+    const spawn = p => { for (let k = 0; k < 20; k++) { const x = V.x0 + rnd() * V.cols, y = V.y0 + rnd() * V.rows, i = (y | 0) * G.W + (x | 0); if (x >= 0 && y >= 0 && x < G.W && y < G.H && G.lum[i]) { p.x = x; p.y = y; p.age = still ? rnd() * life : 0; p.r = mo.size[0] + rnd() * (mo.size[1] - mo.size[0]); return true; } } return false; };
+    while (art.parts.length < mo.count) { const p = {}; if (!spawn(p)) return; p.age = rnd() * life; art.parts.push(p); }
+    tileT(ctx, V); ctx.fillStyle = mo.fill;
+    for (const p of art.parts) {
+      p.age += dt;
+      if (p.age > life || !G.lum[(p.y | 0) * G.W + (p.x | 0)] || p.x < V.x0 - 1 || p.y < V.y0 - 1 || p.x > V.x0 + V.cols + 1 || p.y > V.y0 + V.rows + 1) { if (!spawn(p)) continue; }
+      const g = grad(art.fd, (p.x + M) * U, (p.y + M) * U); let tx = -g[1], ty = g[0]; if (tx * .8 + ty * .6 < 0) { tx = -tx; ty = -ty; }
+      p.x += tx * mo.speed * dt; p.y += ty * mo.speed * dt;
+      const u = p.age, al = u < .8 ? u / .8 : u > life - 1 ? (life - u) : 1;
+      ctx.globalAlpha = clamp(al, 0, 1) * mo.alpha; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
