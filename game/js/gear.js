@@ -9,7 +9,7 @@ DD.gear = (function () {
   out.color=r=>DD.S.gear.colors[r]||'#aaa';
   out.price=it=>it.source==='starter'?0:(DD.S.gear.price[it.rarity]||({legendary:0}[it.rarity]))||0;
   out.sellPrice=it=>Math.floor(out.price(it)*DD.S.economy.sellPct);
-  out.canSell=it=>it.source!=='starter'&&it.rarity!=='legendary';
+  out.canSell=it=>!!it; // anything in the bag can go; starters and legendaries are worth 0, so they are discarded
   out.equippedIds=()=>DD.data.gearSlots.map(s=>p().equipment[s]).filter(Boolean);
   out.bagCount=id=>p().gearBag.filter(x=>x===id).length;
   out.owned=id=>out.bagCount(id)+out.equippedIds().filter(x=>x===id).length;
