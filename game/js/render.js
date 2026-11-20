@@ -13,10 +13,10 @@ DD.render = (function () {
     }
     return { w, h, dpr };
   }
-  // Circulation segments (V1) and dungeon floors (V2) with map art animate: one frame per display refresh while the map is showing.
-  let raf = 0, live = null;
-  const tick = () => { raf = 0; const run = DD.game && DD.game.run; if (live && live.isConnected && run && run.floor && !DD.game.combat) draw(live, run); };
-  if (DD.mapart) DD.mapart.onReady(() => { if (DD.ui && DD.ui.refreshMap) DD.ui.refreshMap(true); });
+  // Circulation segments (V1), dungeon floors (V2) and towns (V13) with map art animate: one frame per display refresh while the map is showing.
+  let raf = 0, live = null, liveRun = null;
+  const tick = () => { raf = 0; const run = liveRun; if (live && live.isConnected && run && run.floor && !DD.game.combat) draw(live, run); };
+  if (DD.mapart) DD.mapart.onReady(() => { if (DD.ui && DD.ui.mode === 'town' && DD.town.redraw) DD.town.redraw(); else if (DD.ui && DD.ui.refreshMap) DD.ui.refreshMap(true); });
   function draw(canvas, run) {
     if (!colors) loadColors();
     const art = DD.mapart ? DD.mapart.forRun(run) : null, t0 = art ? performance.now() : 0;
@@ -37,6 +37,11 @@ DD.render = (function () {
     const V = { ts, ox, oy, x0, y0, cols: cam.cols, rows: cam.rows, dpr, w, h }, now = t0 || 0;
     const glow = c => art ? c : null; // with tissue under them, items keep their glyph shapes but always glow
     if (art) { DD.mapart.base(ctx, art, V, now); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.font = '800 ' + Math.round(ts * 0.82) + 'px "JetBrains Mono", ui-monospace, monospace'; }
+    if (art && art.town) for (let j = 0; j < cam.rows; j++) for (let i = 0; i < cam.cols; i++) { // town (V13): doors, bounty board, HEV gate and exits keep their glyphs, with a glow
+      const x = x0 + i, y = y0 + j; if (x < 0 || y < 0 || x >= f.W || y >= f.H) continue;
+      const t = f.g[y][x]; if (!art.glyphs.includes(t)) continue;
+      if (t === '+') put('+', i, j, colors.door, 1, colors.door); else { const d = f.tiles[t], c = colors[d.col] || d.col; put(d.ch, i, j, c, 1, c); }
+    }
     else for (let j = 0; j < cam.rows; j++) for (let i = 0; i < cam.cols; i++) {
       const x = x0 + i, y = y0 + j;
       if (x < 0 || y < 0 || x >= f.W || y >= f.H) continue;
@@ -87,7 +92,7 @@ DD.render = (function () {
       if (eid && DD.mapart.sprite(ctx, V, eid, e.x, e.y, true, now)) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); continue; }
       put(e.glyph, e.x - x0, e.y - y0, colors.mon, 1, e.boss ? colors.mon : null);
     }
-    if (art) { DD.mapart.fog(ctx, art, f, V); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; }
+    if (art && !art.town) { DD.mapart.fog(ctx, art, f, V); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; }
     for (const s of f.signs || []) {
       if (!f.explored[s.y * f.W + s.x]) continue;
       const i=s.x-x0,j=s.y-y0;
@@ -104,7 +109,7 @@ DD.render = (function () {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (art) {
       const P = DD.mapart.perf; P.frames++; P.ms += performance.now() - t0;
-      if (DD.mapart.animated() && !DD.game.combat) { live = canvas; if (!raf) raf = requestAnimationFrame(tick); }
+      if (DD.mapart.animated() && !DD.game.combat) { live = canvas; liveRun = run; if (!raf) raf = requestAnimationFrame(tick); }
     }
   }
   return { draw };

@@ -842,4 +842,57 @@
       { text: 'Loose connective tissue', at: 'epiCT' }
     ]
   };
+  // ---------- Lymph node towns (V13): one profile over the hand-built layout in data/townmap.js, keyed to its zones ----------
+  // Not a region, so it lives on DD.data.townTissue. Walls: capsule and trabeculae of dense connective tissue, perinodal fat beyond.
+  // zones[z]: fill and ambient painters masked to that zone's tiles; tag marks a few of its tiles for labels.
+  const lnNuc = 'rgba(96,40,136,.8)', lnLymph = (per, a) => ({ p: 'nuclei', shape: 'round', per, size: [2.2, 3], fill: 'rgba(70,28,124,' + a + ')' }); // small lymphocytes: a dense round nucleus, almost no cytoplasm
+  const lnFluid = 'rgba(196,186,228,.1)', lnReticular = per => ({ p: 'strands', per, len: [12, 24], stroke: 'rgba(226,206,236,.24)', w: .8 }); // lnReticular fibers span the sinuses
+  const lnMac = per => ({ p: 'nuclei', shape: 'elongated', per, size: [3.6, 4.6], fill: 'rgba(130,66,140,.62)', cell: [8, 11], cellFill: 'rgba(238,204,218,.17)', granules: { n: 4, r: [1, 1.6], fill: 'rgba(206,160,96,.5)' }, inset: .1, tag: 'macrophage' }); // engulfed debris
+  D.townTissue = {
+    walls: [
+      { band: [1.3, null], fill: 'rgba(18,12,10,.93)', painter: [ // the node sits in fat
+        { p: 'vacuoles', per: .55, r: [12, 18], stroke: 'rgba(242,232,218,.3)', fill: 'rgba(14,8,10,.2)', nucleus: 'rgba(122,58,128,.5)', inset: .1, tag: 'fat' }] },
+      { band: [0, 1.3], fill: 'rgba(222,150,172,.84)', tag: 'ct', painter: [ // capsule and trabeculae: dense collagen with fibroblasts
+        { p: 'fibers', n: 6, stroke: 'rgba(255,224,232,.3)', w: 1.4, amp: 2, per: [18, 34] },
+        { p: 'nuclei', shape: 'flat', per: .9, size: [5, 7], fill: lnNuc }] }
+    ],
+    mantle: { fill: 'rgba(58,24,104,.88)', cells: 9, cellFill: 'rgba(150,110,210,.4)', ring: 1.3, ringFill: 'rgba(54,22,100,.2)', ringCells: 5, ringCellFill: 'rgba(60,24,112,.42)', tag: 'mantle' }, // dark rim of small resting B cells
+    floor: { fill: 'rgba(120,70,140,.12)', grain: .1 },
+    zones: {
+      e: { fill: lnFluid, tag: 'afferent', ambient: [lnLymph(.8, .3)], lining: { p: 'lining', at: 0, shape: 'squamous', size: [22, 4], fill: 'rgba(236,224,244,.4)', nucleus: lnNuc, cover: 1, tag: 'lymphEndo' } },
+      s: { fill: lnFluid, tag: 'subcap', ambient: [lnReticular(.8), lnLymph(1, .3), lnMac(.06)], lining: { p: 'lining', at: 0, shape: 'squamous', size: [22, 4], fill: 'rgba(236,224,244,.4)', nucleus: lnNuc, cover: .9, tag: 'lymphEndo' } },
+      c: { fill: 'rgba(84,36,128,.22)', tag: 'cortex', ambient: [lnLymph(10, .4)] },
+      g: { fill: 'rgba(238,222,250,.26)', tag: 'germinal', ambient: [ // pale: large dividing B cells (centroblasts) and tingible body macrophages holding apoptotic debris
+        { p: 'nuclei', shape: 'round', per: 2.4, size: [3.6, 4.8], fill: 'rgba(176,136,214,.34)' },
+        { p: 'nuclei', shape: 'round', per: .2, size: [3, 3.6], fill: 'rgba(150,90,170,.5)', cell: [9, 11], cellFill: 'rgba(240,222,240,.16)', granules: { n: 5, r: [1, 1.8], fill: 'rgba(60,20,80,.7)' }, inset: .1, tag: 'tingible' }] },
+      p: { fill: 'rgba(96,52,140,.12)', tag: 'paracortex', ambient: [lnLymph(8, .3), // T cells; interdigitating dendritic cells with pale cytoplasm and irregular nuclei
+        { p: 'nuclei', shape: 'elongated', per: .22, size: [3.4, 4.4], fill: 'rgba(150,110,180,.4)', cell: [7, 10], cellFill: 'rgba(232,216,238,.15)', inset: .1, tag: 'dendritic' }] },
+      m: { fill: 'rgba(110,50,122,.1)', tag: 'cord', ambient: [lnLymph(2, .3), // plasma cells: basophilic cytoplasm, eccentric nucleus with clock-face chromatin, pale Golgi beside it
+        { p: 'nuclei', shape: 'round', per: 1.1, size: [2.4, 3], fill: 'rgba(150,96,176,.8)', cell: [6, 7.5], cellFill: 'rgba(140,76,196,.38)', eccentric: .38, clock: { n: 5, fill: 'rgba(40,12,56,.85)' }, inset: .05, tag: 'plasma' }] },
+      n: { fill: lnFluid, tag: 'medSinus', ambient: [lnReticular(1.2), lnLymph(1.2, .3), lnMac(.3)] },
+      h: { fill: 'rgba(222,150,172,.12)', tag: 'hilum', ambient: [{ p: 'strands', per: 1.6, len: [14, 26], stroke: 'rgba(255,214,226,.22)', w: 1 }, { p: 'nuclei', shape: 'flat', per: .25, size: [5, 6.5], fill: 'rgba(96,40,136,.55)' }, lnLymph(.8, .3)] },
+      i: { fill: 'rgba(222,150,172,.12)', ambient: [{ p: 'strands', per: 1.6, len: [14, 26], stroke: 'rgba(255,214,226,.22)', w: 1 }, // mast cells: packed dark metachromatic granules around a round nucleus
+        { p: 'nuclei', shape: 'round', per: .45, size: [2.4, 3], fill: 'rgba(80,26,104,.75)', cell: [7, 9], cellFill: 'rgba(122,52,144,.24)', granules: { n: 16, r: [.8, 1.3], fill: 'rgba(66,18,96,.72)' }, inset: .1, tag: 'mast' }] },
+      r: { fill: 'rgba(222,150,172,.12)', ambient: [{ p: 'strands', per: 1.6, len: [14, 26], stroke: 'rgba(255,214,226,.22)', w: 1 }, { p: 'nuclei', shape: 'flat', per: .25, size: [5, 6.5], fill: 'rgba(96,40,136,.55)' }] }
+    },
+    buildings: ['i', 'r', 'm'],                    // rooms drawn with a membrane outline in the town's accent
+    glyphs: ['+', '!', '≈', '<', 'k', 'F', 'e'],    // keep their glyphs, with a glow
+    hev: { cell: 'rgba(236,196,222,.6)', nucleus: lnNuc, lumen: 'rgba(120,20,34,.6)', lymph: 'rgba(60,24,112,.85)', tag: 'hev' }, // under the HEV gate
+    vessels: { // past the hilum: A artery, f efferent lymphatic (with a valve), V vein
+      A: { wall: 'rgba(240,160,180,.9)', ww: 7, lumen: 'rgba(150,20,36,.85)', rbc: true, tag: 'artery' },
+      f: { wall: 'rgba(236,224,244,.7)', ww: 1.6, lumen: 'rgba(200,190,230,.22)', valve: true, cells: true, tag: 'efferent' },
+      V: { wall: 'rgba(150,176,240,.75)', ww: 2.4, lumen: 'rgba(100,16,28,.85)', rbc: true, tag: 'vein' }
+    },
+    motion: { type: 'lymph', count: 46, speed: .55, life: 9, size: [.05, .09], fill: 'rgba(226,220,246,.9)', cell: 'rgba(120,70,190,.9)', alpha: .55 },
+    labels: [
+      { text: 'Capsule', at: 'capsule' }, { text: 'Trabecula', at: 'trabecula' }, { text: 'Perinodal fat', at: 'fat' },
+      { text: 'Afferent lymphatic vessel', at: 'afferent' }, { text: 'Lymphatic valve', at: 'valve' }, { text: 'Subcapsular sinus', at: 'subcap' },
+      { text: 'Lymphatic endothelium', at: 'lymphEndo' }, { text: 'Cortex: B cells', at: 'cortex' }, { text: 'Mantle zone', at: 'mantle' },
+      { text: 'Germinal centre', at: 'germinal' }, { text: 'Tingible body macrophage', at: 'tingible' }, { text: 'Paracortex: T cells', at: 'paracortex' },
+      { text: 'Dendritic cell', at: 'dendritic' }, { text: 'High endothelial venule', at: 'hev' }, { text: 'Medullary cord', at: 'cord' },
+      { text: 'Plasma cell', at: 'plasma' }, { text: 'Medullary sinus', at: 'medSinus' }, { text: 'Macrophage', at: 'macrophage' },
+      { text: 'Mast cell', at: 'mast' }, { text: 'Hilum', at: 'hilum' }, { text: 'Efferent lymphatic vessel', at: 'efferent' },
+      { text: 'Artery', at: 'artery' }, { text: 'Vein', at: 'vein' }
+    ]
+  };
 })();

@@ -160,7 +160,7 @@ DD.town = (function () {
   function say(t) { st.msgs.push(t); while (st.msgs.length > 6) st.msgs.shift(); }
   function draw(resizeOnly) {
     if (!g.canvas || !st) return;
-    DD.render.draw(g.canvas, { floor: st.f, px: st.x, py: st.y, accent: town().accent });
+    DD.render.draw(g.canvas, T.mapRun());
     if (resizeOnly) return;
     const p = prof(), r = run(), s = maxes();
     g.floor.replaceChildren(el('b', null, town().name), el('small', null, st.zone ? TM.zones[st.zone].name : 'Lymph node'));
@@ -171,6 +171,8 @@ DD.town = (function () {
     g.log.replaceChildren(...st.msgs.slice(-DD.S.log.lines).reverse().map(t => el('div', null, t)));
   }
 
+  T.redraw = () => draw(true);
+  T.mapRun = () => st && { floor: st.f, px: st.x, py: st.y, accent: town().accent, townArt: true, seed: st.seed }; // V13: tissue art keyed to the zones
   T.move = function (dx, dy) {
     if (DD.ui.mode !== 'town' || !st) return;
     const nx = st.x + dx, ny = st.y + dy, d = infoAt(nx, ny); if (!d) return;
@@ -387,6 +389,9 @@ DD.town = (function () {
     ui.mount(el('div', { class: 'screen game town', style: { '--accent': t.accent } },
       el('div', { class: 'hud' }, g.floor, g.run, g.xp, g.glu,
         el('button', { class: 'btn small chartbtn', type: 'button', onclick: DD.derrickui.chart, title: 'Derrick’s vitals and what he has been up to' }, 'Chart'),
+        DD.mapart ? el('button', { class: 'btn small', type: 'button', 'aria-pressed': String(!!prof().settings.mapLabels), title: 'Name the structures in view',
+          onclick: e => { const s = prof().settings; s.mapLabels = !s.mapLabels; e.currentTarget.setAttribute('aria-pressed', String(s.mapLabels)); e.currentTarget.textContent = s.mapLabels ? 'Labels on' : 'Labels'; DD.save.save(); draw(true); } },
+          prof().settings.mapLabels ? 'Labels on' : 'Labels') : null,
         el('button', { class: 'btn small', type: 'button', title: 'Equipment and supplies', onclick: () => { savePos(); DD.gear.screen(() => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Gear'),
         el('button', { class: 'btn small', type: 'button', title: 'Write questions, lab images, flagged questions', onclick: () => {
           if (DD.ui.mode === 'town') DD.ui.studyMenu(savePos, () => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Study'),
