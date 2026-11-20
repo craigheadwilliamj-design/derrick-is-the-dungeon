@@ -685,9 +685,14 @@ DD.mapart = (function () {
     fibers(P, o, a, b) { // strokes following the wall, evenly or randomly spaced; optional striations
       for (let k = 0; k < (o.n || 6); k++) {
         const lv = o.even ? a + (b - a) * (k + .5) / o.n : P.R(a, b);
-        P.line(lv, o.stroke, o.w || 1.4, { wave: [o.amp == null ? 2 : o.amp, P.R(o.per[0], o.per[1]), P.R(0, 6)], dash: `${P.R(40, 110) | 0} ${P.R(6, 18) | 0}`, off: P.R(0, 60) | 0 });
-        if (o.striate) P.line(lv, o.striate, (o.w || 1.4) * 1.6, { dash: '1.2 3' });
+        const wv = [o.amp == null ? 2 : o.amp, P.R(o.per[0], o.per[1]), P.R(0, 6)], ds = o.dash || [40, 110, P.R(6, 18)]; // dash: [min, max, gap] (short gaps read as intercalated discs)
+        P.line(lv, o.stroke, o.w || 1.4, { wave: wv, dash: `${P.R(ds[0], ds[1]) | 0} ${n1(ds[2])}`, off: P.R(0, 60) | 0 });
+        if (o.striate) P.line(lv, o.striate, (o.w || 1.4) * 1.6, { wave: wv, dash: '1.2 3' });
       }
+      if (o.branch) P.scatter(a, b, o.branch, (X, Y, t) => { // short oblique strokes joining neighbouring fibers (branching)
+        const an = (t + (P.R(0, 1) < .5 ? -1 : 1) * P.R(18, 32)) * .01745, l = P.R(14, 26), bx = X + Math.cos(an) * l, by = Y + Math.sin(an) * l;
+        P.push(`<path fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.4}" stroke-linecap="round" d="M${n1(X)},${n1(Y)} L${n1(bx)},${n1(by)}"/>`);
+      });
     },
     lamellae(P, o, a, b, c) { // concentric rings around a central canal
       P.scatter(a, b, o.per, (X, Y) => {
@@ -860,7 +865,7 @@ DD.mapart = (function () {
       const set = new Set(cells), xs = cells.map(k => k % G.W), ys = cells.map(k => (k / G.W) | 0);
       const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
       const isP = (x, y) => x >= 0 && y >= 0 && x < G.W && y < G.H && set.has(y * G.W + x), pfd = pin(field(G, isP, 2, box), G, isP, sf.pin), L = contours(pfd, 0);
-      P.push(`<path fill="${pf.lumen}" stroke="${pf.wall}" stroke-width="2.4"${pf.dash ? ` stroke-dasharray="${pf.dash}"` : ''} d="${pathD(L)}"/>`);
+      P.push(`<path fill="${pf.lumen}" stroke="${pf.wall}" stroke-width="${pf.ww || 2.4}"${pf.dash ? ` stroke-dasharray="${pf.dash}"` : ''} d="${pathD(L)}"/>`);
       const pn = pf.nr || [6, 1.8];
       along(L, r, pf.every ? pf.every[0] : 26, pf.every ? pf.every[1] : 48, (p, t) => P.push(`<ellipse cx="${n1(p[0])}" cy="${n1(p[1])}" rx="${pn[0]}" ry="${pn[1]}" transform="rotate(${deg(t)} ${n1(p[0])} ${n1(p[1])})" fill="${pf.nucleus}"/>`));
       for (let k = 0; k < cells.length * pf.rbc; k++) { const X = (P.R(box[0], box[2] + 1) + M) * U, Y = (P.R(box[1], box[3] + 1) + M) * U; if (sdU(pfd, X, Y) < -.15) P.push(`<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="6" ry="${n1(P.R(3, 6))}" transform="rotate(${P.R(0, 180) | 0} ${n1(X)} ${n1(Y)})" fill="url(#rbc)"/>`); }
@@ -912,15 +917,20 @@ DD.mapart = (function () {
     return art;
   }
 
-  // Live layer for floors: only the profile's motion. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away.
+  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away.
   function floorBase(ctx, art, V, now) {
     const still = !animated(), t = still ? 0 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0), M = art.M;
     art.last = t;
     const sx = (V.x0 + M - 1) * U, sy = (V.y0 + M - 1) * U, sw = (V.cols + 2) * U, sh = (V.rows + 2) * U, k = art.k;
     localT(ctx, V, M);
+    const mo = art.D.motion;
+    if (mo && mo.type === 'beat' && !still) { // the whole floor contracts slightly in ventricular systole, about the view centre
+      const sc = 1 - S().floor.beat * beatOf(t).c, cx = (V.x0 + M + V.cols / 2) * U, cy = (V.y0 + M + V.rows / 2) * U;
+      ctx.translate(cx, cy); ctx.scale(sc, sc); ctx.translate(-cx, -cy);
+    }
     const ax = clamp(sx, 0, art.Wu), ay = clamp(sy, 0, art.Hu), bx = clamp(sx + sw, 0, art.Wu), by = clamp(sy + sh, 0, art.Hu);
     if (bx > ax && by > ay) ctx.drawImage(art.bmp, ax * k, ay * k, (bx - ax) * k, (by - ay) * k, ax, ay, bx - ax, by - ay);
-    const mo = art.D.motion; if (!mo || mo.type !== 'diapedesis' || !art.sinus.length) return;
+    if (!mo || mo.type !== 'diapedesis' || !art.sinus.length) return;
     const inView = s => s.x > V.x0 - 1 && s.x < V.x0 + V.cols + 1 && s.y > V.y0 - 1 && s.y < V.y0 + V.rows + 1;
     const ports = art.sinus.filter(inView); if (!ports.length) return;
     const life = S().floor.cellLife, rnd = DD.rng(((art.seedN = (art.seedN || 7) + 1) * 2654435761) >>> 0);
