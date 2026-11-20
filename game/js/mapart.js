@@ -797,6 +797,35 @@ DD.mapart = (function () {
     strands(P, o, a, b, c) { // loose fibers and collagen
       P.scatter(a, b, o.per, (X, Y) => { const an = P.R(0, 6.28), l = P.R(o.len[0], o.len[1]), bx = X + Math.cos(an) * l, by = Y + Math.sin(an) * l; P.push(`<path fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.2}" d="M${n1(X)},${n1(Y)} Q${n1((X + bx) / 2 + P.R(-l, l) * .3)},${n1((Y + by) / 2 + P.R(-l, l) * .3)} ${n1(bx)},${n1(by)}"/>`); c.tag(o.tag, X, Y); });
     },
+    fingers(P, o, a, b, c) { // finger-like folds rooted on the edge: out into the floor (villi) or in into the wall (crypts, glands)
+      const out = o.dir !== 'in', e = o.epi, cover = o.cover == null ? 1 : o.cover;
+      along(P.C(o.at || 0), P.R.bind(null, 0, 1), o.every[0], o.every[1], (p, t) => {
+        if (P.R(0, 1) > cover) return;
+        const nv = normalAt(c.fd, p[0], p[1]), d = out ? [-nv[0], -nv[1]] : nv, hw = P.R(o.width[0], o.width[1]) / 2;
+        let L = P.R(o.len[0], o.len[1]) * U; const tip = l => sdU(c.fd, p[0] + d[0] * l, p[1] + d[1] * l);
+        if (out) { if (tip(L) > -L / U * .75) L *= .55; if (tip(L) > -L / U * .75) return; } // keep villi off the far side of narrow passages
+        else if (tip(L) < (o.at || 0) + L / U * .7 || tip(L) > (o.max != null ? o.max : b)) return;
+        const bend = P.R(-1, 1) * (o.bend || 0) * hw, rot = Math.atan2(d[1], d[0]) * 57.2958 - 90;
+        const shape = (w, l, y0) => `M${n1(-w)},${n1(y0)}C${n1(-w)},${n1(l * .6)} ${n1(-w * .9 + bend)},${n1(l)} ${n1(bend)},${n1(l)}C${n1(w * .9 + bend)},${n1(l)} ${n1(w)},${n1(l * .6)} ${n1(w)},${n1(y0)}Z`;
+        let s = `<g transform="translate(${n1(p[0])} ${n1(p[1])}) rotate(${deg(rot)})"><path d="${shape(hw, L, -e)}" fill="${o.epiFill}"${o.rim ? ` stroke="${o.rim}" stroke-width="${o.rimW || 2}"${o.rimDash ? ` stroke-dasharray="${o.rimDash}"` : ''}` : ''}/>`;
+        s += `<path d="${shape(hw - e, L - e, -e)}" fill="${o.coreFill}"/>`;
+        for (const sd of [-1, 1]) for (let y = e * .2; y < L - e * 1.2; y += P.R(4.5, 6)) { // columnar nuclei, toward the basement membrane
+          const x = sd * (hw - e * .68) + bend * Math.pow(y / L, 2); s += `<ellipse cx="${n1(x)}" cy="${n1(y)}" rx="${n1(e * .16)}" ry="1.8" fill="${o.nucleus}"/>`;
+        }
+        for (let k = 0, n = P.R(o.goblets[0], o.goblets[1] + .99) | 0; k < n; k++) { // goblet cells: pale mucin cups in the epithelium
+          const y = P.R(e, L - e * 1.5), sd = P.R(0, 1) < .5 ? -1 : 1; s += `<ellipse cx="${n1(sd * (hw - e * .45) + bend * Math.pow(y / L, 2))}" cy="${n1(y)}" rx="${n1(e * .36)}" ry="${n1(e * .7)}" fill="${o.goblet}"/>`;
+        }
+        if (o.core) s += `<path d="M0,${n1(e)} Q${n1(bend * .3)},${n1(L * .6)} ${n1(bend * .8)},${n1(L - e * 1.6)}" fill="none" stroke="${o.core}" stroke-width="${o.coreW || 2.4}" stroke-linecap="round"/>`;
+        if (o.base) for (let k = 0; k < o.base.n; k++) { // cells at the blind end (crypt base: Paneth cells with eosinophilic granules)
+          const an = (k / Math.max(1, o.base.n - 1) - .5) * 2.2, x = bend + Math.sin(an) * (hw - e * .45), y = L - e * .6 - (1 - Math.cos(an)) * e * .8;
+          s += `<circle cx="${n1(x)}" cy="${n1(y)}" r="${n1(e * .42)}" fill="${o.base.fill}"/>`; for (let g = 0; g < 3; g++) s += `<circle cx="${n1(x + P.R(-1.6, 1.6))}" cy="${n1(y + P.R(-1.6, 1.6))}" r=".9" fill="${o.base.granule}"/>`;
+        }
+        P.push(s + '</g>');
+        c.tag(o.tag, p[0] + d[0] * L * .55, p[1] + d[1] * L * .55);
+        if (o.core && o.coreTag) c.tag(o.coreTag, p[0] + d[0] * L * .5, p[1] + d[1] * L * .5);
+        if (o.base && o.base.tag) c.tag(o.base.tag, p[0] + d[0] * L * .9, p[1] + d[1] * L * .9);
+      });
+    },
     pits(P, o, a, b, c) { // a shallow resorption pit in the wall surface holding a large multinucleated cell
       along(P.C(0), P.R.bind(null, 0, 1), o.every[0], o.every[1], (p, t) => {
         const hub = c.inHub(p[0], p[1]); if ((o.hub === false && hub) || (o.hub === true && !hub)) return;
@@ -920,7 +949,7 @@ DD.mapart = (function () {
     return art;
   }
 
-  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away.
+  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away. Peristalsis: a travelling wave ripples the floor.
   function floorBase(ctx, art, V, now) {
     const still = !animated(), t = still ? 0 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0), M = art.M;
     art.last = t;
@@ -936,7 +965,20 @@ DD.mapart = (function () {
       ctx.translate(cx, cy); ctx.scale(sc, sc); ctx.translate(-cx, -cy);
     }
     const ax = clamp(sx, 0, art.Wu), ay = clamp(sy, 0, art.Hu), bx = clamp(sx + sw, 0, art.Wu), by = clamp(sy + sh, 0, art.Hu);
-    if (bx > ax && by > ay) ctx.drawImage(art.bmp, ax * k, ay * k, (bx - ax) * k, (by - ay) * k, ax, ay, bx - ax, by - ay);
+    if (mo && mo.type === 'peristalsis' && !still && bx > ax && by > ay) { // a ring of contraction travels along the gut and the villi sway with it:
+      const pe = S().floor.peristalsis, cv = ctx.canvas, T = art.tmp = art.tmp || document.createElement('canvas'); // draw the view once offscreen, then shift whole-pixel columns
+      if (T.width !== cv.width || T.height !== cv.height) { T.width = cv.width; T.height = cv.height; }
+      const tc = T.getContext('2d'); tc.setTransform(1, 0, 0, 1, 0, 0); tc.clearRect(0, 0, T.width, T.height); tc.setTransform(ctx.getTransform());
+      tc.drawImage(art.bmp, ax * k, ay * k, (bx - ax) * k, (by - ay) * k, ax, ay, bx - ax, by - ay);
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const px = V.dpr * V.ts, n = pe.strips, w = Math.ceil(cv.width / n);
+      for (let i = 0; i < n; i++) {
+        const x = i * w, xt = V.x0 + (x / V.dpr - V.ox) / V.ts, sway = pe.sway * Math.sin(2 * Math.PI * t / pe.swayPeriod + xt * .7);
+        const dy = (pe.amp * Math.sin(2 * Math.PI * (xt / pe.wave - t / pe.period)) + sway) * px, ww = Math.min(w, cv.width - x);
+        if (ww > 0) ctx.drawImage(T, x, 0, ww, cv.height, x, dy, ww, cv.height);
+      }
+      ctx.restore();
+    } else if (bx > ax && by > ay) ctx.drawImage(art.bmp, ax * k, ay * k, (bx - ax) * k, (by - ay) * k, ax, ay, bx - ax, by - ay);
     if (!mo || mo.type !== 'diapedesis' || !art.sinus.length) return;
     const inView = s => s.x > V.x0 - 1 && s.x < V.x0 + V.cols + 1 && s.y > V.y0 - 1 && s.y < V.y0 + V.rows + 1;
     const ports = art.sinus.filter(inView); if (!ports.length) return;

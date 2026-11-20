@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining (cilia/foam), nuclei, vacuoles, crossSections, nodules, strands, pits.
+// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining (cilia/foam), nuclei, vacuoles, crossSections, nodules, strands, pits, fingers.
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -259,6 +259,98 @@
       { text: 'Type II pneumocyte', at: 'type2' }, { text: 'Dust cell (alveolar macrophage)', at: 'dust' }, { text: 'Alveolus', at: 'alveolus' },
       { text: 'Smooth muscle', at: 'smooth' }, { text: 'Lamina propria', at: 'propria' }, { text: 'Ciliated cells', at: 'ciliated' },
       { text: 'Club cells', at: 'club' }, { text: 'Pulmonary artery branch', at: 'pulmArtery' }
+    ]
+  };
+  // ---------- Gut (small intestine wall; floors go mucosa -> submucosa -> muscularis externa) ----------
+  const gNuc = 'rgba(100,46,128,.8)';
+  const villi = { // villi: simple columnar enterocytes with a brush border, goblet cells, a lacteal in the lamina propria core
+    p: 'fingers', dir: 'out', at: 0, every: [17, 24], len: [.55, .85], width: [15, 19], bend: .5, epi: 5,
+    epiFill: 'rgba(232,150,178,.2)', coreFill: 'rgba(214,120,152,.12)', rim: 'rgba(255,236,240,.55)', rimW: 1.8, rimDash: '1 1.1',
+    nucleus: 'rgba(100,46,128,.5)', goblets: [1, 2], goblet: 'rgba(240,244,255,.32)', core: 'rgba(246,240,220,.34)', coreW: 2.2,
+    tag: 'villus', coreTag: 'lacteal'
+  };
+  const crypts = { // intestinal crypts (of Lieberkuhn) in the lamina propria, Paneth cells at the base
+    p: 'fingers', dir: 'in', at: 0, max: 1.3, every: [18, 26], len: [.75, 1.05], width: [12, 15], bend: .3, epi: 4.2,
+    epiFill: 'rgba(214,128,160,.9)', coreFill: 'rgba(40,14,26,.8)', nucleus: gNuc, goblets: [1, 2], goblet: 'rgba(236,238,250,.62)',
+    base: { n: 3, fill: 'rgba(250,110,96,.85)', granule: 'rgba(255,214,160,.95)', tag: 'paneth' }, tag: 'crypt'
+  };
+  const lp = (band, tag) => ({ // lamina propria: loose connective tissue full of lymphocytes and plasma cells
+    band, fill: 'rgba(200,118,148,.86)', tag,
+    painter: [
+      { p: 'strands', per: 1.6, len: [8, 16], stroke: 'rgba(255,224,232,.24)', w: .9 },
+      { p: 'nuclei', shape: 'round', per: 2.2, size: [2.2, 3], fill: 'rgba(90,40,130,.5)' },
+      { p: 'crossSections', per: .25, r: [4.5, 6], wall: 'rgba(255,220,230,.5)', ww: 1, lumen: 'rgba(150,30,44,.5)', rbc: 1, nuclei: 1, nucleus: gNuc, inset: .02, tag: 'capillary' }
+    ]
+  });
+  const gSmooth = (band, tag, cut) => ({ // smooth muscle: along its length (spindles, cigar nuclei) or cut across (round profiles, central nuclei)
+    band, fill: 'rgba(204,96,120,.88)', tag,
+    painter: cut
+      ? [{ p: 'nuclei', shape: 'round', per: 2.4, size: [1.8, 2.4], cell: [5, 7], cellFill: 'rgba(240,150,170,.22)', fill: gNuc, inset: .02 }]
+      : [{ p: 'fibers', n: Math.max(3, Math.round((band[1] - band[0]) * 7)), even: true, stroke: 'rgba(255,186,200,.32)', w: 2.2, amp: 1.6, per: [20, 36], dash: [30, 60, 4] },
+         { p: 'nuclei', shape: 'elongated', per: 1, size: [5, 7], fill: gNuc, inset: .05 }]
+  });
+  const submucosa = (band, tag) => ({ // dense irregular connective tissue with larger vessels
+    band, fill: 'rgba(214,150,170,.84)', tag,
+    painter: [
+      { p: 'fibers', n: 5, stroke: 'rgba(255,226,234,.26)', w: 1.6, amp: 3, per: [16, 30] },
+      { p: 'nuclei', shape: 'flat', per: .8, size: [4.5, 6], fill: gNuc },
+      { p: 'crossSections', per: .04, r: [9, 13], wall: 'rgba(248,170,190,.9)', ww: 4, lumen: 'rgba(90,16,28,.7)', rbc: 2, nuclei: 3, nucleus: gNuc, inset: .15, tag: 'arteriole' }
+    ]
+  });
+  const dark = (a, painter) => ({ band: [a, null], fill: 'rgba(22,8,14,.94)', painter });
+  const ganglion = (per, tag) => ({ // enteric plexus ganglion: large neuron cell bodies (big pale nucleus, nucleolus) with satellite glial cells
+    p: 'nodules', per, r: [20, 30], stretch: [1.2, 1.8], fill: 'rgba(240,200,214,.16)', inset: .1, tag,
+    cells: { per: 7, size: [4, 5.5], fill: 'rgba(130,70,150,.42)' }
+  });
+  const chyme = [ // the lumen: chyme haze (food particles, fat droplets) and mucus strands
+    { p: 'nuclei', shape: 'round', per: 1.8, size: [2, 4.5], fill: 'rgba(214,180,96,.14)' },
+    { p: 'vacuoles', per: .35, r: [3, 6], stroke: 'rgba(250,236,180,.28)', fill: 'rgba(250,236,180,.08)', inset: .05, tag: 'chyme' },
+    { p: 'strands', per: .5, len: [14, 30], stroke: 'rgba(236,240,255,.12)', w: 2.2, tag: 'mucus' }
+  ];
+  const gFeatures = (pillar) => ({
+    pillar,
+    door: { lip: 'rgba(214,128,160,.74)', rim: 'rgba(252,232,238,.8)' },
+    stairs: { rim: 'rgba(252,232,238,.75)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  });
+  const villusX = { wall: 'rgba(255,236,240,.8)', ww: 2, dash: '1.2 1', lumen: 'rgba(214,128,160,.76)', rbc: 1, nucleus: gNuc, nr: [1.6, 3.4], every: [5, 7], tag: 'villusX' }; // villus cut across: brush border, columnar nuclei, a red cell in its capillaries
+  const artX = { wall: 'rgba(248,170,190,.95)', ww: 6, lumen: 'rgba(100,18,30,.72)', rbc: 3, nucleus: gNuc, nr: [5, 1.8], tag: 'arteriole' };
+  T.gut = {
+    accent: '#d9b44a',
+    depth: [
+      { // 1: mucosa. The room is the lumen; villi project into it from the wall, crypts open between them
+        walls: [dark(1.6, [{ p: 'nuclei', shape: 'flat', per: .6, size: [4, 5.5], fill: 'rgba(100,46,128,.3)' }]), gSmooth([1.3, 1.6], 'mm'), lp([0, 1.3], 'lp')],
+        edge: { stroke: 'rgba(255,236,240,.82)', w: 1.8 }, lining: [crypts, villi],
+        floor: { fill: 'rgba(196,160,84,.13)', grain: .1, ambient: chyme }, features: gFeatures(villusX), motion: { type: 'peristalsis' }
+      },
+      { // 2: submucosa with Meissner's plexus, between the muscularis mucosae and the inner circular layer
+        walls: [dark(.9, [{ p: 'nuclei', shape: 'round', per: 1, size: [2.2, 3], cell: [6, 8], cellFill: 'rgba(204,96,120,.14)', fill: 'rgba(100,46,128,.3)' }]), gSmooth([0, .9], 'mm')],
+        edge: { stroke: 'rgba(255,226,234,.8)', w: 1.8 }, lining: [],
+        floor: { fill: 'rgba(214,150,170,.2)', grain: .12, ambient: [
+          { p: 'fibers', n: 4, stroke: 'rgba(255,226,234,.12)', w: 1.6, amp: 3, per: [16, 30] },
+          { p: 'nuclei', shape: 'flat', per: .5, size: [4.5, 6], fill: 'rgba(100,46,128,.42)' },
+          ganglion(.02, 'meissner'),
+          { p: 'crossSections', per: .03, r: [9, 13], wall: 'rgba(248,170,190,.6)', ww: 3.5, lumen: 'rgba(90,16,28,.3)', rbc: 1, nuclei: 3, nucleus: gNuc, inset: .2, tag: 'arteriole' },
+          { p: 'crossSections', per: .03, r: [12, 17], wall: 'rgba(255,214,224,.45)', ww: 1.4, lumen: 'rgba(90,16,28,.25)', rbc: 2, nuclei: 2, nucleus: gNuc, inset: .2, tag: 'venule' }
+        ] }, features: gFeatures(artX), motion: { type: 'peristalsis' }
+      },
+      { // 3: muscularis externa: the floor is the plane between the inner circular and outer longitudinal layers, holding Auerbach's plexus
+        walls: [dark(2.2), gSmooth([1, 2.2], 'outerLong', true), gSmooth([0, 1], 'innerCirc')],
+        edge: { stroke: 'rgba(255,214,224,.8)', w: 1.8 }, lining: [],
+        floor: { fill: 'rgba(214,160,176,.16)', grain: .12, ambient: [
+          { p: 'strands', per: .9, len: [10, 22], stroke: 'rgba(255,230,236,.14)', w: .9 },
+          ganglion(.045, 'auerbach'),
+          { p: 'crossSections', per: .08, r: [4.5, 6], wall: 'rgba(255,220,230,.4)', ww: 1, lumen: 'rgba(150,30,44,.3)', rbc: 1, nuclei: 1, nucleus: gNuc, inset: .05, tag: 'capillary' }
+        ] }, features: gFeatures(artX), motion: { type: 'peristalsis' }
+      }
+    ],
+    labels: [
+      { text: 'Villus', at: 'villus' }, { text: 'Lacteal', at: 'lacteal' }, { text: 'Villus, cut across', at: 'villusX' },
+      { text: 'Intestinal crypt', at: 'crypt' }, { text: 'Paneth cells', at: 'paneth' }, { text: 'Lamina propria', at: 'lp' },
+      { text: 'Muscularis mucosae', at: 'mm' }, { text: 'Chyme', at: 'chyme' }, { text: 'Mucus', at: 'mucus' }, { text: 'Capillary', at: 'capillary' },
+      { text: "Submucosal (Meissner's) plexus", at: 'meissner' }, { text: 'Arteriole', at: 'arteriole' }, { text: 'Venule', at: 'venule' },
+      { text: 'Inner circular smooth muscle', at: 'innerCirc' }, { text: 'Outer longitudinal smooth muscle, cut across', at: 'outerLong' },
+      { text: "Myenteric (Auerbach's) plexus", at: 'auerbach' }
     ]
   };
 })();
