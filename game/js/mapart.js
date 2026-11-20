@@ -747,11 +747,43 @@ DD.mapart = (function () {
     crossSections(P, o, a, b, c) { // tubes or vessels cut across: wall ring, lumen, flat wall nuclei, optional red cells
       P.scatter(a, b, o.per, (X, Y) => {
         const r = P.R(o.r[0], o.r[1]); if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + r / U)) return;
-        let s = `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r)}" fill="${o.lumen}" stroke="${o.wall}" stroke-width="${o.ww || 2}"/>`;
-        for (let k = 0; k < (o.nuclei || 0); k++) { const an = P.R(0, 6.28), nx = X + Math.cos(an) * r, ny = Y + Math.sin(an) * r; s += `<ellipse cx="${n1(nx)}" cy="${n1(ny)}" rx="5" ry="1.8" transform="rotate(${deg(an * 57.2958 + 90)} ${n1(nx)} ${n1(ny)})" fill="rgba(122,58,128,.8)"/>`; }
+        let s = `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r)}" fill="${o.lumen}" stroke="${o.wall}" stroke-width="${o.ww || 2}"${o.dash ? ` stroke-dasharray="${o.dash}"` : ''}/>`;
+        const nr = o.nr || [5, 1.8], inn = o.nr ? nr[1] : 0; // stave nuclei bulge into the lumen
+        for (let k = 0; k < (o.nuclei || 0); k++) { const an = P.R(0, 6.28), nx = X + Math.cos(an) * (r - inn), ny = Y + Math.sin(an) * (r - inn); s += `<ellipse cx="${n1(nx)}" cy="${n1(ny)}" rx="${nr[0]}" ry="${nr[1]}" transform="rotate(${deg(an * 57.2958 + 90)} ${n1(nx)} ${n1(ny)})" fill="${o.nucleus || 'rgba(122,58,128,.8)'}"/>`; }
         for (let k = 0; k < (o.rbc || 0); k++) { const an = P.R(0, 6.28), d = P.R(0, r * .6); s += `<ellipse cx="${n1(X + Math.cos(an) * d)}" cy="${n1(Y + Math.sin(an) * d)}" rx="5" ry="${n1(P.R(3, 5))}" fill="url(#rbc)"/>`; }
         P.push(s); c.tag(o.tag, X, Y);
         if (o.sinus) for (let k = 0; k < 8; k++) { const an = k / 8 * 6.28; c.sinus.push({ x: X / U - c.M + Math.cos(an) * r / U, y: Y / U - c.M + Math.sin(an) * r / U, nx: -Math.cos(an), ny: -Math.sin(an), span: r / U * .8 }); }
+      });
+    },
+    nodules(P, o, a, b, c) { // lymphoid nodules or sheaths: packed lymphocyte nuclei, optional pale germinal centre, eccentric arteriole, marginal zone
+      const placed = [], m = o.marginal, ce = o.centre, ar = o.arteriole, ly = o.cells;
+      P.scatter(a, b, o.per, (X, Y) => {
+        const r = P.R(o.r[0], o.r[1]), sx = o.stretch ? P.R(o.stretch[0], o.stretch[1]) : 1, mz = m ? r * m.w : 0, R0 = r * sx + mz;
+        if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + R0 / U) || placed.some(q => Math.hypot(q[0] - X, q[1] - Y) < q[2] + R0)) return;
+        placed.push([X, Y, R0]);
+        const t = P.R(0, 6.283), ct = Math.cos(t), st = Math.sin(t), at = (lx, ly2) => [X + ct * lx - st * ly2, Y + st * lx + ct * ly2];
+        const gx = ce ? -r * sx * (ce.off || 0) : 0, gr = ce ? r * ce.r : 0, ax = ar ? r * sx * (ar.off || 0) : 0;
+        let s = `<g transform="translate(${n1(X)} ${n1(Y)}) rotate(${deg(t * 57.2958)})">`;
+        if (m) s += `<ellipse rx="${n1(r * sx + mz)}" ry="${n1(r + mz)}" fill="${m.fill}"/>`;
+        s += `<ellipse rx="${n1(r * sx)}" ry="${n1(r)}" fill="${o.fill}"/>`;
+        if (m && m.cells) for (let k = 0, n = Math.round(m.cells * R0 * 6.28 / U); k < n; k++) { const an = P.R(0, 6.283), q = P.R(1.02, 1 + m.w * .9); s += `<circle cx="${n1(Math.cos(an) * r * sx * q)}" cy="${n1(Math.sin(an) * r * q)}" r="${n1(P.R(ly.size[0], ly.size[1]))}" fill="${m.cellFill}"/>`; }
+        if (ce) s += `<circle cx="${n1(gx)}" cy="0" r="${n1(gr)}" fill="${ce.fill}"/>`;
+        for (let k = 0, n = Math.round(Math.PI * r * r * sx / (U * U) * ly.per); k < n; k++) {
+          const an = P.R(0, 6.283), q = Math.sqrt(P.R(0, 1)), x2 = Math.cos(an) * r * sx * q, y2 = Math.sin(an) * r * q;
+          if (ce && Math.hypot(x2 - gx, y2) < gr * .92) continue; // the germinal centre is pale: few small lymphocytes
+          s += `<circle cx="${n1(x2)}" cy="${n1(y2)}" r="${n1(P.R(ly.size[0], ly.size[1]))}" fill="${ly.fill}"/>`;
+        }
+        if (ce && ce.cells) for (let k = 0, n = Math.round(Math.PI * gr * gr / (U * U) * ce.cells); k < n; k++) { const an = P.R(0, 6.283), q = Math.sqrt(P.R(0, 1)) * gr * .85; s += `<circle cx="${n1(gx + Math.cos(an) * q)}" cy="${n1(Math.sin(an) * q)}" r="${n1(P.R(ce.size[0], ce.size[1]))}" fill="${ce.cellFill}"/>`; }
+        if (ar) {
+          const rr = P.R(ar.r[0], ar.r[1]);
+          s += `<circle cx="${n1(ax)}" cy="0" r="${n1(rr)}" fill="${ar.lumen}" stroke="${ar.wall}" stroke-width="${ar.ww || 3}"/>`;
+          for (let k = 0; k < 2; k++) s += `<ellipse cx="${n1(ax + P.R(-rr, rr) * .35)}" cy="${n1(P.R(-rr, rr) * .35)}" rx="${n1(rr * .4)}" ry="${n1(rr * .28)}" fill="url(#rbc)" opacity=".45"/>`;
+        }
+        P.push(s + '</g>');
+        c.tag(o.tag, X, Y);
+        if (ce) { const g = at(gx, 0); c.tag(ce.tag, g[0], g[1]); }
+        if (ar) { const g = at(ax, 0); c.tag(ar.tag, g[0], g[1]); }
+        if (m) { const g = at(0, r + mz * .5); c.tag(m.tag, g[0], g[1]); }
       });
     },
     strands(P, o, a, b, c) { // loose fibers and collagen
@@ -828,8 +860,9 @@ DD.mapart = (function () {
       const set = new Set(cells), xs = cells.map(k => k % G.W), ys = cells.map(k => (k / G.W) | 0);
       const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
       const isP = (x, y) => x >= 0 && y >= 0 && x < G.W && y < G.H && set.has(y * G.W + x), pfd = pin(field(G, isP, 2, box), G, isP, sf.pin), L = contours(pfd, 0);
-      P.push(`<path fill="${pf.lumen}" stroke="${pf.wall}" stroke-width="2.4" d="${pathD(L)}"/>`);
-      along(L, r, 26, 48, (p, t) => P.push(`<ellipse cx="${n1(p[0])}" cy="${n1(p[1])}" rx="6" ry="1.8" transform="rotate(${deg(t)} ${n1(p[0])} ${n1(p[1])})" fill="${pf.nucleus}"/>`));
+      P.push(`<path fill="${pf.lumen}" stroke="${pf.wall}" stroke-width="2.4"${pf.dash ? ` stroke-dasharray="${pf.dash}"` : ''} d="${pathD(L)}"/>`);
+      const pn = pf.nr || [6, 1.8];
+      along(L, r, pf.every ? pf.every[0] : 26, pf.every ? pf.every[1] : 48, (p, t) => P.push(`<ellipse cx="${n1(p[0])}" cy="${n1(p[1])}" rx="${pn[0]}" ry="${pn[1]}" transform="rotate(${deg(t)} ${n1(p[0])} ${n1(p[1])})" fill="${pf.nucleus}"/>`));
       for (let k = 0; k < cells.length * pf.rbc; k++) { const X = (P.R(box[0], box[2] + 1) + M) * U, Y = (P.R(box[1], box[3] + 1) + M) * U; if (sdU(pfd, X, Y) < -.15) P.push(`<ellipse cx="${n1(X)}" cy="${n1(Y)}" rx="6" ry="${n1(P.R(3, 6))}" transform="rotate(${P.R(0, 180) | 0} ${n1(X)} ${n1(Y)})" fill="url(#rbc)"/>`); }
       c.tag(pf.tag, (box[0] + box[2] + 1) / 2 * U + M * U, (box[1] + box[3] + 1) / 2 * U + M * U);
       for (const l of L) for (let i = 0; i < l.length; i += 6) { const p = l[i], g2 = grad(pfd, p[0], p[1]); sinus.push({ x: p[0] / U - M, y: p[1] / U - M, nx: -g2[0], ny: -g2[1], span: .5 }); }
@@ -850,7 +883,7 @@ DD.mapart = (function () {
     // surface: lining cells and pits, hub endothelium, then the glossy edge
     paint(P, D.lining, -999, 999, c);
     if (D.hub && D.hub.lining) LIB.lining(P, Object.assign({ hub: true }, D.hub.lining), 0, 0, c);
-    if (hubRoom && D.motion) along(P.C(0), r, 30, 60, p => { if (c.inHub(p[0], p[1])) { const nv = normalAt(fd, p[0], p[1]); sinus.push({ x: p[0] / U - M, y: p[1] / U - M, nx: -nv[0], ny: -nv[1], span: 2.5 }); } });
+    if (hubRoom && D.motion && D.hub.ports !== false) along(P.C(0), r, 30, 60, p => { if (c.inHub(p[0], p[1])) { const nv = normalAt(fd, p[0], p[1]); sinus.push({ x: p[0] / U - M, y: p[1] / U - M, nx: -nv[0], ny: -nv[1], span: 2.5 }); } });
     P.line(0, D.edge.stroke, D.edge.w, { glow: 1 });
     const labels = [];
     for (const lb of prof.labels || []) { const list = anchors[lb.at] || []; const step = Math.max(1, Math.floor(list.length / sf.anchorsPer)); for (let i = 0; i < list.length; i += step) labels.push({ X: list[i][0], Y: list[i][1], text: lb.text, d: 0 }); }

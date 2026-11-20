@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers, lamellae, lining, nuclei, vacuoles, crossSections, strands, pits.
+// Painters (js/mapart.js): fibers, lamellae, lining, nuclei, vacuoles, crossSections, nodules, strands, pits.
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -56,6 +56,78 @@
     labels: [
       { text: 'Trabecular bone', at: 'bone' }, { text: 'Osteoblasts', at: 'osteoblast' }, { text: 'Osteoclast', at: 'osteoclast' },
       { text: 'Adipocyte', at: 'adipocyte' }, { text: 'Megakaryocyte', at: 'megakaryocyte' }, { text: 'Sinusoid', at: 'sinusoid' }
+    ]
+  };
+
+  // ---------- Spleen (capsule and trabeculae of dense connective tissue around red and white pulp) ----------
+  const sNuc = 'rgba(96,46,132,.8)', rbcDot = 'rgba(220,58,72,.3)';
+  const pulpBeyond = { // more red pulp past the trabecula: dark, with sinusoids cut across
+    band: [2, null], fill: 'rgba(16,6,10,.94)',
+    painter: [
+      { p: 'nuclei', shape: 'round', per: 1.6, size: [2.4, 3.4], fill: 'rgba(200,60,80,.14)' },
+      { p: 'crossSections', per: .03, r: [12, 18], wall: 'rgba(255,210,222,.32)', dash: '7 3', lumen: 'rgba(110,22,34,.4)', rbc: 3, nuclei: 4, nr: [4, 2.4], nucleus: sNuc, inset: .3, sinus: true, tag: 'sinusoid' }
+    ]
+  };
+  const dct = (tag, band, art) => ({ // dense connective tissue: collagen bundles, fibroblasts, smooth muscle cells; trabecular vessels when thick
+    band, fill: 'rgba(222,150,172,.84)', tag,
+    painter: [
+      { p: 'fibers', n: 7, stroke: 'rgba(255,224,232,.3)', w: 1.4, amp: 2.2, per: [18, 34] },
+      { p: 'nuclei', shape: 'flat', per: .9, size: [5, 7], fill: sNuc },                                        // fibroblasts
+      { p: 'nuclei', shape: 'elongated', per: .4, size: [6, 8], fill: 'rgba(122,62,142,.55)' }                 // smooth muscle (pig capsule and trabeculae are muscular)
+    ].concat(art ? [
+      { p: 'crossSections', per: art, r: [11, 16], wall: 'rgba(248,176,196,.95)', ww: 6, lumen: 'rgba(90,16,28,.7)', rbc: 2, nuclei: 4, inset: .2, tag: 'trabArtery' },
+      { p: 'crossSections', per: art * .7, r: [16, 24], wall: 'rgba(255,214,224,.7)', ww: 1.6, lumen: 'rgba(100,18,30,.75)', rbc: 4, nuclei: 3, inset: .2, tag: 'trabVein' }
+    ] : [])
+  });
+  const cords = { // splenic cords of Billroth: reticular meshwork packed with red cells and macrophages, between the sinusoids
+    band: [0, .6], fill: 'rgba(132,30,48,.84)', tag: 'cord',
+    painter: [
+      { p: 'strands', per: 3, len: [10, 22], stroke: 'rgba(240,200,214,.26)', w: .9 },                          // reticular fibers
+      { p: 'nuclei', shape: 'round', per: 2.6, size: [3.4, 4.2], fill: 'rgba(230,70,84,.42)' },                // red cells
+      { p: 'nuclei', shape: 'elongated', per: .3, size: [4, 5], fill: 'rgba(110,52,124,.7)' }                  // macrophage nuclei
+    ]
+  };
+  const follicle = per => ({ // white pulp lymphoid follicle: marginal zone, dense mantle, pale germinal centre, eccentric central arteriole
+    p: 'nodules', per, r: [48, 74], fill: 'rgba(70,30,112,.13)', inset: .1, tag: 'follicle',
+    cells: { per: 16, size: [2.4, 3.2], fill: 'rgba(96,44,150,.3)' },
+    centre: { r: .46, off: .14, fill: 'rgba(232,214,244,.09)', cells: 5, size: [3.6, 4.6], cellFill: 'rgba(160,120,200,.26)', tag: 'germinal' },
+    arteriole: { off: .64, r: [6, 8], wall: 'rgba(244,170,192,.5)', ww: 2.4, lumen: 'rgba(90,16,28,.2)', tag: 'centralArt' },
+    marginal: { w: .22, fill: 'rgba(200,120,170,.07)', cells: 3, cellFill: 'rgba(150,90,160,.26)', tag: 'marginal' }
+  });
+  const pals = per => ({ // periarteriolar lymphoid sheath: lymphocytes cuffing a central arteriole
+    p: 'nodules', per, r: [22, 30], stretch: [1.7, 2.3], fill: 'rgba(70,30,112,.12)', inset: .1, tag: 'pals',
+    cells: { per: 16, size: [2.4, 3.2], fill: 'rgba(96,44,150,.3)' },
+    arteriole: { off: 0, r: [6, 8], wall: 'rgba(244,170,192,.5)', ww: 2.4, lumen: 'rgba(90,16,28,.2)', tag: 'centralArt' }
+  });
+  const redPulp = (sin, extra) => [ // red pulp: red cells everywhere, scattered lymphocytes and macrophages, venous sinusoids with slits
+    { p: 'nuclei', shape: 'round', per: 3.2, size: [3.4, 4.2], fill: rbcDot },                              // red cells
+    { p: 'nuclei', shape: 'round', per: 1.2, size: [2.4, 3.2], fill: 'rgba(96,44,150,.24)' },               // lymphocytes
+    { p: 'crossSections', per: sin, r: [12, 20], wall: 'rgba(255,214,226,.42)', dash: '7 3', ww: 2, lumen: 'rgba(120,20,34,.12)', rbc: 0, nuclei: 4, nr: [4, 2.4], nucleus: 'rgba(96,46,132,.5)', inset: .1, sinus: true, tag: 'sinusoid' }
+  ].concat(extra || []);
+  const sFeatures = {
+    pillar: { wall: 'rgba(255,214,226,.85)', dash: '9 3.5', lumen: 'rgba(120,22,36,.72)', rbc: 3, nucleus: sNuc, nr: [4.5, 2.8], every: [16, 26], tag: 'sinusoid' }, // venous sinusoids: stave cells, slits between them
+    door: { lip: 'rgba(222,150,172,.74)', rim: 'rgba(250,228,236,.8)' },
+    stairs: { rim: 'rgba(250,228,236,.75)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  };
+  const spleenDepth = (walls, ambient, extra) => Object.assign({
+    walls, edge: { stroke: 'rgba(252,232,240,.88)', w: 2.2 }, lining: [],
+    floor: { fill: 'rgba(168,36,54,.26)', grain: .12, ambient }, features: sFeatures,
+    motion: { type: 'diapedesis', count: 18, speed: .45 }   // red cells squeeze from the cords through the sinusoid slits
+  }, extra || {});
+  T.spleen = {
+    accent: '#b07be0',
+    depth: [
+      spleenDepth([pulpBeyond, dct('capsule', [.6, 2]), cords], redPulp(.05, [follicle(.004)])),                              // 1: red pulp under the capsule
+      spleenDepth([pulpBeyond, dct('trabecula', [.6, 2]), cords], redPulp(.025, [follicle(.02), pals(.012)])),                 // 2: white pulp
+      spleenDepth([pulpBeyond, dct('trabecula', [0, 2], .03)], redPulp(.04, [follicle(.006)]), {                                // 3: trabecular hub (the boss room is a trabecular vein)
+        hub: { fill: 'rgba(110,18,30,.2)', lining: { p: 'lining', at: -.02, shape: 'squamous', size: [26, 5], fill: 'rgba(255,214,224,.42)', nucleus: sNuc, cover: .9 }, rbc: .9, ports: false, tag: 'trabVein' } })
+    ],
+    labels: [
+      { text: 'Capsule', at: 'capsule' }, { text: 'Trabecula', at: 'trabecula' }, { text: 'Splenic cord', at: 'cord' },
+      { text: 'Venous sinusoid', at: 'sinusoid' }, { text: 'White pulp follicle', at: 'follicle' }, { text: 'Germinal centre', at: 'germinal' },
+      { text: 'Central arteriole', at: 'centralArt' }, { text: 'Marginal zone', at: 'marginal' }, { text: 'PALS', at: 'pals' },
+      { text: 'Trabecular artery', at: 'trabArtery' }, { text: 'Trabecular vein', at: 'trabVein' }
     ]
   };
 })();
