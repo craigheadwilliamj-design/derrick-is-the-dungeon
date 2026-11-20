@@ -379,7 +379,8 @@ DD.town = (function () {
     };
     const L = (ch, label, color) => el('span', null, el('b', { style: { color } }, ch), label);
     ui.mount(el('div', { class: 'screen game town', style: { '--accent': t.accent } },
-      el('div', { class: 'hud' }, g.floor, g.glu, g.run),
+      el('div', { class: 'hud' }, g.floor, g.glu, g.run,
+        el('button', { class: 'btn small', type: 'button', title: 'Equipment and supplies', onclick: () => { savePos(); DD.gear.screen(() => DD.ui.town({ resume: T.saved(DD.save.run) })); } }, 'Gear')),
       g.mapbox, g.log,
       el('div', { class: 'controls' },
         el('div', { class: 'dpad' }, key('↑', 0, -1, 'u'), key('←', -1, 0, 'l'), key('↓', 0, 1, 'd'), key('→', 1, 0, 'r')),
