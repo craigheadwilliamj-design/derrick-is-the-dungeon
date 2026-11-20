@@ -387,13 +387,34 @@
     edge: { stroke: 'rgba(255,226,236,.85)', w: 1.8 }, lining: [pctCells],
     floor: { fill: 'rgba(230,206,222,.1)', grain: .08, ambient: [] }, features: kFeatures(corpuscle), motion: filtrate
   };
+  const tal = per => ({ p: 'crossSections', per, pack: true, r: [9, 12], wall: 'rgba(230,150,176,.86)', ww: 6, lumen: 'rgba(18,8,14,.7)',
+    nuclei: 6, nr: [2.4, 2.2], nucleus: kNuc, inset: .05, tag: 'tal' });   // thick ascending limb: cuboidal, no brush border, open lumen
+  const cd = (per, r, ww) => ({ p: 'crossSections', per, pack: true, r, wall: 'rgba(238,222,236,.82)', ww, lumen: 'rgba(16,8,14,.72)',
+    borders: 9, borderStroke: 'rgba(90,50,90,.75)', nuclei: 8, nr: [2.6, 2.6], nucleus: kNuc, inset: .05, tag: 'cd' }); // collecting duct: pale cells, distinct lateral borders
+  const thin = per => ({ p: 'crossSections', per, pack: true, r: [7, 10], wall: 'rgba(244,214,228,.7)', ww: 1.6, lumen: 'rgba(24,12,20,.6)',
+    nuclei: 2, nr: [5, 2.4], nucleus: kNuc, inset: .05, tag: 'thin' });   // thin limb: simple squamous, nuclei bulging into the lumen, no red cells
+  const vr = per => ({ p: 'crossSections', per, r: [4, 5.5], wall: 'rgba(255,220,230,.45)', ww: 1, lumen: 'rgba(150,30,44,.55)', rbc: 1, nuclei: 1, nucleus: kNuc, inset: .02, tag: 'vr' });
+  const cdCells = (shape, size) => ({ p: 'lining', at: 0, shape, size, fill: 'rgba(238,222,236,.55)', nucleus: kNuc, cover: 1, tag: 'cdCells' }); // spacing leaves a gap: clear cell borders
+  const cdPillar = { wall: 'rgba(238,222,236,.85)', ww: 5, lumen: 'rgba(16,8,14,.85)', rbc: 0, nucleus: kNuc, nr: [2.8, 2.8], every: [9, 13], tag: 'cd' };
+  const medulla = (walls, lining, fill) => ({
+    walls: [interstitium(fill, walls)], edge: { stroke: 'rgba(250,236,244,.85)', w: 1.8 }, lining,
+    floor: { fill: 'rgba(230,214,230,.1)', grain: .08, ambient: [] }, features: kFeatures(cdPillar), motion: filtrate
+  });
   T.kidneys = {
     accent: '#c9a35f',
-    depth: [cortex, cortex, cortex],
+    depth: [
+      cortex,                                                                                                        // 1: cortex (the room is a PCT lumen)
+      medulla([cd(1.1, [12, 16], 7), tal(2), vr(.6)], [cdCells('cuboidal', [11, 11])], 'rgba(30,10,18,.95)'),          // 2: outer medulla (the room is a collecting duct)
+      medulla([cd(.4, [14, 19], 10), thin(2.4), vr(.5),                                                               // 3: inner medulla and papilla: more interstitium
+        { p: 'nuclei', shape: 'flat', per: .8, size: [4, 5.5], fill: 'rgba(98,44,130,.6)', tag: 'interstitium' }],
+        [cdCells('columnar', [9, 15])], 'rgba(46,22,34,.95)')
+    ],
     labels: [
       { text: 'Proximal convoluted tubule', at: 'pct' }, { text: 'PCT cells: brush border', at: 'brush' }, { text: 'Distal convoluted tubule', at: 'dct' },
       { text: 'Peritubular capillary', at: 'ptc' }, { text: "Bowman's capsule (parietal layer)", at: 'bowman' }, { text: 'Glomerulus', at: 'glomerulus' }, { text: "Bowman's space", at: 'bowmanSpace' },
-      { text: 'Macula densa', at: 'md' }
+      { text: 'Macula densa', at: 'md' }, { text: 'Thick ascending limb', at: 'tal' }, { text: 'Collecting duct', at: 'cd' },
+      { text: 'Collecting duct cells: clear borders', at: 'cdCells' }, { text: 'Thin limb (simple squamous)', at: 'thin' }, { text: 'Vasa recta', at: 'vr' },
+      { text: 'Interstitial cells', at: 'interstitium' }
     ]
   };
 })();
