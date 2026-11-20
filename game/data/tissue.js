@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining, nuclei, vacuoles, crossSections, nodules, strands, pits.
+// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining (cilia/foam), nuclei, vacuoles, crossSections, nodules, strands, pits.
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -190,6 +190,75 @@
       { text: 'Cardiac muscle, cut across', at: 'myoX' }, { text: 'Capillary', at: 'capillary' }, { text: 'Coronary arteriole', at: 'arteriole' },
       { text: 'Adipocytes', at: 'fat' }, { text: 'Subepicardial fat', at: 'epiFat' }, { text: 'Coronary artery branch', at: 'corArt' }, { text: 'Cardiac vein', at: 'corVein' },
       { text: 'Coronary artery', at: 'corArtery' }
+    ]
+  };
+  // ---------- Lungs (alveolar septa; floors go alveoli -> respiratory bronchiole region -> terminal bronchiole) ----------
+  const lNuc = 'rgba(104,50,132,.8)';
+  const septum = { // thin interalveolar septum: capillaries with red cells, a few fibroblast nuclei
+    band: [0, .6], fill: 'rgba(222,150,176,.86)', tag: 'septum',
+    painter: [
+      { p: 'crossSections', per: .9, r: [4.5, 6], wall: 'rgba(255,220,230,.5)', ww: 1, lumen: 'rgba(150,30,44,.5)', rbc: 1, nuclei: 1, nucleus: lNuc, inset: .02, tag: 'capillary' },
+      { p: 'nuclei', shape: 'flat', per: .5, size: [4, 5.5], fill: lNuc }
+    ]
+  };
+  const alveoliBeyond = { // neighbouring alveoli past the septum: air spaces ringed by more septa
+    band: [.6, null], fill: 'rgba(18,10,16,.94)',
+    painter: [{ p: 'vacuoles', per: .5, r: [22, 38], stroke: 'rgba(232,170,194,.42)', fill: 'rgba(214,226,238,.05)', inset: .1, tag: 'alveolus' }]
+  };
+  const pneumocytes = [
+    { p: 'lining', at: 0, shape: 'squamous', size: [26, 4], fill: 'rgba(242,206,220,.5)', nucleus: lNuc, cover: .85, tag: 'type1' },             // type I: flat, most of the surface
+    { p: 'lining', at: 0, shape: 'cuboidal', size: [11, 10], fill: 'rgba(238,212,228,.62)', nucleus: lNuc, cover: .12, foam: 4, tag: 'type2' }  // type II: cuboidal, foamy (lamellar bodies)
+  ];
+  const dust = per => ({ p: 'nuclei', shape: 'round', per, size: [3, 3.8], cell: [9, 12], cellFill: 'rgba(160,112,80,.26)', fill: lNuc, inset: .2, tag: 'dust' }); // alveolar macrophages with phagocytosed dust
+  const lFeatures = {
+    pillar: { wall: 'rgba(250,214,228,.85)', ww: 1.6, lumen: 'rgba(222,150,176,.82)', rbc: 1, nucleus: lNuc, nr: [6, 1.6], tag: 'septum' }, // free septal edge cut across, capillary blood inside
+    door: { lip: 'rgba(222,150,176,.74)', rim: 'rgba(250,232,240,.8)' },
+    stairs: { rim: 'rgba(250,232,240,.75)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  };
+  const smooth = band => ({ // smooth muscle: spindle cells wrapping the airway, cigar-shaped central nuclei
+    band, fill: 'rgba(206,104,128,.88)', tag: 'smooth',
+    painter: [
+      { p: 'fibers', n: 6, even: true, stroke: 'rgba(255,190,204,.32)', w: 2.4, amp: 1.6, per: [20, 36], dash: [30, 60, 4] },
+      { p: 'nuclei', shape: 'elongated', per: 1, size: [6, 8], fill: lNuc, inset: .1 }
+    ]
+  });
+  const propria = band => ({ // thin lamina propria under the epithelium: loose connective tissue, fibroblasts, capillaries
+    band, fill: 'rgba(230,170,192,.82)', tag: 'propria',
+    painter: [
+      { p: 'strands', per: 2, len: [8, 16], stroke: 'rgba(255,228,236,.3)', w: .9 },
+      { p: 'nuclei', shape: 'flat', per: .7, size: [4, 5.5], fill: lNuc },
+      { p: 'crossSections', per: .3, r: [4.5, 6], wall: 'rgba(255,220,230,.5)', ww: 1, lumen: 'rgba(150,30,44,.5)', rbc: 1, nuclei: 1, nucleus: lNuc, inset: .02, tag: 'capillary' }
+    ]
+  });
+  const pulmArtery = per => ({ p: 'crossSections', per, r: [12, 18], wall: 'rgba(240,160,184,.95)', ww: 5, lumen: 'rgba(90,16,28,.7)', rbc: 3, nuclei: 4, nucleus: lNuc, inset: .2, tag: 'pulmArtery' }); // bronchioles travel with pulmonary artery branches
+  const beyondWith = (a, art) => ({ band: [a, null], fill: alveoliBeyond.fill, painter: alveoliBeyond.painter.concat([pulmArtery(art)]) });
+  const ciliated = (size, cover) => ({ p: 'lining', at: 0, shape: 'cuboidal', size, fill: 'rgba(240,196,214,.42)', nucleus: lNuc, cover, cilia: 4, ciliaStroke: 'rgba(255,236,244,.7)', tag: 'ciliated' });
+  const club = cover => ({ p: 'lining', at: 0, shape: 'cuboidal', size: [10, 12], fill: 'rgba(248,214,226,.48)', nucleus: lNuc, cover, tag: 'club' }); // dome-shaped, non-ciliated, bulging into the lumen
+  const lungDepth = extra => Object.assign({
+    walls: [alveoliBeyond, septum], edge: { stroke: 'rgba(250,232,240,.85)', w: 1.8 }, lining: pneumocytes,
+    floor: { fill: 'rgba(214,226,238,.11)', grain: .06, ambient: [dust(.05)] }, features: lFeatures,
+    motion: { type: 'breathe' }
+  }, extra || {});
+  T.lungs = {
+    accent: '#8fd0e8',
+    depth: [
+      lungDepth(),                                                                                  // 1: alveoli (rooms) and alveolar ducts (corridors)
+      lungDepth({                                                                                   // 2: respiratory bronchioles: cuboidal epithelium interrupted by alveoli
+        walls: [beyondWith(1.1, .02), smooth([.45, 1.1]), propria([0, .45])],
+        lining: [pneumocytes[0], ciliated([10, 10], .5), club(.15)]
+      }),
+      lungDepth({                                                                                   // 3: terminal bronchiole: ciliated cuboidal to low columnar, club cells, smooth muscle, no cartilage
+        walls: [beyondWith(1.4, .03), smooth([.5, 1.4]), propria([0, .5])],
+        lining: [ciliated([9, 11], .95), club(.3)],
+        floor: { fill: 'rgba(214,226,238,.1)', grain: .06, ambient: [dust(.03)] }
+      })
+    ],
+    labels: [
+      { text: 'Alveolar septum', at: 'septum' }, { text: 'Capillary', at: 'capillary' }, { text: 'Type I pneumocyte', at: 'type1' },
+      { text: 'Type II pneumocyte', at: 'type2' }, { text: 'Dust cell (alveolar macrophage)', at: 'dust' }, { text: 'Alveolus', at: 'alveolus' },
+      { text: 'Smooth muscle', at: 'smooth' }, { text: 'Lamina propria', at: 'propria' }, { text: 'Ciliated cells', at: 'ciliated' },
+      { text: 'Club cells', at: 'club' }, { text: 'Pulmonary artery branch', at: 'pulmArtery' }
     ]
   };
 })();

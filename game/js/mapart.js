@@ -717,7 +717,10 @@ DD.mapart = (function () {
           if (o.shape === 'squamous') nu = `<ellipse cx="0" cy="0" rx="${n1(w * .3)}" ry="${n1(h * .32)}" fill="${o.nucleus}"/>`;
           else if (o.shape === 'columnar') nu = `<ellipse cx="0" cy="${n1(side * h * .22)}" rx="${n1(w * .22)}" ry="${n1(h * .2)}" fill="${o.nucleus}"/>`;
           else nu = `<circle cx="0" cy="0" r="${n1(Math.min(w, h) * .3)}" fill="${o.nucleus}"/>`;
-          P.push(`<g transform="translate(${n1(X)} ${n1(Y)}) rotate(${deg(t * 57.2958)})"><rect x="${n1(-w / 2)}" y="${n1(-h / 2)}" width="${w}" height="${h}" rx="${n1(Math.min(w, h) * .4)}" fill="${o.fill}"/>${nu}</g>`);
+          let ex = ''; // optional: foamy cytoplasm (pale vacuoles), cilia on the apical (floor) side
+          if (o.foam) for (let k = 0; k < o.foam; k++) ex += `<circle cx="${n1(P.R(-w, w) * .32)}" cy="${n1(-side * P.R(0, h * .32))}" r="${n1(P.R(1.2, 2))}" fill="rgba(255,250,246,.5)"/>`;
+          if (o.cilia) for (let k = 0, n = Math.max(2, (w / 3) | 0); k < n; k++) { const cx = n1(-w / 2 + (k + .5) * w / n); ex += `<line x1="${cx}" y1="${n1(-side * h / 2)}" x2="${n1(+cx + P.R(-1.5, 1.5))}" y2="${n1(-side * (h / 2 + o.cilia))}" stroke="${o.ciliaStroke || o.fill}" stroke-width=".8"/>`; }
+          P.push(`<g transform="translate(${n1(X)} ${n1(Y)}) rotate(${deg(t * 57.2958)})"><rect x="${n1(-w / 2)}" y="${n1(-h / 2)}" width="${w}" height="${h}" rx="${n1(Math.min(w, h) * .4)}" fill="${o.fill}"/>${nu}${ex}</g>`);
           c.tag(o.tag, X, Y);
         }
       }
@@ -917,7 +920,7 @@ DD.mapart = (function () {
     return art;
   }
 
-  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away.
+  // Live layer for floors: only the profile's motion. Beat: the floor contracts at bpm. Breathe: it slowly stretches and relaxes. Diapedesis: new red cells squeeze through a sinusoid wall, then drift away.
   function floorBase(ctx, art, V, now) {
     const still = !animated(), t = still ? 0 : now / 1000, dt = still ? 0 : Math.min(.05, art.last ? t - art.last : 0), M = art.M;
     art.last = t;
@@ -926,6 +929,10 @@ DD.mapart = (function () {
     const mo = art.D.motion;
     if (mo && mo.type === 'beat' && !still) { // the whole floor contracts slightly in ventricular systole, about the view centre
       const sc = 1 - S().floor.beat * beatOf(t).c, cx = (V.x0 + M + V.cols / 2) * U, cy = (V.y0 + M + V.rows / 2) * U;
+      ctx.translate(cx, cy); ctx.scale(sc, sc); ctx.translate(-cx, -cy);
+    }
+    if (mo && mo.type === 'breathe' && !still) { // inspiration stretches the septa, expiration relaxes them
+      const b = S().floor.breath, sc = 1 + b.amp * (.5 - .5 * Math.cos(t * 2 * Math.PI / b.period)), cx = (V.x0 + M + V.cols / 2) * U, cy = (V.y0 + M + V.rows / 2) * U;
       ctx.translate(cx, cy); ctx.scale(sc, sc); ctx.translate(-cx, -cy);
     }
     const ax = clamp(sx, 0, art.Wu), ay = clamp(sy, 0, art.Hu), bx = clamp(sx + sw, 0, art.Wu), by = clamp(sy + sh, 0, art.Hu);
