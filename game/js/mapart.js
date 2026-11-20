@@ -697,10 +697,34 @@ DD.mapart = (function () {
       });
     },
     lamellae(P, o, a, b, c) { // concentric rings around a central canal
+      // optional: pack (no overlap with other packed shapes), fill, cells (cells in lacunae between rings, with canaliculi), vessel (red cells in the canal),
+      // cement (outer cement line), remnant (partial arcs with no canal: interstitial lamellae, the leftovers of remodelled osteons)
+      const placed = c.packed = c.packed || [], rings = o.rings || 4;
       P.scatter(a, b, o.per, (X, Y) => {
-        const r = P.R(o.r[0], o.r[1]); if (!fits(c.fd, X, Y, a, b, r / U)) return;
-        let s = ''; for (let k = 1; k <= (o.rings || 4); k++) s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r * k / (o.rings || 4))}" fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.2}"/>`;
-        P.push(s + `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r * .18)}" fill="${o.canal || 'rgba(20,8,12,.6)'}"/>`); c.tag(o.tag, X, Y);
+        const r = P.R(o.r[0], o.r[1]); if (!fits(c.fd, X, Y, a, b, (o.inset || 0) + r / U)) return;
+        if (o.pack) { if (placed.some(q => Math.hypot(q[0] - X, q[1] - Y) < q[2] + r + 1)) return; placed.push([X, Y, r]); }
+        let s = o.fill ? `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r)}" fill="${o.fill}"/>` : '';
+        const t0 = P.R(0, 360), span = o.remnant ? P.R(110, 210) : 360;
+        for (let k = 1; k <= rings; k++) {
+          const rk = r * k / rings;
+          if (o.remnant) { const a0 = t0 * .01745, a1 = (t0 + span) * .01745; s += `<path fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.2}" d="M${n1(X + Math.cos(a0) * rk)},${n1(Y + Math.sin(a0) * rk)} A${n1(rk)},${n1(rk)} 0 ${span > 180 ? 1 : 0} 1 ${n1(X + Math.cos(a1) * rk)},${n1(Y + Math.sin(a1) * rk)}"/>`; }
+          else s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(rk)}" fill="none" stroke="${o.stroke}" stroke-width="${o.w || 1.2}"/>`;
+        }
+        if (o.cement) s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(r + .8)}" fill="none" stroke="${o.cement}" stroke-width="1.4"/>`;
+        if (o.cells) for (let k = 1; k < rings; k++) for (let j = 0, n = Math.round(o.cells.per * k); j < n; j++) { // lacunae sit between lamellae, long axis along the ring; canaliculi run across the rings
+          if (o.remnant && P.R(0, 1) < .5) continue;
+          const an = o.remnant ? (t0 + P.R(0, span)) * .01745 : P.R(0, 6.28), rr = r * (k + .5) / rings, lx = X + Math.cos(an) * rr, ly = Y + Math.sin(an) * rr, rot = deg(an * 57.2958 + 90);
+          for (let q = 0; q < 4; q++) { const d = (q < 2 ? -1 : 1) * P.R(5, 10), sp = P.R(-.35, .35); s += `<line x1="${n1(lx)}" y1="${n1(ly)}" x2="${n1(lx + Math.cos(an + sp) * d)}" y2="${n1(ly + Math.sin(an + sp) * d)}" stroke="${o.cells.canaliculi}" stroke-width=".7"/>`; }
+          s += `<ellipse cx="${n1(lx)}" cy="${n1(ly)}" rx="${n1(o.cells.size[0])}" ry="${n1(o.cells.size[1])}" transform="rotate(${rot} ${n1(lx)} ${n1(ly)})" fill="${o.cells.lacuna}"/>` +
+            `<ellipse cx="${n1(lx)}" cy="${n1(ly)}" rx="${n1(o.cells.size[0] * .6)}" ry="${n1(o.cells.size[1] * .55)}" transform="rotate(${rot} ${n1(lx)} ${n1(ly)})" fill="${o.cells.fill}"/>`;
+          c.tag(o.cells.tag, lx, ly);
+        }
+        if (!o.remnant) {
+          const cr = r * (o.canalR || .18); s += `<circle cx="${n1(X)}" cy="${n1(Y)}" r="${n1(cr)}" fill="${o.canal || 'rgba(20,8,12,.6)'}"/>`;
+          for (let k = 0; k < (o.vessel || 0); k++) { const an = P.R(0, 6.28), d = P.R(0, cr * .4); s += `<ellipse cx="${n1(X + Math.cos(an) * d)}" cy="${n1(Y + Math.sin(an) * d)}" rx="${n1(cr * .32)}" ry="${n1(cr * .24)}" fill="url(#rbc)"/>`; }
+          if (o.canalTag) c.tag(o.canalTag, X, Y);
+        }
+        P.push(s); c.tag(o.tag, X, Y);
       });
     },
     lining(P, o, a, b, c) { // a row of cells along an edge, on the floor side; nuclei placed by cell shape

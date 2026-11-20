@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders/feet), nodules (rim/loops), strands, pits, fingers, somata.
+// Painters (js/mapart.js): fibers (dash/striate/branch), lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders/feet), nodules (rim/loops), strands, pits, fingers, somata, lamellae (pack/cells/vessel/cement/remnant).
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -457,6 +457,91 @@
       { text: 'White matter tract (myelinated axons)', at: 'tract' }, { text: 'Oligodendrocyte nuclei', at: 'oligo' },
       { text: 'Neuron: Nissl substance, nucleolus', at: 'neuron' }, { text: 'Glial nuclei', at: 'glia' },
       { text: 'Capillary', at: 'capillary' }, { text: 'Astrocyte end-feet', at: 'astro' }, { text: 'Penetrating arteriole', at: 'arteriole' }
+    ]
+  };
+
+  // ---------- Femur (compact bone of the shaft; floors go periosteum -> osteons -> spongy bone and the medullary cavity) ----------
+  const fNuc = 'rgba(110,52,124,.82)';
+  const fBone = 'rgba(230,206,196,.86)';                                // bone matrix, pale and eosinophilic
+  const osteocyte = { per: 2.2, size: [4.2, 1.9], lacuna: 'rgba(40,18,26,.6)', fill: fNuc, canaliculi: 'rgba(70,34,44,.5)', tag: 'osteocyte' };
+  const osteon = (per, r) => ({ p: 'lamellae', per, pack: true, r, rings: 5, fill: 'rgba(238,216,206,.16)', stroke: 'rgba(255,240,232,.4)', w: 1.2, cement: 'rgba(120,70,80,.5)',
+    canal: 'rgba(30,12,18,.85)', canalR: .2, vessel: 2, canalTag: 'haversian', cells: osteocyte, inset: .05, tag: 'osteon' }); // osteon: concentric lamellae, osteocytes between them, central canal with a vessel
+  const interstitial = per => ({ p: 'lamellae', per, pack: true, r: [16, 30], rings: 3, remnant: true, stroke: 'rgba(255,238,230,.36)', w: 1.1, cells: { ...osteocyte, per: 1.2, tag: null }, inset: .02, tag: 'interstitial' });
+  const lamBand = (band, n) => ({ // circumferential lamellae: sheets parallel to the surface, osteocytes in lacunae between them
+    band, fill: fBone, tag: 'circumferential',
+    painter: [
+      { p: 'fibers', band, n, even: true, stroke: 'rgba(255,240,232,.38)', w: 1.2, amp: 1, per: [20, 34] },
+      { p: 'nuclei', shape: 'elongated', per: 1.1, size: [4, 5], fill: fNuc, lacuna: 'rgba(40,18,26,.55)', canaliculi: 'rgba(70,34,44,.45)', inset: .12 }
+    ]
+  });
+  const compact = a => ({ band: [a, null], fill: 'rgba(204,176,168,.92)', painter: [osteon(.12, [44, 62]), osteon(.12, [30, 42]), interstitial(.5)] });
+  const fFeatures = pillar => ({
+    pillar,
+    door: { lip: 'rgba(230,206,196,.76)', rim: 'rgba(252,242,234,.82)' },
+    stairs: { rim: 'rgba(252,242,234,.78)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  });
+  const fArtery = { wall: 'rgba(236,170,186,.9)', ww: 5, lumen: 'rgba(110,22,34,.72)', rbc: 2, nucleus: fNuc, nr: [5, 1.6], every: [14, 22], tag: 'periostealA' }; // periosteal artery: smooth muscle wall
+  const canalFlow = { type: 'drift', count: 24, speed: .25, size: [.04, .07], fill: 'rgb(236,240,250)', alpha: .22, life: 8 };   // faint interstitial fluid flow in the canals
+  const periosteum = { // the room is the loose connective tissue outside the bone; the wall is the periosteum, then the bone itself
+    walls: [
+      compact(2.5), lamBand([1.3, 2.5], 6),
+      { band: [.85, 1.3], fill: 'rgba(214,160,180,.84)', tag: 'osteogenic', painter: [   // osteogenic (cambium) layer: osteoprogenitor cells and osteoblasts against the bone
+        { p: 'nuclei', shape: 'elongated', per: 3, size: [3.4, 4.4], fill: fNuc, inset: .04 }] },
+      { band: [0, .85], fill: 'rgba(222,180,182,.84)', tag: 'fibrous', painter: [            // fibrous layer: dense irregular connective tissue, collagen running with the surface, flat fibroblast nuclei
+        { p: 'fibers', band: [0, .85], n: 7, stroke: 'rgba(255,232,232,.34)', w: 1.5, amp: 2.4, per: [16, 30] },
+        { p: 'nuclei', shape: 'flat', per: 1.6, size: [5, 6.5], fill: fNuc, inset: .04, tag: 'fibroblast' }] }
+    ],
+    edge: { stroke: 'rgba(250,236,232,.85)', w: 1.8 }, lining: [],
+    floor: { fill: 'rgba(200,150,160,.16)', grain: .12, ambient: [                       // loose areolar connective tissue
+      { p: 'strands', per: 1.4, len: [10, 22], stroke: 'rgba(250,226,230,.16)', w: 1 },
+      { p: 'nuclei', shape: 'flat', per: .5, size: [4.5, 6], fill: 'rgba(110,52,124,.45)' },
+      { p: 'crossSections', per: .04, r: [4, 6], wall: 'rgba(255,220,230,.45)', ww: 1, lumen: 'rgba(150,30,44,.3)', rbc: 0, nuclei: 1, nucleus: fNuc, inset: .15, tag: 'capillary' }
+    ] }, features: fFeatures(fArtery), motion: canalFlow
+  };
+  const liningCells = { p: 'lining', at: 0, shape: 'squamous', size: [24, 4.5], fill: 'rgba(236,206,214,.42)', nucleus: fNuc, cover: .7, tag: 'liningCells' }; // endosteum: flat bone lining cells
+  const fVessel = { wall: 'rgba(255,214,222,.8)', ww: 1.6, lumen: 'rgba(120,22,36,.7)', rbc: 2, nucleus: fNuc, nr: [5, 1.6], every: [16, 24], tag: 'canalVessel' }; // thin-walled vessel cut across in the canal
+  const canals = { // the room is a central (Haversian) or perforating (Volkmann) canal: loose connective tissue around a vessel running along it
+    walls: [compact(0)],
+    edge: { stroke: 'rgba(252,240,234,.86)', w: 1.8 }, lining: [liningCells],
+    floor: { fill: 'rgba(196,140,150,.15)', grain: .12, ambient: [
+      { p: 'fibers', band: [-.44, -.3], n: 2, even: true, stroke: 'rgba(220,70,84,.32)', w: 1.6, amp: .8, per: [30, 50], dash: [200, 420, 1] }, // the vessel running along the canal
+      { p: 'strands', per: 1.2, len: [10, 20], stroke: 'rgba(250,226,230,.14)', w: 1 },
+      { p: 'nuclei', shape: 'flat', per: .4, size: [4.5, 6], fill: 'rgba(110,52,124,.42)' }
+    ] }, features: fFeatures(fVessel), motion: canalFlow
+  };
+  const trabecula = { // spongy bone: trabeculae of lamellar bone with osteocytes in lacunae, no osteons
+    band: [0, 1.6], fill: fBone, tag: 'trabecula',
+    painter: [
+      { p: 'fibers', n: 6, even: true, stroke: 'rgba(255,240,232,.36)', w: 1.3, amp: 1.4, per: [14, 26] },
+      { p: 'nuclei', shape: 'elongated', per: .8, size: [4, 5.5], fill: fNuc, lacuna: 'rgba(40,18,26,.55)', canaliculi: 'rgba(70,34,44,.45)', inset: .25, tag: 'osteocyte' }
+    ]
+  };
+  const pastTrab = { band: [1.6, null], fill: 'rgba(30,22,16,.94)', painter: [ // the next marrow space past the trabecula
+    { p: 'vacuoles', per: .9, r: [12, 17], stroke: 'rgba(246,234,200,.2)', fill: 'rgba(30,22,16,.2)', inset: .3 }] };
+  const medullary = { // the rooms open into the medullary cavity, which in an adult femoral shaft holds yellow marrow: mostly adipocytes
+    walls: [pastTrab, trabecula],
+    edge: { stroke: 'rgba(252,240,230,.88)', w: 2 },
+    lining: [{ p: 'lining', at: 0, shape: 'cuboidal', size: [11, 9], fill: 'rgba(206,150,196,.5)', nucleus: fNuc, cover: .45, hub: false, tag: 'osteoblast' }],
+    floor: { fill: 'rgba(214,190,120,.1)', grain: .1, ambient: [
+      { p: 'vacuoles', per: 1.1, r: [12, 17], stroke: 'rgba(246,234,200,.34)', fill: 'rgba(20,14,10,.08)', nucleus: 'rgba(110,52,124,.5)', inset: .1, tag: 'adipocyte' },
+      { p: 'nuclei', shape: 'round', per: .5, size: [2.4, 3.4], fill: 'rgba(150,70,150,.18)' },             // a few scattered blood-forming cells
+      { p: 'crossSections', per: .03, r: [9, 13], wall: 'rgba(255,214,222,.35)', ww: 1.2, lumen: 'rgba(110,22,34,.3)', rbc: 0, nuclei: 2, nucleus: fNuc, inset: .3, tag: 'sinusoid' }
+    ] }, features: fFeatures(fVessel),
+    hub: { fill: 'rgba(214,190,120,.06)', lining: { p: 'lining', at: -.02, shape: 'squamous', size: [24, 4.5], fill: 'rgba(236,206,214,.4)', nucleus: fNuc, cover: .8 }, rbc: 0, ports: false, tag: 'medullary' },
+    motion: canalFlow
+  };
+  T.femur = {
+    accent: '#e8e0cc',
+    depth: [periosteum, canals, medullary],
+    labels: [
+      { text: 'Periosteum: fibrous layer', at: 'fibrous' }, { text: 'Periosteum: osteogenic layer', at: 'osteogenic' }, { text: 'Fibroblast', at: 'fibroblast' },
+      { text: 'Outer circumferential lamellae', at: 'circumferential' }, { text: 'Osteon', at: 'osteon' }, { text: 'Central (Haversian) canal', at: 'haversian' },
+      { text: 'Osteocyte in lacuna, canaliculi', at: 'osteocyte' }, { text: 'Interstitial lamellae', at: 'interstitial' },
+      { text: 'Periosteal artery', at: 'periostealA' }, { text: 'Capillary', at: 'capillary' },
+      { text: 'Bone lining cells (endosteum)', at: 'liningCells' }, { text: 'Vessel in the canal', at: 'canalVessel' },
+      { text: 'Spongy bone trabecula', at: 'trabecula' }, { text: 'Osteoblasts', at: 'osteoblast' }, { text: 'Yellow marrow: adipocytes', at: 'adipocyte' },
+      { text: 'Sinusoid', at: 'sinusoid' }, { text: 'Medullary cavity', at: 'medullary' }
     ]
   };
 })();
