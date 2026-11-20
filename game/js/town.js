@@ -25,8 +25,10 @@ DD.town = (function () {
   T.sellGear = function (id) {
     const it = DD.data.gearById[id], bag = prof().gearBag, i = bag.indexOf(id);
     if (!it || i < 0 || !DD.gear.canSell(it)) return;
-    bag.splice(i, 1); prof().glucose += DD.gear.sellPrice(it);
-    done('Sold ' + it.name + ' for ' + DD.gear.sellPrice(it) + ' glucose.');
+    const g = DD.gear.sellPrice(it);
+    if (!g && it.rarity === 'legendary' && T.confirmDiscard !== id) { T.confirmDiscard = id; return done('Tap Discard again to throw away ' + it.name + ' for good.'); }
+    T.confirmDiscard = null; bag.splice(i, 1); prof().glucose += g;
+    done(g ? 'Sold ' + it.name + ' for ' + g + ' glucose.' : 'Discarded ' + it.name + '.');
   };
   T.gearBought = new Set();
   T.buy = function (id) {
@@ -247,10 +249,10 @@ DD.town = (function () {
       .sort((a, b) => (GR.owned(b.id) > 1) - (GR.owned(a.id) > 1) || GR.sellPrice(b) - GR.sellPrice(a))
       .map(it => el('div', { class: 'shoprow' }, el('div', { class: 'shopinfo' }, el('b', { class: 'gname', style: { color: GR.color(it.rarity) } }, it.name),
         el('span', { class: 'chip' }, 'you own ' + GR.owned(it.id) + (GR.owned(it.id) > 1 ? ' (extra copy)' : ''))),
-        el('button', { class: 'btn small', type: 'button', onclick: () => T.sellGear(it.id) }, 'Sell ' + GR.sellPrice(it) + ' g')));
+        el('button', { class: 'btn small', type: 'button', onclick: () => T.sellGear(it.id) }, GR.sellPrice(it) ? 'Sell ' + GR.sellPrice(it) + ' g' : T.confirmDiscard === it.id ? 'Sure? Discard' : 'Discard')));
     return [note('Everything sells for ' + Math.round(E.sellPct * 100) + '% of its price.'),
       el('h3', null, 'Supplies'), ...sell,
-      el('h3', null, 'Gear'), ...(bagSell.length ? bagSell : [note('No gear to sell.')]), note('Equipped gear, starters and legendaries are not for sale.')];
+      el('h3', null, 'Gear'), ...(bagSell.length ? bagSell : [note('No gear to sell.')]), note('Equipped gear has to be taken off first. Starters and legendaries are worth nothing here, so they are discarded instead.')];
   }
   function shopPanel() {
     const p = prof();
