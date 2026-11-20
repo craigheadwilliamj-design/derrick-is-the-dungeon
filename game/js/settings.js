@@ -117,7 +117,7 @@ DD.S = {
     deoxy: ['pulmTrunk', 'pulmArt', 'ra', 'rv', 'tricuspid', 'pulmValve'],   // dark red blood (veins are dark unless listed in oxy)
     oxy: ['pulmVeins', 'la', 'lv', 'mitral', 'aorticValve'],
     // Dungeon floors (V2): pillarMax = largest wall island drawn as the pillar feature; cellLife and squeeze in seconds; beat = systolic shrink for 'beat' motion.
-    floor: { margin: 0, cap: 5, pin: 0.3, pillarMax: 12, anchorsPer: 14, cellLife: 4.5, squeeze: 1.1, beat: 0.014 }
+    floor: { margin: 0, cap: 5, pin: 0.3, pillarMax: 12, anchorsPer: 14, cellLife: 4.5, squeeze: 1.1, beat: 0.014, breath: { period: 4, amp: 0.02 } }
   },
   // NPCs, merchant, bounties, thymus (phase 3b).
   npc: { lootGlucose: { min: 8, max: 15 }, lootItemChance: 0.35 },   // native cell reward for a right answer: glucose, or a consumable
