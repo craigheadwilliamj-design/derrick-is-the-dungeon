@@ -49,7 +49,8 @@ DD.ui = (function () {
   // Study screens (writer, lab images, flagged) can open mid-run; Back returns to where you were.
   ui.studyBack = null;
   ui.leaveStudy = function () { const f = ui.studyBack; ui.studyBack = null; (f || ui.menu)(); };
-  ui.studyMenu = function (prep, back) {
+  // extra(close): optional nodes added under the three study buttons (the body map adds Missed questions and the source filter).
+  ui.studyMenu = function (prep, back, extra) {
     const previous = ui.mode, dialog = el('dialog', { style: { width: 'min(360px,92vw)', padding: '16px', background: 'var(--panel)', color: 'var(--bone)', border: '1px solid var(--line)', borderRadius: '8px' } });
     const go = open => () => { dialog.close(); prep(); ui.studyBack = back; open(); };
     const box = el('div', { class: 'stack' });
@@ -58,7 +59,7 @@ DD.ui = (function () {
       el('button', { class: 'btn', type: 'button', onclick: go(DD.writer.open) }, 'Add study material'),
       el('button', { class: 'btn', type: 'button', onclick: go(DD.editor.open) }, 'Lab images'),
       el('button', { class: 'btn', type: 'button', onclick: go(DD.writer.flagged) }, 'Flagged questions'),
-      el('p', { class: 'small dim' }, 'Your spot is saved. Back on any of these returns you here.'),
+      extra ? extra(() => dialog.close()) : el('p', { class: 'small dim' }, 'Your spot is saved. Back on any of these returns you here.'),
       el('button', { class: 'btn small', type: 'button', onclick: () => dialog.close() }, 'Close'));
     dialog.addEventListener('close', () => { if (ui.mode === 'study') ui.mode = previous; dialog.remove(); });
     document.body.append(dialog); ui.mode = 'study'; dialog.showModal();
@@ -75,13 +76,13 @@ DD.ui = (function () {
     const btns = [];
     if (titleConfirm) {
       btns.push(el('p', { class: 'warn' }, 'This erases your level, question history and any run in progress.'),
-        el('button', { class: 'btn danger', onclick: () => { DD.save.reset(); titleConfirm = false; DD.game.abandon(); ui.menu(); } }, 'Yes, erase and start over'),
+        el('button', { class: 'btn danger', onclick: () => { DD.save.reset(); titleConfirm = false; DD.game.abandon(); ui.classes({ first: true }); } }, 'Yes, erase and start over'),
         el('button', { class: 'btn', onclick: () => { titleConfirm = false; ui.title(); } }, 'Keep my save'));
     } else if (has) {
       btns.push(el('button', { class: 'btn primary', onclick: ui.continueGame }, 'Continue'),
         el('button', { class: 'btn', onclick: () => { titleConfirm = true; ui.title(); } }, 'New game'));
     } else {
-      btns.push(el('button', { class: 'btn primary', onclick: () => { DD.save.save(); ui.menu(); } }, 'Start'));
+      btns.push(el('button', { class: 'btn primary', onclick: () => { DD.save.save(); ui.classes({ first: true }); } }, 'Start'));
     }
     mount(el('div', { class: 'screen center' },
       el('div', { class: 'tag' }, 'An anatomy & physiology roguelike'),
@@ -104,30 +105,33 @@ DD.ui = (function () {
   // The dungeon menu is now the body map (js/bodymap.js defines ui.menu).
   // ---------- class select (Hematopoiesis) ----------
   const RATINGS = [['hp', 'HP', 'maxHP'], ['pow', 'Power', 'power'], ['def', 'Armor', 'defense'], ['atp', 'ATP', 'maxATP']];
-  ui.classes = function () {
+  // first: the new-game pick (no Back, no "current" marker; picking goes straight to the body map).
+  ui.classes = function (opts) {
     ui.mode = 'classes';
-    const p = DD.save.profile, locked = !!(DD.save.run && DD.save.run.kind !== 'town');
+    const first = !!(opts && opts.first);
+    const p = DD.save.profile, locked = !first && !!(DD.save.run && DD.save.run.kind !== 'town');
     const back = el('button', { class: 'btn', type: 'button', onclick: ui.menu }, 'Back to the marrow');
     const cards = DD.data.classOrder.map(id => {
-      const c = DD.data.classes[id], st = DD.stats.compute(Object.assign({}, p, { classId: id })), cur = p.classId === id;
+      const c = DD.data.classes[id], st = DD.stats.compute(Object.assign({}, p, { classId: id })), cur = !first && p.classId === id;
       const rows = RATINGS.map(([k, label, sk]) => el('div', { class: 'small' }, label + ': ', el('b', null, Math.round(st[sk]))));
       return el('div', { class: 'card cls' + (cur ? ' current' : '') },
         el('div', { class: 'rhead' }, el('h3', null, c.name), el('span', { class: 'chip ' + (cur ? 'ok' : '') }, cur ? 'Current · ' + c.role : c.role)),
         el('div', { class: 'ratings' }, rows),
         el('div', { class: 'small' }, el('b', null, 'Weapon: '), c.weapon + ' · any class can use any weapon'),
 
-        el('div', { class: 'small' }, el('b', null, c.passive.name + ' (passive): '), c.passive.desc),
         el('div', { class: 'small' }, el('b', null, 'ATP skills: '), DD.skills.list(Object.assign({}, p, { classId: id })).map(s => s.name + ' (' + s.cost + ' ATP)').join(' · ')),
         el('p', { class: 'codex small dim' }, c.codex),
         el('button', { class: 'btn' + (cur ? '' : ' primary'), type: 'button', disabled: cur || locked,
-          onclick: () => { p.classId = id; DD.gear.prepare(p,true); DD.game.resources(); DD.save.save(); ui.classes(); } }, cur ? 'Your current class' : 'Become a ' + c.name));
+          onclick: () => { p.classId = id; DD.gear.prepare(p,true); DD.game.resources(); DD.save.save(); if (first) ui.menu('marrow'); else ui.classes(); } }, cur ? 'Your current class' : first ? 'Start as a ' + c.name : 'Become a ' + c.name));
     });
     mount(el('div', { class: 'screen menu' },
       el('div', { class: 'tag' }, 'Bone Marrow'),
-      el('h1', null, 'Hematopoiesis'),
-      el('p', { class: 'dim small' }, 'Blood cells are made in the red bone marrow from hematopoietic stem cells. Pick which white blood cell you are. Your level carries over to every class, and you can only switch here at the marrow.'),
+      el('h1', null, first ? 'Pick your cell' : 'Hematopoiesis'),
+      el('p', { class: 'dim small' }, first
+        ? 'Blood cells are made in the red bone marrow from hematopoietic stem cells. Choose which white blood cell you start as. You can switch any time you are back at the Bone Marrow, and your level carries over.'
+        : 'Blood cells are made in the red bone marrow from hematopoietic stem cells. Pick which white blood cell you are. Your level carries over to every class, and you can only switch here at the marrow.'),
       locked ? el('p', { class: 'warn small' }, 'A run is in progress, so switching is locked. Resume or abandon it first.') : null,
-      back, el('div', { class: 'grid' }, cards)));
+      first ? null : back, el('div', { class: 'grid' }, cards)));
   };
   ui.enter = function (regionId, resume) {
     DD.save.profile.loc = regionId; // you stand in the dungeon you enter (also after a Lymph Drain and "Return to the dungeon")

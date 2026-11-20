@@ -64,7 +64,8 @@
   Object.assign(pos,organs);
   Object.entries(C.lymphOf).forEach(([id,info])=>{const a=pos[id],b=pos[info.town];route(info.vessel,[a,b],green);});
   DD.explore.positions=pos;
-  ui.circulationMap=function(full=false){
+  // pick (body map only): {sel, onPick(id), glow(id) 0..1|null, accent(id), suffix(id), dim(id)} makes places clickable with mastery glow.
+  ui.circulationMap=function(full=false,pick=null){
     const here=current(),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
     svg.setAttribute('viewBox','0 0 520 740');svg.setAttribute('role','img');
     svg.setAttribute('aria-label','Front view of the body. Current location: '+W.get(here).name);
@@ -94,12 +95,19 @@
     const labels=[['brain',62,'r'],['cervical',116,'l'],['thymus',151,'l'],['axillary',171,'r'],['lungs',198,'l'],['heart',221,'r'],['mediastinal',239,'l'],['spleen',263,'r'],['kidneys',287,'r'],['gut',310,'l'],['mesenteric',337,'l'],['lumbar',337,'r'],['marrow',365,'r'],['gonads',381,'l'],['inguinal',408,'r'],['skin',277,'l'],['quads',470,'r'],['femur',546,'r']];
     labels.forEach(([id,y,side])=>{const p=pos[id],right=side==='r',x=right?374:146,end=right?367:153;
       add('path',{d:'M'+p[0]+' '+p[1]+' L'+end+' '+y,fill:'none',stroke:id===here?'#ffe39a':'#8d7d7c','stroke-width':.8,opacity:.7});
-      add('text',{x,y:y+4,fill:id===here?'#ffe39a':'#e5d6c9','text-anchor':right?'start':'end','font-size':12,'font-family':'system-ui'},C.nodes[id].short||C.nodes[id].name);
+      const t=add('text',{x,y:y+4,fill:id===here?'#ffe39a':pick&&id===pick.sel?'#ffffff':pick&&pick.dim(id)?'#8d7d7c':'#e5d6c9','font-weight':pick&&id===pick.sel?700:400,'text-anchor':right?'start':'end','font-size':12,'font-family':'system-ui'},(C.nodes[id].short||C.nodes[id].name)+(pick?pick.suffix(id):''));
+      if(pick){
+        const g=pick.glow(id);
+        if(g!=null)add('circle',{cx:p[0],cy:p[1],r:9+8*g,fill:pick.accent(id),opacity:.12+.4*g,'pointer-events':'none'});
+        if(id===pick.sel)add('circle',{cx:p[0],cy:p[1],r:11,fill:'none',stroke:'#ffffff','stroke-width':1.5,'pointer-events':'none'});
+        const hitA=add('circle',{cx:p[0],cy:p[1],r:13,fill:'transparent'});
+        for(const n of [hitA,t]){n.style.cursor='pointer';n.addEventListener('click',()=>pick.onPick(id));}
+      }
     });
     let p=pos[here];const run=DD.game.run;
     if(p&&run&&run.trip&&!run.trip.junction&&run.floor){const a=pos[run.trip.ids[run.trip.idx]],t=DD.u.clamp(run.px/(run.floor.L||run.floor.W-2),0,1);if(a)p=[a[0]+(p[0]-a[0])*t,a[1]+(p[1]-a[1])*t];}
     if(p){add('circle',{cx:p[0],cy:p[1],r:10,fill:'#ffe39a',opacity:.2});add('circle',{cx:p[0],cy:p[1],r:5,fill:'#fff',stroke:'#ffe39a','stroke-width':2});}
-    return el('div',{class:'card circulation-atlas'},el('b',null,'Body atlas'),el('p',{class:'dim small'},'Front view · simplified blood and lymph routes · gold/white marker: you'),svg,el('div',{class:'small',role:'status'},'You are here: '+W.get(here).name),full?null:el('button',{class:'btn small',onclick:ui.openBodyAtlas},'Enlarge body map'));
+    return el('div',{class:'card circulation-atlas'},el('b',null,'Body atlas'),el('p',{class:'dim small'},pick?'Tap a place to see it. Gold marker: you. Red, blue and green lines: simplified arteries, veins and lymph.':'Front view · simplified blood and lymph routes · gold/white marker: you'),svg,el('div',{class:'small',role:'status'},'You are here: '+W.get(here).name),full?null:el('button',{class:'btn small',onclick:ui.openBodyAtlas},'Enlarge body map'));
   };
 
   ui.openBodyAtlas=function(){

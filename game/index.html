@@ -163,12 +163,9 @@ input:focus-visible,select:focus-visible{outline:2px solid var(--bile);outline-o
 .qcard .q{font-size:16px}
 /* body map and travel (3a) */
 .worldgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
-.bodybox{background:var(--map-bg);border:1px solid var(--line);border-radius:6px;overflow:hidden;display:flex;justify-content:center;max-width:460px;width:100%;margin:0 auto}
-.bodycanvas{display:block;cursor:pointer;touch-action:manipulation}
 .worldside{display:flex;flex-direction:column;gap:12px;min-width:0}
 .place h3{font-size:20px}
-.chipbtn{border-left:3px solid var(--accent)}
-.chipbtn[aria-pressed=true]{border-color:var(--bone)}
+.placepick{display:flex;flex-direction:column;gap:4px}.mapbar{display:flex;flex-direction:column;gap:10px}
 .strip{display:flex;gap:6px;overflow-x:auto;padding:6px 2px;scrollbar-width:thin}
 .strip .stop{flex:none;font:12px var(--mono);border:1px solid var(--line);border-radius:3px;padding:2px 8px;color:var(--dim);white-space:nowrap}
 .strip .stop.past{opacity:.45}.strip .stop.now{color:var(--bone);border-color:var(--bile);background:#d9b44a22}.strip .stop.goal{color:var(--bone);border-color:var(--ok)}

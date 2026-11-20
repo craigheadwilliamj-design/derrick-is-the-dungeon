@@ -8,11 +8,12 @@ DD.save = (function () {
   function defaultProfile() {
     return { v: 8, hp: null, resourcesV: 1, updatedAt: 0, level: 1, xp: 0, classId: 'macrophage', glucose: 0, atp: null, loc: 'marrow',
       inventory: {}, equipment: {}, gearBag: [], qstats: {}, regions: {}, routes: {},
-      milestones: [], bounties: { active: [], seq: 0, done: 0 }, beaten: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' }, flagged: {} };
+      milestones: [], bounties: { active: [], seq: 0, done: 0 }, beaten: [], subclass: {}, ngPlus: 0, conditions: [], event: null, settings: { sourceFilter: 'all' }, flagged: {}, intro: false };
   }
   function migrate(p) {
     if (!p || typeof p !== 'object') return null;
     const o = Object.assign(defaultProfile(), p); // bump v and migrate here when the shape changes
+    if (typeof p.intro !== 'boolean') o.intro = (p.updatedAt || 0) > 0; // saves from before the welcome card skip it
     if (!Array.isArray(o.beaten)) o.beaten = []; // v2 (2a): enemy ids beaten, for B Cell Memory
     if (!DD.data.classes[o.classId]) o.classId = 'macrophage';
     o.v = 8;
