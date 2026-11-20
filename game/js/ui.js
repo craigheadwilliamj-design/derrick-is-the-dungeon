@@ -158,7 +158,7 @@ DD.ui = (function () {
       if (ui.mode !== 'map' || DD.gear.locked()) return;
       ui.studyMenu(() => { DD.game.persist(); ui.stopMap(); }, ui.game);
     } }, 'Study');
-    g.labels = trip ? el('button', { class: 'btn small', type: 'button', 'aria-pressed': String(!!DD.save.profile.settings.mapLabels), title: 'Name the structures in view',
+    g.labels = (trip || (DD.mapart && DD.mapart.floorProfile(DD.game.run))) ? el('button', { class: 'btn small', type: 'button', 'aria-pressed': String(!!DD.save.profile.settings.mapLabels), title: 'Name the structures in view',
       onclick: () => { const s = DD.save.profile.settings; s.mapLabels = !s.mapLabels; g.labels.setAttribute('aria-pressed', String(s.mapLabels)); g.labels.textContent = s.mapLabels ? 'Labels on' : 'Labels'; DD.save.save(); ui.refreshMap(true); } },
       DD.save.profile.settings.mapLabels ? 'Labels on' : 'Labels') : null;
     g.abort = trip ? el('button', { class: 'btn small', onclick: ui.abortTrip, title: 'Give up this trip and wash back up where you set out' }, 'Abort') : null;
@@ -219,7 +219,7 @@ DD.ui = (function () {
   ui.refreshMap = function (resizeOnly) {
     const run = DD.game.run; if (!run || !g.canvas) return;
     DD.render.draw(g.canvas, run);
-    if (g.labels) g.labels.hidden = !(DD.mapart && DD.mapart.kindOf(DD.travel.segs(run)[run.trip.idx]));
+    if (g.labels) g.labels.hidden = !(DD.mapart && (run.trip ? DD.mapart.kindOf(DD.travel.segs(run)[run.trip.idx]) : DD.mapart.floorProfile(run)));
     if (resizeOnly) return;
     const r = DD.data.region(run.regionId), st = DD.game.stats(), p = DD.save.profile;
     if (run.trip) {
