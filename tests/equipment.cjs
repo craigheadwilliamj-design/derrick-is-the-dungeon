@@ -17,8 +17,9 @@ function cast(C,id,ok=true,targets=[0]){D.combat.ability(C,id);for(const i of ta
 const active=D.data.activeGear;
 assert.equal(active.length,99);assert.equal(active.filter(x=>x.slot==="acc").length,25);assert.equal(active.filter(x=>x.slot==='weapon').length,32);assert.equal(active.filter(x=>x.slot==='armor').length,22);assert.equal(active.filter(x=>x.slot==='shield').length,10);assert.equal(active.filter(x=>x.slot==='head').length,10);
 assert.equal(new Set(active.map(x=>x.id)).size,99);
-// Once-per-class starters, persistent ownership and no selling exploits.
-let p=profile();p.startersIssued={};D.gear.prepare(p,true);assert.equal(p.equipment.weapon,'eq-starter-osteon-axe');const count=p.gearBag.length;D.gear.prepare(p);assert.equal(p.gearBag.length,count);assert.equal(D.gear.canSell(D.data.gearById[p.equipment.weapon]),false);
+// Once-per-class starters, persistent ownership, and starters/legendaries discard for 0 glucose.
+let p=profile();p.startersIssued={};D.gear.prepare(p,true);assert.equal(p.equipment.weapon,'eq-starter-osteon-axe');const count=p.gearBag.length;D.gear.prepare(p);assert.equal(p.gearBag.length,count);const starter=D.data.gearById[p.equipment.weapon];assert.equal(D.gear.canSell(starter),true);assert.equal(D.gear.sellPrice(starter),0); // starters can be discarded, never sold for glucose
+const legend=Object.values(D.data.gearById).find(it=>it.rarity==='legendary');assert.ok(legend);assert.equal(D.gear.canSell(legend),true);assert.equal(D.gear.sellPrice(legend),0); // legendaries too (Sell tab asks twice)
 p.classId='bcell';D.gear.prepare(p,true);assert.equal(p.equipment.weapon,'eq-starter-pepsin-staff');assert.ok(!p.gearBag.includes('eq-starter-osteon-axe'));assert.equal(p.equipment.armor,'eq-faded-robes');
 assert.ok(p.gearBag.every(id=>D.data.gearById[id].source!=='starter'||D.data.starterKits.bcell.includes(id))); // off-class starters leave the bag
 // A new save starts as a Macrophage; picking another class must not leave the Macrophage kit stuck in the bag.
