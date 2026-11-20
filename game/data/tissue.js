@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers (dash/striate/branch), lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders/feet), nodules (rim/loops), strands, pits, fingers, somata, lamellae (pack/cells/vessel/cement/remnant), bundle, endings.
+// Painters (js/mapart.js): fibers (dash/striate/branch), lining (cilia/foam), nuclei, vacuoles, crossSections (pack/brush/borders/feet), nodules (rim/loops), strands, pits, fingers, somata, lamellae (pack/cells/vessel/cement/remnant), bundle (encapsulated profiles), endings (cell), fingers (loop/tip), crossSections (central), vacuoles (pack).
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -610,6 +610,119 @@
       { text: 'Capillary', at: 'capillary' }, { text: 'Arteriole', at: 'arteriole' },
       { text: 'Perimysium', at: 'perimysium' }, { text: 'Neuromuscular junction (motor end plate)', at: 'nmj' }, { text: 'Muscle spindle: capsule, intrafusal fibers', at: 'spindle' },
       { text: 'Tendon: dense regular connective tissue', at: 'tendon' }, { text: 'Tenocytes in rows', at: 'tenocyte' }
+    ]
+  };
+
+  // ---------- Skin (thin skin; floors go epidermis over papillary dermis -> reticular dermis -> hypodermis) ----------
+  const skNuc = 'rgba(92,40,118,.84)', melanin = 'rgba(122,74,34,.75)';
+  const basale = { // stratum basale: one row of cuboidal to columnar keratinocytes with melanin caps, melanocytes (pale, dendritic, full of melanosomes)
+    band: [0, .4], fill: 'rgba(176,84,124,.9)', tag: 'basale',
+    painter: [
+      { p: 'nuclei', shape: 'elongated', per: 7, size: [2.6, 3.4], fill: skNuc, inset: .02 },
+      { p: 'nuclei', shape: 'round', per: 4, size: [.8, 1.3], fill: melanin },
+      { p: 'somata', shape: 'round', per: .25, size: [2.8, 3.2], fill: 'rgba(244,230,216,.5)', nissl: { n: 10, fill: melanin }, dendrites: { n: 4, stroke: 'rgba(200,150,110,.55)', w: 1 },
+        nucleus: 'rgba(92,40,118,.6)', nucleolus: 'rgba(92,40,118,.6)', inset: .01, tag: 'melanocyte' }
+    ]
+  };
+  const spinosum = { // stratum spinosum: polygonal keratinocytes, round central nuclei, spiny desmosome junctions; Langerhans cells (pale, dendritic)
+    band: [.4, 1.05], fill: 'rgba(212,124,154,.88)', tag: 'spinosum',
+    painter: [
+      { p: 'crossSections', per: 9, pack: true, r: [5.4, 7], wall: 'rgba(255,226,234,.5)', ww: 1.4, dash: '1 1.1', lumen: 'rgba(232,154,176,.42)', rbc: 0, nuclei: 0, central: 2.3, nucleus: skNuc, inset: .02 },
+      { p: 'somata', shape: 'round', per: .2, size: [3.2, 3.8], fill: 'rgba(246,228,238,.55)', dendrites: { n: 5, stroke: 'rgba(246,228,238,.5)', w: 1.1 },
+        nucleus: 'rgba(110,52,124,.75)', nucleolus: 'rgba(110,52,124,.75)', inset: .05, tag: 'langerhans' }
+    ]
+  };
+  const granulosum = { // stratum granulosum: flattened cells packed with dark keratohyalin granules
+    band: [1.05, 1.3], fill: 'rgba(178,92,150,.9)', tag: 'granulosum',
+    painter: [
+      { p: 'fibers', band: [1.05, 1.3], n: 2, even: true, stroke: 'rgba(255,226,240,.3)', w: 1, amp: 1, per: [20, 34] },
+      { p: 'nuclei', shape: 'flat', per: 1.4, size: [4, 5], fill: skNuc, inset: .02 },
+      { p: 'nuclei', shape: 'round', per: 9, size: [.7, 1.3], fill: 'rgba(54,18,70,.85)', tag: 'keratohyalin' }
+    ]
+  };
+  const corneum = { // stratum corneum: layers of flat, anucleate, keratin-filled squames in a loose basket weave. Thin skin, so no stratum lucidum
+    band: [1.3, 2.1], fill: 'rgba(240,168,190,.8)', tag: 'corneum',
+    painter: [{ p: 'fibers', band: [1.3, 2.1], n: 7, even: true, stroke: 'rgba(255,232,240,.5)', w: 1.1, amp: 1.8, per: [18, 30], dash: [26, 70, 6] }]
+  };
+  const skAir = { band: [2.1, null], fill: 'rgba(10,8,12,.94)', painter: [ // outside the body: a few loose squames already shed
+    { p: 'nuclei', shape: 'flat', per: .25, size: [6, 9], fill: 'rgba(240,168,190,.16)', inset: .2 }] };
+  const papillae = { // dermal papillae push up into the epidermis: basal cells around a loose connective tissue core with a capillary loop; some hold a tactile (Meissner) corpuscle
+    p: 'fingers', dir: 'in', at: 0, max: 1, every: [30, 48], len: [.5, .8], width: [18, 24], bend: .3, epi: 4,
+    epiFill: 'rgba(170,78,118,.92)', coreFill: 'rgba(226,176,188,.86)', nucleus: skNuc, goblets: [0, 0], core: 'rgba(214,52,68,.62)', coreW: 1.8, loop: true,
+    tip: { chance: .3, rx: 4.2, ry: 7.5, n: 5, fill: 'rgba(248,222,232,.7)', stroke: 'rgba(120,58,130,.55)', tag: 'meissner' }, tag: 'papilla', coreTag: 'capLoop'
+  };
+  const merkel = { p: 'endings', from: -.3, depth: .22, every: [160, 300], stroke: 'rgba(232,214,150,.7)', w: 1.2, fill: 'rgba(232,214,150,.85)', boutons: 2, // a sensory twig ending in a disc on a tactile (Merkel) cell
+    cell: { rx: 4.5, ry: 2.6, fill: 'rgba(246,236,226,.75)' }, tag: 'merkel' };
+  const skCap = per => ({ p: 'crossSections', per, r: [3.5, 5], wall: 'rgba(255,214,222,.5)', ww: 1, lumen: 'rgba(200,44,58,.3)', rbc: 0, nuclei: 1, nucleus: skNuc, inset: .1, tag: 'capillary' });
+  const hairF = { wall: 'rgba(250,214,222,.85)', ww: 2.6, lumen: 'rgba(234,206,208,.66)', rbc: 0, nucleus: skNuc, nr: [3.4, 2], every: [8, 12], tag: 'follicle', // hair follicle cut across: connective tissue sheath, pale outer root sheath
+    core: { inset: .22, fill: 'rgba(90,52,30,.88)', stroke: 'rgba(232,96,120,.85)', w: 3, tag: 'hair' } };                                     // inner root sheath (eosinophilic) ring around the pigmented hair shaft
+  const skFeatures = pillar => ({
+    pillar,
+    door: { lip: 'rgba(212,124,154,.74)', rim: 'rgba(252,232,238,.8)' },
+    stairs: { rim: 'rgba(252,232,238,.76)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  });
+  const epidermis = { // floor 1: the rooms are papillary dermis (loose connective tissue); the walls are the epidermis, basale to corneum, then outside skAir
+    walls: [skAir, corneum, granulosum, spinosum, basale],
+    edge: { stroke: 'rgba(255,236,242,.84)', w: 1.6 }, lining: [papillae, merkel],
+    floor: { fill: 'rgba(224,176,186,.15)', grain: .12, ambient: [
+      { p: 'strands', per: 1.6, len: [8, 18], stroke: 'rgba(252,228,234,.18)', w: .9, tag: 'papillary' },  // fine collagen and elastic fibers
+      { p: 'nuclei', shape: 'flat', per: .5, size: [4.5, 6], fill: 'rgba(92,40,118,.45)', tag: 'fibroblast' }, skCap(.12)
+    ] }, features: skFeatures(hairF),
+    motion: { type: 'shed', at: 2.1, count: 14, life: 9, dist: .9, sway: .15, tumble: .6, size: [.28, .05], fill: 'rgba(246,190,206,.5)', rim: 'rgba(255,236,242,.6)', alpha: .8 }
+  };
+  const dense = (band, tag) => ({ // dense irregular connective tissue: thick collagen bundles running every way, flat fibroblast nuclei
+    band, fill: 'rgba(226,160,178,.86)', tag,
+    painter: [
+      { p: 'fibers', band, n: 5, stroke: 'rgba(255,230,236,.32)', w: 2.6, amp: 4, per: [16, 30] },
+      { p: 'strands', per: 2.2, len: [14, 28], stroke: 'rgba(255,230,236,.26)', w: 2.4 },
+      { p: 'nuclei', shape: 'flat', per: .9, size: [4.5, 6], fill: skNuc, inset: .04, tag: 'fibroblast' }
+    ]
+  });
+  const eccrine = per => ({ p: 'nodules', per, r: [24, 32], fill: 'rgba(240,200,214,.08)', inset: .15, tag: 'eccrine', // coiled eccrine sweat gland: one tubule cut across many times (pale secretory part, darker duct)
+    cells: { per: 4, size: [1.6, 2.2], fill: 'rgba(92,40,118,.5)' }, loops: { per: 7, r: [4.5, 6.5], lumen: 'rgba(250,240,244,.1)', wall: 'rgba(214,120,160,.5)', rbc: 0 } });
+  const skVessels = per => [
+    { p: 'crossSections', per, r: [9, 13], wall: 'rgba(248,170,190,.6)', ww: 3.5, lumen: 'rgba(90,16,28,.25)', rbc: 0, nuclei: 3, nucleus: skNuc, inset: .2, tag: 'arteriole' },
+    { p: 'crossSections', per, r: [12, 17], wall: 'rgba(255,214,224,.45)', ww: 1.4, lumen: 'rgba(90,16,28,.2)', rbc: 0, nuclei: 2, nucleus: skNuc, inset: .2, tag: 'venule' }
+  ];
+  const reticular = { // floor 2: the rooms are looser spaces around the appendages in the reticular dermis; the walls are its dense irregular collagen
+    walls: [{ band: [1.8, null], fill: 'rgba(30,12,18,.94)', painter: [{ p: 'strands', per: 1.2, len: [14, 28], stroke: 'rgba(226,160,178,.14)', w: 2.4 }] }, dense([0, 1.8], 'reticular')],
+    edge: { stroke: 'rgba(255,232,238,.82)', w: 1.6 }, lining: [],
+    floor: { fill: 'rgba(222,170,182,.15)', grain: .12, ambient: [
+      { p: 'strands', per: 1.1, len: [14, 26], stroke: 'rgba(252,226,232,.17)', w: 1.7 },                            // collagen bundles
+      { p: 'strands', per: .6, len: [12, 24], stroke: 'rgba(70,30,90,.32)', w: .8, tag: 'elastic' },               // elastic fibers
+      { p: 'nuclei', shape: 'flat', per: .4, size: [4.5, 6], fill: 'rgba(92,40,118,.45)', tag: 'fibroblast' },
+      eccrine(.025), skCap(.05)
+    ].concat(skVessels(.02)) },
+    features: skFeatures(Object.assign({}, hairF, { // follicle with its sebaceous gland (pale foamy sebocytes) and arrector pili (smooth muscle) beside it
+      lobules: { R: 16, n: 4, r: [8, 11], fill: 'rgba(246,236,226,.2)', stroke: 'rgba(252,236,232,.45)', nucleus: 'rgba(92,40,118,.75)', foam: 'rgba(255,250,246,.4)', tag: 'sebaceous' },
+      strap: { len: 46, w: 6, fill: 'rgba(204,96,120,.4)', nucleus: 'rgba(92,40,118,.75)', nuclei: 3, tag: 'arrector' } }))
+  };
+  const hypodermis = { // floor 3: the rooms are hypodermis fat lobules; the walls are fibrous septa, the next lobule past them
+    walls: [{ band: [1.1, null], fill: 'rgba(28,20,16,.94)', painter: [{ p: 'vacuoles', per: .9, r: [12, 17], stroke: 'rgba(246,234,210,.2)', fill: 'rgba(28,20,16,.2)', inset: .3 }] }, dense([0, 1.1], 'septum')],
+    edge: { stroke: 'rgba(252,236,232,.84)', w: 1.6 }, lining: [],
+    floor: { fill: 'rgba(222,196,150,.1)', grain: .1, ambient: [
+      { p: 'lamellae', per: .02, pack: true, r: [24, 34], rings: 8, fill: 'rgba(60,40,50,.16)', stroke: 'rgba(255,240,244,.42)', w: 1, canal: 'rgba(232,214,150,.7)', canalR: .12, inset: .15, tag: 'pacinian' }, // lamellated (Pacinian) corpuscle: onion-like layers around an axon
+      { p: 'vacuoles', per: 1.1, pack: true, r: [12, 17], stroke: 'rgba(246,234,210,.36)', fill: 'rgba(20,14,10,.08)', nucleus: 'rgba(92,40,118,.5)', inset: .1, tag: 'adipocyte' },
+      eccrine(.006), skCap(.06)
+    ] },
+    features: skFeatures({ wall: 'rgba(240,176,194,.9)', ww: 5, lumen: 'rgba(110,22,34,.7)', rbc: 2, nucleus: skNuc, nr: [5, 1.6], every: [14, 22], tag: 'artery' }) // artery of the deep (cutaneous) plexus
+  };
+  T.skin = {
+    accent: '#e0a57b',
+    depth: [epidermis, reticular, hypodermis],
+    labels: [
+      { text: 'Stratum basale', at: 'basale' }, { text: 'Melanocyte', at: 'melanocyte' }, { text: 'Stratum spinosum', at: 'spinosum' },
+      { text: 'Langerhans cell', at: 'langerhans' }, { text: 'Stratum granulosum: keratohyalin granules', at: 'granulosum' },
+      { text: 'Stratum corneum (thin skin: no stratum lucidum)', at: 'corneum' }, { text: 'Dermal papilla', at: 'papilla' }, { text: 'Capillary loop', at: 'capLoop' },
+      { text: 'Tactile (Meissner) corpuscle', at: 'meissner' }, { text: 'Tactile (Merkel) cell and nerve disc', at: 'merkel' },
+      { text: 'Papillary dermis: loose connective tissue', at: 'papillary' }, { text: 'Fibroblast', at: 'fibroblast' }, { text: 'Capillary', at: 'capillary' },
+      { text: 'Hair follicle', at: 'follicle' }, { text: 'Hair shaft', at: 'hair' },
+      { text: 'Reticular dermis: dense irregular connective tissue', at: 'reticular' }, { text: 'Elastic fibers', at: 'elastic' },
+      { text: 'Sebaceous gland', at: 'sebaceous' }, { text: 'Arrector pili (smooth muscle)', at: 'arrector' }, { text: 'Eccrine sweat gland, coiled', at: 'eccrine' },
+      { text: 'Arteriole', at: 'arteriole' }, { text: 'Venule', at: 'venule' },
+      { text: 'Fibrous septum', at: 'septum' }, { text: 'Adipocyte', at: 'adipocyte' }, { text: 'Lamellated (Pacinian) corpuscle', at: 'pacinian' },
+      { text: 'Artery of the deep plexus', at: 'artery' }
     ]
   };
 })();
