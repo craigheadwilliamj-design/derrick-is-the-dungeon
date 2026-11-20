@@ -159,7 +159,7 @@
       onclick: () => ui.menu(id) }, (id === loc ? '@ ' : '') + (n ? labelOf(n) : 'Bloodstream') + (isCleared(id) ? ' ✓' : '') + (masteryOf(id).fading ? ' ↓' : '') + (DD.derrick.marked(id) ? ' !' : ''));
   }
   ui.menu = function (arg) {
-    ui.mode = 'menu';
+    ui.mode = 'menu'; ui.studyBack = null;
     DD.derrick.ensure(); // today's event (5b)
     const p = DD.save.profile, run = DD.save.run;
     if (run && !run.kind && run.regionId === 'bloodstream') DD.game.abandon(); // the old temporary Bloodstream dungeon is gone
