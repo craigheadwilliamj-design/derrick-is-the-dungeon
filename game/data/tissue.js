@@ -577,14 +577,39 @@
     edge: { stroke: 'rgba(255,236,240,.86)', w: 1.8 }, lining: [],
     floor: { fill: 'rgba(210,160,170,.15)', grain: .12, ambient: looseCT(.5, .3) }, features: qFeatures, motion: contract
   };
+  const perimysium = (strands, ambient) => [ // perimysium between fascicles: denser collagen, fibroblasts, capillaries
+    { p: 'strands', per: strands, len: [12, 26], stroke: 'rgba(250,226,232,.18)', w: 1.1, tag: 'perimysium' },
+    { p: 'nuclei', shape: 'flat', per: .5, size: [4.5, 6], fill: 'rgba(96,42,120,.45)', tag: 'fibroblast' }, qCap(.16)
+  ].concat(ambient || []);
+  const fascicles = { // floor 2: the rooms are perimysium gaps between fascicles; a motor nerve runs along them, its twigs ending on the fibers at end plates
+    walls: [skmX(2.2), skm([0, 2.2])],
+    edge: { stroke: 'rgba(255,230,236,.84)', w: 1.6 },
+    lining: [{ p: 'endings', from: -.38, depth: .12, every: [150, 280], stroke: 'rgba(232,214,150,.75)', w: 1.4, fill: 'rgba(70,30,60,.85)', boutons: 7, tag: 'nmj' }],
+    floor: { fill: 'rgba(214,150,164,.14)', grain: .12, ambient: perimysium(1.8, [
+      { p: 'fibers', band: [-.41, -.35], n: 2, even: true, stroke: 'rgba(232,214,150,.42)', w: 2.2, amp: 1.6, per: [30, 50], dash: [300, 700, 2] }, // motor nerve: myelinated axons running together
+      { p: 'bundle', per: .3, max: 1, r: [26, 32], rings: 3, fill: 'rgba(240,214,220,.16)', stroke: 'rgba(255,232,236,.5)', w: 1, inset: .15, tag: 'spindle', // muscle spindle: a capsule around a few thin intrafusal fibers with clustered central nuclei
+        inner: { n: 7, r: [3.6, 5.6], gap: 1.2, fill: 'rgba(206,80,96,.5)', stroke: 'rgba(250,210,216,.4)', nuclei: 3, central: true, nr: 1.3, nucleus: qNuc } }
+    ]) }, features: qFeatures, motion: contract
+  };
+  const tendon = { // deep: dense regular connective tissue of the tendon: parallel, crimped collagen bundles with rows of flat tenocyte nuclei between them
+    band: [1.4, null], fill: 'rgba(242,214,220,.9)', tag: 'tendon',
+    painter: [{ p: 'fibers', band: [1.5, 4.6], n: 14, even: true, stroke: 'rgba(255,240,244,.5)', w: 4, amp: 2.4, per: [24, 40], dash: [500, 900, 1], nuclei: { every: [30, 64], size: [6, 1.3], fill: qNuc, tag: 'tenocyte' } }]
+  };
+  const deep = { // floor 3: deep fascicles toward the tendon; past the fibers the wall becomes tendon
+    walls: [tendon, skm([0, 1.4])],
+    edge: { stroke: 'rgba(255,236,240,.86)', w: 1.8 }, lining: [],
+    floor: { fill: 'rgba(222,170,180,.15)', grain: .12, ambient: perimysium(2.6) }, features: qFeatures, motion: contract
+  };
   T.quads = {
     accent: '#d8665f',
-    depth: [epimysium],
+    depth: [epimysium, fascicles, deep],
     labels: [
       { text: 'Epimysium: dense irregular connective tissue', at: 'epimysium' }, { text: 'Skeletal muscle fibers: striated, A and I bands', at: 'skm' },
       { text: 'Peripheral nuclei', at: 'periph' }, { text: 'Muscle fibers cut across', at: 'skmX' },
       { text: 'Loose connective tissue', at: 'loose' }, { text: 'Fibroblast', at: 'fibroblast' }, { text: 'Adipocyte', at: 'fat' },
-      { text: 'Capillary', at: 'capillary' }, { text: 'Arteriole', at: 'arteriole' }
+      { text: 'Capillary', at: 'capillary' }, { text: 'Arteriole', at: 'arteriole' },
+      { text: 'Perimysium', at: 'perimysium' }, { text: 'Neuromuscular junction (motor end plate)', at: 'nmj' }, { text: 'Muscle spindle: capsule, intrafusal fibers', at: 'spindle' },
+      { text: 'Tendon: dense regular connective tissue', at: 'tendon' }, { text: 'Tenocytes in rows', at: 'tenocyte' }
     ]
   };
 })();
