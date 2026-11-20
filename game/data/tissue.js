@@ -143,10 +143,18 @@
     band: [1.8, null], fill: 'rgba(30,8,12,.94)',
     painter: [{ p: 'nuclei', shape: 'round', per: 1.1, size: [2.4, 3], cell: [8, 11], cellFill: 'rgba(196,74,84,.16)', fill: 'rgba(112,44,112,.3)' }]
   };
-  const capX = per => ({ p: 'crossSections', per, r: [4, 5.5], wall: 'rgba(255,214,220,.42)', ww: 1.2, lumen: 'rgba(200,44,58,.3)', rbc: 0, nuclei: 1, nucleus: hNuc, inset: .1, tag: 'capillary' });
+  const capX = per => ({ p: 'crossSections', per, r: [4, 5.5], wall: 'rgba(255,214,220,.42)', ww: 1.2, lumen: 'rgba(200,44,58,.22)', rbc: 0, nuclei: 1, nucleus: hNuc, inset: .1, tag: 'capillary' });
   const coronary = (per, r, tag) => ({ p: 'crossSections', per, r, wall: 'rgba(250,172,180,.95)', ww: 6, lumen: 'rgba(90,16,28,.7)', rbc: 3, nuclei: 5, nucleus: hNuc, inset: .2, tag });
   const purkinje = per => ({ // Purkinje fibers: large, pale (glycogen-rich, few myofibrils) cells with a central nucleus
     p: 'nuclei', shape: 'round', per, size: [4.2, 5.2], cell: [15, 21], cellFill: 'rgba(250,224,228,.13)', fill: 'rgba(122,58,128,.38)', inset: .1, tag: 'purkinje' });
+  const epiFat = { // subepicardial adipose tissue carrying the coronary arteries and cardiac veins
+    band: [0, 1.4], fill: 'rgba(120,92,60,.8)', tag: 'epiFat',
+    painter: [
+      { p: 'vacuoles', per: 1.4, r: [12, 18], stroke: 'rgba(250,236,214,.5)', fill: 'rgba(30,20,14,.35)', nucleus: 'rgba(122,58,128,.6)', inset: .05, tag: 'fat' },
+      coronary(.05, [14, 19], 'corArt'),
+      { p: 'crossSections', per: .04, r: [16, 22], wall: 'rgba(255,214,224,.7)', ww: 1.8, lumen: 'rgba(80,14,26,.8)', rbc: 4, nuclei: 3, nucleus: hNuc, inset: .05, tag: 'corVein' }
+    ]
+  };
   const hFeatures = {
     pillar: { wall: 'rgba(250,172,180,.95)', ww: 6, lumen: 'rgba(100,18,30,.72)', rbc: 3, nucleus: hNuc, nr: [5, 1.8], tag: 'arteriole' },   // coronary arterioles cut across
     door: { lip: 'rgba(196,74,84,.78)', rim: 'rgba(255,214,206,.8)' },
@@ -166,22 +174,21 @@
         purkinje(.4), capX(.12)
       ]),
       heartDepth('rgba(150,40,52,.26)', [                                                          // 2: deep in the myocardium, fibers cut across
-        { p: 'nuclei', shape: 'round', per: 1.6, size: [2.6, 3.2], cell: [9, 12], cellFill: 'rgba(214,84,96,.16)', fill: 'rgba(112,44,112,.42)', inset: .05, tag: 'myoX' },
+        { p: 'nuclei', shape: 'round', per: 1.2, size: [2.6, 3.2], cell: [9, 12], cellFill: 'rgba(214,84,96,.12)', fill: 'rgba(112,44,112,.3)', inset: .05, tag: 'myoX' },
         { p: 'nuclei', shape: 'flat', per: .4, size: [5, 6.5], fill: 'rgba(112,44,112,.42)' },            // fibroblasts in the endomysium
-        capX(.3)
+        capX(.2)
       ]),
-      heartDepth('rgba(214,170,110,.14)', [                                                        // 3: epicardium, adipose tissue around coronary vessels
-        { p: 'vacuoles', per: .5, r: [13, 19], stroke: 'rgba(250,236,214,.42)', fill: 'rgba(14,8,10,.12)', nucleus: 'rgba(122,58,128,.55)', inset: .15, tag: 'fat' },
-        { p: 'strands', per: .8, len: [12, 24], stroke: 'rgba(255,230,220,.18)', w: .9 },
-        coronary(.012, [16, 22], 'corArt'),
-        { p: 'crossSections', per: .01, r: [20, 28], wall: 'rgba(255,214,224,.7)', ww: 1.8, lumen: 'rgba(80,14,26,.75)', rbc: 4, nuclei: 3, nucleus: hNuc, inset: .2, tag: 'corVein' },
-        capX(.1)
-      ], { hub: { fill: 'rgba(170,24,40,.22)', lining: { p: 'lining', at: -.02, shape: 'squamous', size: [26, 5], fill: 'rgba(255,214,214,.42)', nucleus: hNuc, cover: .9 }, rbc: .9, ports: false, tag: 'corArtery' } })  // boss room: a coronary artery lumen
+      heartDepth('rgba(214,170,110,.14)', [                                                        // 3: epicardium: loose connective tissue and fat
+        { p: 'vacuoles', per: .35, r: [13, 19], stroke: 'rgba(250,236,214,.36)', fill: 'rgba(14,8,10,.1)', nucleus: 'rgba(122,58,128,.45)', inset: .15, tag: 'fat' },
+        { p: 'strands', per: .8, len: [12, 24], stroke: 'rgba(255,230,220,.16)', w: .9 }, capX(.1)
+      ], {
+        walls: [{ band: [2.6, null], fill: myoBeyond.fill, painter: myoBeyond.painter }, myo([1.4, 2.6]), epiFat],                // fat with the coronary vessels lies on the myocardium
+        hub: { fill: 'rgba(170,24,40,.22)', lining: { p: 'lining', at: -.02, shape: 'squamous', size: [26, 5], fill: 'rgba(255,214,214,.42)', nucleus: hNuc, cover: .9 }, rbc: .9, ports: false, tag: 'corArtery' } })  // boss room: a coronary artery lumen
     ],
     labels: [
       { text: 'Cardiac muscle: striated, branching, intercalated discs', at: 'myo' }, { text: 'Purkinje fibers', at: 'purkinje' },
       { text: 'Cardiac muscle, cut across', at: 'myoX' }, { text: 'Capillary', at: 'capillary' }, { text: 'Coronary arteriole', at: 'arteriole' },
-      { text: 'Epicardial fat', at: 'fat' }, { text: 'Coronary artery branch', at: 'corArt' }, { text: 'Cardiac vein', at: 'corVein' },
+      { text: 'Adipocytes', at: 'fat' }, { text: 'Subepicardial fat', at: 'epiFat' }, { text: 'Coronary artery branch', at: 'corArt' }, { text: 'Cardiac vein', at: 'corVein' },
       { text: 'Coronary artery', at: 'corArtery' }
     ]
   };
