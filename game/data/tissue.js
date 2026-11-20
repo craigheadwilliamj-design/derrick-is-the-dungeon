@@ -671,16 +671,58 @@
     ] }, features: skFeatures(hairF),
     motion: { type: 'shed', at: 2.1, count: 14, life: 9, dist: .9, sway: .15, tumble: .6, size: [.28, .05], fill: 'rgba(246,190,206,.5)', rim: 'rgba(255,236,242,.6)', alpha: .8 }
   };
+  const dense = (band, tag) => ({ // dense irregular connective tissue: thick collagen bundles running every way, flat fibroblast nuclei
+    band, fill: 'rgba(226,160,178,.86)', tag,
+    painter: [
+      { p: 'fibers', band, n: 5, stroke: 'rgba(255,230,236,.32)', w: 2.6, amp: 4, per: [16, 30] },
+      { p: 'strands', per: 2.2, len: [14, 28], stroke: 'rgba(255,230,236,.26)', w: 2.4 },
+      { p: 'nuclei', shape: 'flat', per: .9, size: [4.5, 6], fill: skNuc, inset: .04, tag: 'fibroblast' }
+    ]
+  });
+  const eccrine = per => ({ p: 'nodules', per, r: [24, 32], fill: 'rgba(240,200,214,.08)', inset: .15, tag: 'eccrine', // coiled eccrine sweat gland: one tubule cut across many times (pale secretory part, darker duct)
+    cells: { per: 4, size: [1.6, 2.2], fill: 'rgba(92,40,118,.5)' }, loops: { per: 7, r: [4.5, 6.5], lumen: 'rgba(250,240,244,.1)', wall: 'rgba(214,120,160,.5)', rbc: 0 } });
+  const skVessels = per => [
+    { p: 'crossSections', per, r: [9, 13], wall: 'rgba(248,170,190,.6)', ww: 3.5, lumen: 'rgba(90,16,28,.25)', rbc: 0, nuclei: 3, nucleus: skNuc, inset: .2, tag: 'arteriole' },
+    { p: 'crossSections', per, r: [12, 17], wall: 'rgba(255,214,224,.45)', ww: 1.4, lumen: 'rgba(90,16,28,.2)', rbc: 0, nuclei: 2, nucleus: skNuc, inset: .2, tag: 'venule' }
+  ];
+  const reticular = { // floor 2: the rooms are looser spaces around the appendages in the reticular dermis; the walls are its dense irregular collagen
+    walls: [{ band: [1.8, null], fill: 'rgba(30,12,18,.94)', painter: [{ p: 'strands', per: 1.2, len: [14, 28], stroke: 'rgba(226,160,178,.14)', w: 2.4 }] }, dense([0, 1.8], 'reticular')],
+    edge: { stroke: 'rgba(255,232,238,.82)', w: 1.6 }, lining: [],
+    floor: { fill: 'rgba(222,170,182,.15)', grain: .12, ambient: [
+      { p: 'strands', per: 1.1, len: [14, 26], stroke: 'rgba(252,226,232,.17)', w: 1.7 },                            // collagen bundles
+      { p: 'strands', per: .6, len: [12, 24], stroke: 'rgba(70,30,90,.32)', w: .8, tag: 'elastic' },               // elastic fibers
+      { p: 'nuclei', shape: 'flat', per: .4, size: [4.5, 6], fill: 'rgba(92,40,118,.45)', tag: 'fibroblast' },
+      eccrine(.025), skCap(.05)
+    ].concat(skVessels(.02)) },
+    features: skFeatures(Object.assign({}, hairF, { // follicle with its sebaceous gland (pale foamy sebocytes) and arrector pili (smooth muscle) beside it
+      lobules: { R: 16, n: 4, r: [8, 11], fill: 'rgba(246,236,226,.2)', stroke: 'rgba(252,236,232,.45)', nucleus: 'rgba(92,40,118,.75)', foam: 'rgba(255,250,246,.4)', tag: 'sebaceous' },
+      strap: { len: 46, w: 6, fill: 'rgba(204,96,120,.4)', nucleus: 'rgba(92,40,118,.75)', nuclei: 3, tag: 'arrector' } }))
+  };
+  const hypodermis = { // floor 3: the rooms are hypodermis fat lobules; the walls are fibrous septa, the next lobule past them
+    walls: [{ band: [1.1, null], fill: 'rgba(28,20,16,.94)', painter: [{ p: 'vacuoles', per: .9, r: [12, 17], stroke: 'rgba(246,234,210,.2)', fill: 'rgba(28,20,16,.2)', inset: .3 }] }, dense([0, 1.1], 'septum')],
+    edge: { stroke: 'rgba(252,236,232,.84)', w: 1.6 }, lining: [],
+    floor: { fill: 'rgba(222,196,150,.1)', grain: .1, ambient: [
+      { p: 'lamellae', per: .02, pack: true, r: [24, 34], rings: 8, fill: 'rgba(60,40,50,.16)', stroke: 'rgba(255,240,244,.42)', w: 1, canal: 'rgba(232,214,150,.7)', canalR: .12, inset: .15, tag: 'pacinian' }, // lamellated (Pacinian) corpuscle: onion-like layers around an axon
+      { p: 'vacuoles', per: 1.1, pack: true, r: [12, 17], stroke: 'rgba(246,234,210,.36)', fill: 'rgba(20,14,10,.08)', nucleus: 'rgba(92,40,118,.5)', inset: .1, tag: 'adipocyte' },
+      eccrine(.006), skCap(.06)
+    ] },
+    features: skFeatures({ wall: 'rgba(240,176,194,.9)', ww: 5, lumen: 'rgba(110,22,34,.7)', rbc: 2, nucleus: skNuc, nr: [5, 1.6], every: [14, 22], tag: 'artery' }) // artery of the deep (cutaneous) plexus
+  };
   T.skin = {
     accent: '#e0a57b',
-    depth: [epidermis, epidermis, epidermis],
+    depth: [epidermis, reticular, hypodermis],
     labels: [
       { text: 'Stratum basale', at: 'basale' }, { text: 'Melanocyte', at: 'melanocyte' }, { text: 'Stratum spinosum', at: 'spinosum' },
       { text: 'Langerhans cell', at: 'langerhans' }, { text: 'Stratum granulosum: keratohyalin granules', at: 'granulosum' },
       { text: 'Stratum corneum (thin skin: no stratum lucidum)', at: 'corneum' }, { text: 'Dermal papilla', at: 'papilla' }, { text: 'Capillary loop', at: 'capLoop' },
       { text: 'Tactile (Meissner) corpuscle', at: 'meissner' }, { text: 'Tactile (Merkel) cell and nerve disc', at: 'merkel' },
       { text: 'Papillary dermis: loose connective tissue', at: 'papillary' }, { text: 'Fibroblast', at: 'fibroblast' }, { text: 'Capillary', at: 'capillary' },
-      { text: 'Hair follicle', at: 'follicle' }, { text: 'Hair shaft', at: 'hair' }
+      { text: 'Hair follicle', at: 'follicle' }, { text: 'Hair shaft', at: 'hair' },
+      { text: 'Reticular dermis: dense irregular connective tissue', at: 'reticular' }, { text: 'Elastic fibers', at: 'elastic' },
+      { text: 'Sebaceous gland', at: 'sebaceous' }, { text: 'Arrector pili (smooth muscle)', at: 'arrector' }, { text: 'Eccrine sweat gland, coiled', at: 'eccrine' },
+      { text: 'Arteriole', at: 'arteriole' }, { text: 'Venule', at: 'venule' },
+      { text: 'Fibrous septum', at: 'septum' }, { text: 'Adipocyte', at: 'adipocyte' }, { text: 'Lamellated (Pacinian) corpuscle', at: 'pacinian' },
+      { text: 'Artery of the deep plexus', at: 'artery' }
     ]
   };
 })();
