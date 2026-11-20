@@ -1,7 +1,7 @@
 // Tissue profiles for dungeon floor map art (phase V2). One entry per region; regions without one keep the glyph renderer.
 // depth[i] is floor i+1 (the last is the boss floor; a region may repeat one entry). Distances are in tiles from the room
 // edge: positive into the wall, negative into the floor. Sizes are SVG units (40 per tile). `per` is count per square tile.
-// Painters (js/mapart.js): fibers, lamellae, lining, nuclei, vacuoles, crossSections, nodules, strands, pits.
+// Painters (js/mapart.js): fibers (dash/striate/branch), lamellae, lining, nuclei, vacuoles, crossSections, nodules, strands, pits.
 // Every structure drawn must be real histology for the region; leave it out when unsure.
 (function () {
   const D = DD.data = DD.data || {};
@@ -128,6 +128,61 @@
       { text: 'Venous sinusoid', at: 'sinusoid' }, { text: 'White pulp follicle', at: 'follicle' }, { text: 'Germinal centre', at: 'germinal' },
       { text: 'Central arteriole', at: 'centralArt' }, { text: 'Marginal zone', at: 'marginal' }, { text: 'PALS', at: 'pals' },
       { text: 'Trabecular artery', at: 'trabArtery' }, { text: 'Trabecular vein', at: 'trabVein' }
+    ]
+  };
+  // ---------- Heart (myocardium walls; floors go endocardium/Purkinje -> myocardium -> epicardium) ----------
+  const hNuc = 'rgba(112,44,112,.78)';
+  const myo = (band) => ({ // cardiac muscle: striated, branching fibers following the wall, intercalated discs, one or two central nuclei
+    band, fill: 'rgba(196,74,84,.86)', tag: 'myo',
+    painter: [
+      { p: 'fibers', n: 9, even: true, stroke: 'rgba(255,170,160,.42)', w: 4.5, amp: 2.4, per: [26, 44], dash: [26, 46, 2.2], striate: 'rgba(120,30,50,.28)', branch: .5 },
+      { p: 'nuclei', shape: 'elongated', per: .9, size: [5, 6.5], fill: hNuc, inset: .15 }                     // central, oval nuclei
+    ]
+  });
+  const myoBeyond = { // deeper myocardium, fibers cut across: round fiber profiles with central nuclei
+    band: [1.8, null], fill: 'rgba(30,8,12,.94)',
+    painter: [{ p: 'nuclei', shape: 'round', per: 1.1, size: [2.4, 3], cell: [8, 11], cellFill: 'rgba(196,74,84,.16)', fill: 'rgba(112,44,112,.3)' }]
+  };
+  const capX = per => ({ p: 'crossSections', per, r: [4, 5.5], wall: 'rgba(255,214,220,.42)', ww: 1.2, lumen: 'rgba(200,44,58,.3)', rbc: 0, nuclei: 1, nucleus: hNuc, inset: .1, tag: 'capillary' });
+  const coronary = (per, r, tag) => ({ p: 'crossSections', per, r, wall: 'rgba(250,172,180,.95)', ww: 6, lumen: 'rgba(90,16,28,.7)', rbc: 3, nuclei: 5, nucleus: hNuc, inset: .2, tag });
+  const purkinje = per => ({ // Purkinje fibers: large, pale (glycogen-rich, few myofibrils) cells with a central nucleus
+    p: 'nuclei', shape: 'round', per, size: [4.2, 5.2], cell: [15, 21], cellFill: 'rgba(250,224,228,.13)', fill: 'rgba(122,58,128,.38)', inset: .1, tag: 'purkinje' });
+  const hFeatures = {
+    pillar: { wall: 'rgba(250,172,180,.95)', ww: 6, lumen: 'rgba(100,18,30,.72)', rbc: 3, nucleus: hNuc, nr: [5, 1.8], tag: 'arteriole' },   // coronary arterioles cut across
+    door: { lip: 'rgba(196,74,84,.78)', rim: 'rgba(255,214,206,.8)' },
+    stairs: { rim: 'rgba(255,214,206,.75)' },
+    rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
+  };
+  const heartDepth = (fill, ambient, extra) => Object.assign({
+    walls: [myoBeyond, myo([0, 1.8])], edge: { stroke: 'rgba(255,222,214,.85)', w: 2 }, lining: [],
+    floor: { fill, grain: .12, ambient }, features: hFeatures, motion: { type: 'beat' }
+  }, extra || {});
+  T.heart = {
+    accent: '#ff7a59',
+    depth: [
+      heartDepth('rgba(236,170,178,.2)', [                                                          // 1: subendocardium with Purkinje fibers
+        { p: 'strands', per: 1.6, len: [10, 22], stroke: 'rgba(255,224,230,.16)', w: .9 },                 // loose connective tissue
+        { p: 'nuclei', shape: 'flat', per: .5, size: [5, 7], fill: 'rgba(112,44,112,.45)' },              // fibroblasts
+        purkinje(.4), capX(.12)
+      ]),
+      heartDepth('rgba(150,40,52,.26)', [                                                          // 2: deep in the myocardium, fibers cut across
+        { p: 'nuclei', shape: 'round', per: 1.6, size: [2.6, 3.2], cell: [9, 12], cellFill: 'rgba(214,84,96,.16)', fill: 'rgba(112,44,112,.42)', inset: .05, tag: 'myoX' },
+        { p: 'nuclei', shape: 'flat', per: .4, size: [5, 6.5], fill: 'rgba(112,44,112,.42)' },            // fibroblasts in the endomysium
+        capX(.3)
+      ]),
+      heartDepth('rgba(214,170,110,.14)', [                                                        // 3: epicardium, adipose tissue around coronary vessels
+        { p: 'vacuoles', per: .5, r: [13, 19], stroke: 'rgba(250,236,214,.42)', fill: 'rgba(14,8,10,.12)', nucleus: 'rgba(122,58,128,.55)', inset: .15, tag: 'fat' },
+        { p: 'strands', per: .8, len: [12, 24], stroke: 'rgba(255,230,220,.18)', w: .9 },
+        coronary(.012, [16, 22], 'corArt'),
+        { p: 'crossSections', per: .01, r: [20, 28], wall: 'rgba(255,214,224,.7)', ww: 1.8, lumen: 'rgba(80,14,26,.75)', rbc: 4, nuclei: 3, nucleus: hNuc, inset: .2, tag: 'corVein' },
+        capX(.1)
+      ], { hub: { fill: 'rgba(170,24,40,.22)', lining: { p: 'lining', at: -.02, shape: 'squamous', size: [26, 5], fill: 'rgba(255,214,214,.42)', nucleus: hNuc, cover: .9 }, rbc: .9, ports: false, tag: 'corArtery' } })  // boss room: a coronary artery lumen
+    ],
+    labels: [
+      { text: 'Cardiac muscle: striated, branching, intercalated discs', at: 'myo' }, { text: 'Purkinje fibers', at: 'purkinje' },
+      { text: 'Cardiac muscle, cut across', at: 'myoX' }, { text: 'Capillary', at: 'capillary' }, { text: 'Coronary arteriole', at: 'arteriole' },
+      { text: 'Epicardial fat', at: 'fat' }, { text: 'Coronary artery branch', at: 'corArt' }, { text: 'Cardiac vein', at: 'corVein' },
+      { text: 'Coronary artery', at: 'corArtery' }
     ]
   };
 })();
