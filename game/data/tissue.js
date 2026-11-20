@@ -216,17 +216,49 @@
     stairs: { rim: 'rgba(250,232,240,.75)' },
     rest: { fill: 'rgba(127,211,107,.08)', stroke: 'rgba(170,240,150,.35)' }
   };
+  const smooth = band => ({ // smooth muscle: spindle cells wrapping the airway, cigar-shaped central nuclei
+    band, fill: 'rgba(206,104,128,.88)', tag: 'smooth',
+    painter: [
+      { p: 'fibers', n: 6, even: true, stroke: 'rgba(255,190,204,.32)', w: 2.4, amp: 1.6, per: [20, 36], dash: [30, 60, 4] },
+      { p: 'nuclei', shape: 'elongated', per: 1, size: [6, 8], fill: lNuc, inset: .1 }
+    ]
+  });
+  const propria = band => ({ // thin lamina propria under the epithelium: loose connective tissue, fibroblasts, capillaries
+    band, fill: 'rgba(230,170,192,.82)', tag: 'propria',
+    painter: [
+      { p: 'strands', per: 2, len: [8, 16], stroke: 'rgba(255,228,236,.3)', w: .9 },
+      { p: 'nuclei', shape: 'flat', per: .7, size: [4, 5.5], fill: lNuc },
+      { p: 'crossSections', per: .3, r: [4.5, 6], wall: 'rgba(255,220,230,.5)', ww: 1, lumen: 'rgba(150,30,44,.5)', rbc: 1, nuclei: 1, nucleus: lNuc, inset: .02, tag: 'capillary' }
+    ]
+  });
+  const pulmArtery = per => ({ p: 'crossSections', per, r: [12, 18], wall: 'rgba(240,160,184,.95)', ww: 5, lumen: 'rgba(90,16,28,.7)', rbc: 3, nuclei: 4, nucleus: lNuc, inset: .2, tag: 'pulmArtery' }); // bronchioles travel with pulmonary artery branches
+  const beyondWith = (a, art) => ({ band: [a, null], fill: alveoliBeyond.fill, painter: alveoliBeyond.painter.concat([pulmArtery(art)]) });
+  const ciliated = (size, cover) => ({ p: 'lining', at: 0, shape: 'cuboidal', size, fill: 'rgba(240,196,214,.42)', nucleus: lNuc, cover, cilia: 4, ciliaStroke: 'rgba(255,236,244,.7)', tag: 'ciliated' });
+  const club = cover => ({ p: 'lining', at: 0, shape: 'cuboidal', size: [10, 12], fill: 'rgba(248,214,226,.48)', nucleus: lNuc, cover, tag: 'club' }); // dome-shaped, non-ciliated, bulging into the lumen
   const lungDepth = extra => Object.assign({
     walls: [alveoliBeyond, septum], edge: { stroke: 'rgba(250,232,240,.85)', w: 1.8 }, lining: pneumocytes,
-    floor: { fill: 'rgba(214,226,238,.06)', grain: .06, ambient: [dust(.05)] }, features: lFeatures,
+    floor: { fill: 'rgba(214,226,238,.11)', grain: .06, ambient: [dust(.05)] }, features: lFeatures,
     motion: { type: 'breathe' }
   }, extra || {});
   T.lungs = {
     accent: '#8fd0e8',
-    depth: [lungDepth()],                                                                           // 1: alveoli (rooms) and alveolar ducts (corridors)
+    depth: [
+      lungDepth(),                                                                                  // 1: alveoli (rooms) and alveolar ducts (corridors)
+      lungDepth({                                                                                   // 2: respiratory bronchioles: cuboidal epithelium interrupted by alveoli
+        walls: [beyondWith(1.1, .02), smooth([.45, 1.1]), propria([0, .45])],
+        lining: [pneumocytes[0], ciliated([10, 10], .5), club(.15)]
+      }),
+      lungDepth({                                                                                   // 3: terminal bronchiole: ciliated cuboidal to low columnar, club cells, smooth muscle, no cartilage
+        walls: [beyondWith(1.4, .03), smooth([.5, 1.4]), propria([0, .5])],
+        lining: [ciliated([9, 11], .95), club(.3)],
+        floor: { fill: 'rgba(214,226,238,.1)', grain: .06, ambient: [dust(.03)] }
+      })
+    ],
     labels: [
       { text: 'Alveolar septum', at: 'septum' }, { text: 'Capillary', at: 'capillary' }, { text: 'Type I pneumocyte', at: 'type1' },
-      { text: 'Type II pneumocyte', at: 'type2' }, { text: 'Dust cell (alveolar macrophage)', at: 'dust' }, { text: 'Alveolus', at: 'alveolus' }
+      { text: 'Type II pneumocyte', at: 'type2' }, { text: 'Dust cell (alveolar macrophage)', at: 'dust' }, { text: 'Alveolus', at: 'alveolus' },
+      { text: 'Smooth muscle', at: 'smooth' }, { text: 'Lamina propria', at: 'propria' }, { text: 'Ciliated cells', at: 'ciliated' },
+      { text: 'Club cells', at: 'club' }, { text: 'Pulmonary artery branch', at: 'pulmArtery' }
     ]
   };
 })();
