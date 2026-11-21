@@ -17,7 +17,6 @@ DD.mapart = (function () {
     if (!n || n.sub === 'nodeRoom') return null;
     if (n.kind === 'vessel') return n.flow === 'artery' ? 'artery' : 'vein';
     if (n.kind === 'lymph' || n.kind === 'capillary' || n.kind === 'chamber' || n.kind === 'valve') return n.kind;
-    if (n.kind === 'place') return 'lymph'; // the thymus plaza (no tissue profile; lymph node and organ plazas use forRun's own branches)
     return null;
   }
   const VALVE = { tricuspid: 'av', mitral: 'av', pulmValve: 'semi', aorticValve: 'semi' };
@@ -1398,6 +1397,10 @@ DD.mapart = (function () {
     const pseed = (run.seed + run.trip.idx * 7919) >>> 0;
     if (n && n.kind === 'place' && n.region && DD.data.tissue && DD.data.tissue[n.region]) { // organ plaza: the organ's own floor-1 tissue
       const pa = store.get(run.floor) || buildFloor(run.floor, n.region, 0, pseed, true);
+      return pa && pa.ready ? pa : null;
+    }
+    if (n && n.kind === 'place' && n.sub === 'thymus' && DD.data.thymusPlaza) { // thymus plaza: inside a lobule
+      const pa = store.get(run.floor) || buildFloor(run.floor, 'thymusPlaza', 0, pseed, DD.data.thymusPlaza);
       return pa && pa.ready ? pa : null;
     }
     if (n && n.kind === 'place' && n.sub === 'town' && DD.data.nodePlaza) { // lymph node plaza: capsule and subcapsular sinus from the town art
