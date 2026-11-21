@@ -895,4 +895,18 @@
       { text: 'Artery', at: 'artery' }, { text: 'Vein', at: 'vein' }
     ]
   };
+  // Lymph node plazas (the walkable-circulation stop at each town's O entrance): a patch just inside the node, drawn from the
+  // town profile: capsule over perinodal fat, opening onto the subcapsular sinus. Not a region (it lives on DD.data.nodePlaza).
+  const TT = D.townTissue;
+  D.nodePlaza = {
+    depth: [{
+      walls: TT.walls, edge: { stroke: 'rgba(240,226,246,.85)', w: 2 }, lining: [TT.zones.s.lining],
+      floor: { fill: 'rgba(196,186,228,.14)', grain: .1, ambient: TT.zones.s.ambient.concat([Object.assign(lnLymph(3, .34), { tag: 'subcap' })]) }, features: {},
+      motion: { type: 'drift', count: 30, speed: .4, size: [.05, .09], fill: 'rgb(226,220,246)', alpha: .4, life: 8 }
+    }],
+    labels: [
+      { text: 'Capsule', at: 'ct' }, { text: 'Perinodal fat', at: 'fat' }, { text: 'Subcapsular sinus', at: 'subcap' },
+      { text: 'Lymphatic endothelium', at: 'lymphEndo' }, { text: 'Macrophage', at: 'macrophage' }
+    ]
+  };
 })();
