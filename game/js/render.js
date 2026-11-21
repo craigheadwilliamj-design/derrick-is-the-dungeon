@@ -48,7 +48,7 @@ DD.render = (function () {
       const idx = y * f.W + x;
       if (!f.explored[idx]) continue;
       const seen = f.vis[idx] === 1, a = seen ? 1 : 0.38, t = f.g[y][x];
-      if (t === '#') put('#', i, j, accent, seen ? 0.9 : 0.3);
+      if (t === '#') { if (!art) put('#', i, j, accent, seen ? 0.9 : 0.3); } // with tissue art the wall is drawn, so no glyph
       else if (t === '.') put('·', i, j, colors.floor, a);
       else if (t === '+') put('+', i, j, colors.door, a);
       else if (t === '>') put('>', i, j, colors.stairs, a, seen ? colors.door : null);
