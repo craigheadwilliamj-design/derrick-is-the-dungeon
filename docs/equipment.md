@@ -92,7 +92,7 @@ Approved November 17, 2026. 26 consumables (25 sold, plus the Defibrillator). Us
 | Jar of Gastric Juice | Throw | 16 | Heavy Acid damage to one enemy, plus Corrode for 3 turns. | Stomach acid is hydrochloric acid at about pH 1.5–3.5; it turns pepsinogen into pepsin. | new |
 | Opsonin Glaze | Buff | 12 | Your next damaging ATP ability deals ×1.5. | Opsonins coat a pathogen so phagocytes can grab it; "opsonize" comes from Greek for preparing food. | built |
 | Mucus Flask | Buff | 14 | The next hit you take does 0. | Mucus traps microbes and debris on airway and gut surfaces. | built |
-| Fever | Buff | 10 | ×1.3 damage for the fight; lose 4% max HP each turn (never kills). | Fever can slow some pathogens and speed immune responses, at a cost in energy. | built |
+| Fever Dream | Buff | 10 | ×1.3 damage for the fight; lose 4% max HP each turn (never kills). | Fever can slow some pathogens and speed immune responses, at a cost in energy. | built |
 | Interferon | Buff | 12 | ×1.6 against viruses for the fight. Check against Head-item multipliers. | Virus-infected cells release interferons that warn neighbors to strengthen antiviral defenses. | built |
 | Antibiotic | Buff | 12 | ×1.6 against bacteria for the fight; nothing against viruses. Check against Head-item multipliers. | Antibiotics treat bacterial infections only; they do not work on viruses. | built |
 | Liquid Courage | Buff | 12 | +25% damage for the fight; lose 10% max HP after it (dehydration). | Alcohol is a CNS depressant that boosts GABA-A receptors, and it suppresses ADH, so you lose water. | new |
