@@ -17,7 +17,6 @@ DD.mapart = (function () {
     if (!n || n.sub === 'nodeRoom') return null;
     if (n.kind === 'vessel') return n.flow === 'artery' ? 'artery' : 'vein';
     if (n.kind === 'lymph' || n.kind === 'capillary' || n.kind === 'chamber' || n.kind === 'valve') return n.kind;
-    if (n.kind === 'place') return 'lymph'; // walkable-circulation plazas without a tissue profile (lymph node towns): drawn as lymph
     return null;
   }
   const VALVE = { tricuspid: 'av', mitral: 'av', pulmValve: 'semi', aorticValve: 'semi' };
@@ -977,7 +976,7 @@ DD.mapart = (function () {
   }
 
   function buildFloor(f, regionId, idx, seed, plaza) {
-    const prof = DD.data.tissue && DD.data.tissue[regionId];
+    const prof = plaza && plaza.depth ? plaza : DD.data.tissue && DD.data.tissue[regionId];
     if (!f || !prof || (f.tiles && !plaza) || !can()) return null;
     const have = store.get(f); if (have) return have;
     const st = S(), sf = st.floor, D = prof.depth[Math.min(idx, prof.depth.length - 1)], next = prof.depth[idx + 1];
@@ -1395,8 +1394,17 @@ DD.mapart = (function () {
       return fa && fa.ready ? fa : null;
     }
     const n = DD.travel.segs(run)[run.trip.idx];
+    const pseed = (run.seed + run.trip.idx * 7919) >>> 0;
     if (n && n.kind === 'place' && n.region && DD.data.tissue && DD.data.tissue[n.region]) { // organ plaza: the organ's own floor-1 tissue
-      const pa = store.get(run.floor) || buildFloor(run.floor, n.region, 0, (run.seed + run.trip.idx * 7919) >>> 0, true);
+      const pa = store.get(run.floor) || buildFloor(run.floor, n.region, 0, pseed, true);
+      return pa && pa.ready ? pa : null;
+    }
+    if (n && n.kind === 'place' && n.sub === 'thymus' && DD.data.thymusPlaza) { // thymus plaza: inside a lobule
+      const pa = store.get(run.floor) || buildFloor(run.floor, 'thymusPlaza', 0, pseed, DD.data.thymusPlaza);
+      return pa && pa.ready ? pa : null;
+    }
+    if (n && n.kind === 'place' && n.sub === 'town' && DD.data.nodePlaza) { // lymph node plaza: capsule and subcapsular sinus from the town art
+      const pa = store.get(run.floor) || buildFloor(run.floor, 'nodePlaza', 0, pseed, DD.data.nodePlaza);
       return pa && pa.ready ? pa : null;
     }
     const art = store.get(run.floor) || build(run.floor, n, (run.seed + run.trip.idx * 7919) >>> 0);

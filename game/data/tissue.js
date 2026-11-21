@@ -895,4 +895,47 @@
       { text: 'Artery', at: 'artery' }, { text: 'Vein', at: 'vein' }
     ]
   };
+  // Lymph node plazas (the walkable-circulation stop at each town's O entrance): a patch just inside the node, drawn from the
+  // town profile: capsule over perinodal fat, opening onto the subcapsular sinus. Not a region (it lives on DD.data.nodePlaza).
+  const TT = D.townTissue;
+  D.nodePlaza = {
+    depth: [{
+      walls: TT.walls, edge: { stroke: 'rgba(240,226,246,.85)', w: 2 }, lining: [TT.zones.s.lining],
+      floor: { fill: 'rgba(196,186,228,.14)', grain: .1, ambient: TT.zones.s.ambient.concat([Object.assign(lnLymph(3, .34), { tag: 'subcap' })]) }, features: {},
+      motion: { type: 'drift', count: 30, speed: .4, size: [.05, .09], fill: 'rgb(226,220,246)', alpha: .4, life: 8 }
+    }],
+    labels: [
+      { text: 'Capsule', at: 'ct' }, { text: 'Perinodal fat', at: 'fat' }, { text: 'Subcapsular sinus', at: 'subcap' },
+      { text: 'Lymphatic endothelium', at: 'lymphEndo' }, { text: 'Macrophage', at: 'macrophage' }
+    ]
+  };
+  // Thymus plaza: inside a lobule. The walkable floor is the pale medulla (Hassall's corpuscles, epithelial reticular cells, sparse
+  // thymocytes); the wall goes out through the dark cortex packed with thymocytes, then the capsule/septum, then fat (an adult thymus is
+  // largely replaced by adipose tissue).
+  D.thymusPlaza = {
+    depth: [{
+      walls: [
+        { band: [1.9, null], fill: 'rgba(18,12,10,.93)', painter: [
+          { p: 'vacuoles', per: .55, r: [12, 18], stroke: 'rgba(242,232,218,.3)', fill: 'rgba(14,8,10,.2)', nucleus: 'rgba(122,58,128,.5)', inset: .1, tag: 'fat' }] },
+        { band: [1.1, 1.9], fill: 'rgba(222,150,172,.8)', tag: 'septum', painter: [
+          { p: 'fibers', n: 4, stroke: 'rgba(255,224,232,.3)', w: 1.3, amp: 2, per: [18, 34] },
+          { p: 'nuclei', shape: 'flat', per: .7, size: [5, 7], fill: lnNuc }] },
+        { band: [0, 1.1], fill: 'rgba(52,20,96,.88)', tag: 'thyCortex', painter: [ // cortex: densely packed small thymocytes, the odd tingible body macrophage
+          { p: 'nuclei', shape: 'round', per: 9, size: [2.2, 2.8], fill: 'rgba(150,110,210,.42)' },
+          { p: 'nuclei', shape: 'round', per: .12, size: [3, 3.6], fill: 'rgba(150,90,170,.5)', cell: [8, 10], cellFill: 'rgba(240,222,240,.18)', granules: { n: 5, r: [1, 1.7], fill: 'rgba(40,14,60,.75)' }, inset: .1, tag: 'tingible' }] }
+      ],
+      edge: { stroke: 'rgba(214,190,236,.5)', w: 1.4 }, lining: [], features: {},
+      floor: { fill: 'rgba(214,190,226,.16)', grain: .1, ambient: [
+        lnLymph(2.2, .34),
+        { p: 'nuclei', shape: 'elongated', per: .7, size: [3.8, 5], fill: 'rgba(170,130,196,.42)', cell: [9, 12], cellFill: 'rgba(240,226,240,.12)', inset: .1, tag: 'epiReticular' }, // epithelial reticular cells: large pale nuclei
+        { p: 'lamellae', per: .05, pack: true, r: [14, 24], rings: 4, fill: 'rgba(240,140,170,.32)', stroke: 'rgba(255,214,228,.55)', w: 1.3, canal: 'rgba(248,170,196,.6)', canalR: .3, inset: .15, tag: 'hassall' } // Hassall's corpuscles: concentric flattened epithelial cells, keratinized core
+      ] },
+      motion: { type: 'drift', count: 18, speed: .25, size: [.04, .07], fill: 'rgb(230,222,246)', alpha: .3, life: 9 }
+    }],
+    labels: [
+      { text: "Hassall's (thymic) corpuscle", at: 'hassall' }, { text: 'Medulla: epithelial reticular cell', at: 'epiReticular' },
+      { text: 'Cortex: thymocytes', at: 'thyCortex' }, { text: 'Tingible body macrophage', at: 'tingible' },
+      { text: 'Capsule and septum', at: 'septum' }, { text: 'Adipose (adult involution)', at: 'fat' }
+    ]
+  };
 })();

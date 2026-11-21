@@ -219,7 +219,7 @@ DD.ui = (function () {
   ui.refreshMap = function (resizeOnly) {
     const run = DD.game.run; if (!run || !g.canvas) return;
     DD.render.draw(g.canvas, run);
-    if (g.labels) g.labels.hidden = !(DD.mapart && (run.trip ? DD.mapart.kindOf(DD.travel.segs(run)[run.trip.idx]) : DD.mapart.floorProfile(run)));
+    if (g.labels) g.labels.hidden = !(DD.mapart && (run.trip ? (seg => DD.mapart.kindOf(seg) || (seg && seg.kind === 'place'))(DD.travel.segs(run)[run.trip.idx]) : DD.mapart.floorProfile(run)));
     if (resizeOnly) return;
     const r = DD.data.region(run.regionId), st = DD.game.stats(), p = DD.save.profile;
     if (run.trip) {
