@@ -53,6 +53,44 @@ DD.review = (function () {
         list.map(r => card(r.q, r.s))))));
   };
 
+  // Question bank: every text question in the game (built-in and your own), by system. Lab image questions live in Lab images.
+  R.bank = function () {
+    const ui = DD.ui; ui.mode = 'bank';
+    const qs = DD.save.profile.qstats, all = DD.img.SYSTEMS.flatMap(([id]) => DD.q.pool([id], true).filter(q => !q.img));
+    const own = all.filter(q => q.custom).length;
+    const rows = all.map(q => {
+      const node = el('div', null, card(q, qs[q.id] && qs[q.id].seen ? qs[q.id] : null),
+        el('div', { class: 'small dim' }, el('b', null, 'Wrong options: '), q.wrong.join(' · '),
+          el('span', null, '  ·  ' + (q.custom ? 'Your question' : 'Built-in') + (DD.q.isFlagged(q) ? ' · flagged' : ''))));
+      return { q, node, hay: [q.q, q.answer, q.explain].concat(q.wrong).join(' ').toLowerCase() };
+    });
+    const groups = DD.img.SYSTEMS.map(([id, name]) => {
+      const list = rows.filter(r => r.q.system === id); if (!list.length) return null;
+      const sum = el('summary', null, name + ' (' + list.length + ')');
+      return { list, name, sum, box: el('details', { class: 'ed-group' }, sum, list.map(r => r.node)) };
+    }).filter(Boolean);
+    const count = el('p', { class: 'dim small' });
+    const apply = term => {
+      let shown = 0;
+      groups.forEach(g => {
+        const n = g.list.filter(r => { const on = !term || r.hay.includes(term); r.node.style.display = on ? '' : 'none'; return on; }).length;
+        shown += n; g.box.style.display = n ? '' : 'none'; g.sum.textContent = g.name + ' (' + n + ')'; if (term) g.box.open = n > 0;
+      });
+      count.textContent = all.length ? (term ? shown + ' of ' + all.length + ' match.' : all.length + ' multiple-choice questions (' + own + ' yours). Tap a system to open it.')
+        : 'No multiple-choice questions yet. Add study material to write some.';
+    };
+    const search = el('input', { type: 'search', placeholder: 'Search questions, answers, explanations', 'aria-label': 'Search questions', style: { width: '100%' },
+      oninput: () => apply(search.value.trim().toLowerCase()) });
+    apply('');
+    ui.mount(el('div', { class: 'screen menu' },
+      el('div', { class: 'tag' }, 'Study'),
+      el('h1', null, 'Question bank'),
+      count,
+      el('div', { class: 'toolrow2' }, el('button', { class: 'btn', type: 'button', onclick: () => ui.leaveStudy() }, 'Back')),
+      all.length ? search : null,
+      groups.map(g => g.box)));
+  };
+
   // Death screen: what killed you, this run's misses, the glucose penalty, then respawn (optionally switching class).
   R.postMortem = function (info) {
     const ui = DD.ui; ui.mode = 'dead';
