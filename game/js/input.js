@@ -31,7 +31,7 @@ DD.input = {
       } else if (ui.mode === 'combat') {
         const C = DD.game.combat; if (!C) return;
         if (C.phase === 'choose') {
-          const a = C.drill ? { h: 'heavy' }[k] : { l: 'attack', b: 'block', a: 'abilities', i: 'items' }[k];
+          const a = C.drill ? { h: 'heavy' }[k] : { l: 'attack', b: 'block', c: 'combo', a: 'abilities', i: 'items' }[k];
           if (a) { e.preventDefault(); ui.act(a); }
         } else if (C.phase === 'target' && k === 'escape') { e.preventDefault(); ui.act('cancel');
         } else if (C.phase === 'question' && /^[1-4]$/.test(k)) {

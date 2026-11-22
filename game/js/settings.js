@@ -227,5 +227,11 @@ DD.S.rpg = {
   stunBossChance: .25,
   winRecover: { hp: .2, atp: 6 },  // after each won battle: share of max HP, flat ATP
   elementalArmor: .5,              // your Armor counts at this fraction against non-Physical enemy attacks
-  rest: { hp: .4, atp: .5 }        // one rest pocket per dungeon floor: share of max HP and ATP, single use
+  rest: { hp: .4, atp: .5 },       // one rest pocket per dungeon floor: share of max HP and ATP, single use
+  // Combo command: uses the turn, asks up to `questions` in a row; each correct adds `perCorrect` to the next
+  // damaging attack, a perfect chain adds `perfect` on top. A wrong answer ends the chain (earned bonus kept).
+  combo: { questions: 4, perCorrect: .25, perfect: .5 },
+  // Boss Blitz intent: telegraphed, then min–max questions in a row. Each wrong answer is a hit at `hit`× boss
+  // attack (Block and Shield apply). A perfect Blitz gives the next attack +`perfect`. Rolled every `every` rounds.
+  blitz: { min: 4, max: 8, hit: .5, perfect: .5, every: 4, offset: 2 }
 };

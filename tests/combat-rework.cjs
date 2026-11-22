@@ -65,3 +65,17 @@ D.game.combat=D.combat.create(D.game.run,[enemy()]);D.travel.persist();let tripS
 D.travel.resume(tripSave);assert.ok(D.save.run.battle);D.travel.resume(JSON.parse(JSON.stringify(D.save.run)));assert.ok(D.game.combat);
 console.log('Passed: battlefield/menu/question rendering and repeated vessel battle reloads.');
 reset('bcell'); assert.equal(D.game.resources().atp,40,'new players start with full ATP');
+// Combo: uses the turn, 4 questions, +25% each, +50% for a perfect chain; consumed by the next attack.
+{const ans=(C,ok)=>{assert.equal(C.phase,'question');D.combat.answer(C,C.opts.findIndex(o=>o.correct===ok));D.combat.cont(C);};
+let C=battle('macrophage');C.st.defense=0;const atp0=C.run.atp;D.combat.combo(C);for(let i=0;i<4;i++)ans(C,true);
+assert.equal(C.phase,'choose');assert.equal(C.round,2);assert.equal(C.run.atp,atp0);assert.equal(C.nextAttackBonus,1.5);assert.ok(D.combat.comboWhy(C));
+const hp0=C.enemies[0].hp;D.combat.attack(C);D.combat.target(C,0);const hit=hp0-C.enemies[0].hp;assert.equal(C.nextAttackBonus,0);
+let B=battle('macrophage');B.st.defense=0;D.combat.attack(B);D.combat.target(B,0);assert.equal(500-B.enemies[0].hp,Math.round(hit/2.5));
+C=battle();D.combat.combo(C);ans(C,true);ans(C,false);assert.equal(C.phase,'choose');assert.equal(C.nextAttackBonus,.25);
+// Boss Blitz: telegraphed on boss rounds; each wrong answer is a half-strength hit, perfect gives +50%.
+C=battle('macrophage',[enemy({boss:true}),enemy({uid:1})]);C.st.defense=0;C.enemies[0].intent='blitz';C.enemies[0].blitzN=5;C.enemies[1].intent='defend';
+D.combat.block(C);assert.equal(C.chain.kind,'blitz');const hpB=C.run.hp;ans(C,false);assert.equal(C.run.hp,hpB-3);for(let i=0;i<4;i++)ans(C,true);
+assert.equal(C.phase,'choose');assert.equal(C.chain,null);assert.equal(C.nextAttackBonus||0,0);
+C=battle('macrophage',[enemy({boss:true})]);C.enemies[0].intent='blitz';C.enemies[0].blitzN=4;D.combat.block(C);const snap=D.combat.create(C.run,null,{saved:D.combat.snapshot(C)});
+for(let i=0;i<4;i++)ans(snap,true);assert.equal(snap.nextAttackBonus,.5);assert.equal(snap.phase,'choose');
+console.log('Passed: Combo and Boss Blitz question chains.');}

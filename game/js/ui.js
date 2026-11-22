@@ -258,6 +258,7 @@ DD.ui = (function () {
       C.coating ? el('span', { class: 'chip ok' }, 'Toxic Coating: ' + C.coating) : null,
       C.shield ? el('span', { class: 'chip ok' }, 'One-hit Shield') : null,
       C.wind ? el('span', { class: 'chip ok' }, 'Next Attack +50%') : null,
+      C.nextAttackBonus > 0 ? el('span', { class: 'chip ok' }, 'Next attack +' + Math.round(C.nextAttackBonus * 100) + '%') : null,
       el('span', null, combat.statusText(C.status)));
     if (!lastHP.has(C) && DD.anim) DD.anim.reset(C);
     const prevHP = lastHP.get(C) || []; lastHP.set(C, C.enemies.map(e => e.hp));
@@ -266,7 +267,7 @@ DD.ui = (function () {
       el('div', { class: 'small dim' }, C.cls.name), meter('HP', C.run.hp, C.st.maxHP), meter('ATP', C.run.atp, C.st.maxATP, 'atp'), statuses,
       C.ally ? el('div', { class: 'companion card' }, el('b', null, 'Basophil'), meter('HP', C.ally.hp, C.ally.maxHP), el('small', null, C.ally.hp > 0 ? 'Attacks each round · shares 25% damage' : 'Defeated · recruit again')) : null);
     const enemies = el('div', { class: 'battle-enemies' }, C.enemies.map((e, i) => {
-      const intent = e.intent === 'big' ? 'Charging: ' + (e.applies || 'heavy attack') : e.intent === 'defend' ? 'Guarding' : 'Attack';
+      const intent = e.intent === 'big' ? 'Charging: ' + (e.applies || 'heavy attack') : e.intent === 'blitz' ? 'Boss Blitz: ' + e.blitzN + ' questions' : e.intent === 'defend' ? 'Guarding' : 'Attack';
       const selected = C.selection.includes(i), targetable = C.phase === 'target' && e.hp > 0;
       const art = DD.anim && !C.drill && DD.anim.enemyArt(e);   // sprite cards play their own Hit clip instead of the card flash
       return el('button', { class: 'enemy-card' + (e.hp <= 0 ? ' defeated' : '') + (selected ? ' selected' : '') + (!art && e.hp < (prevHP[i] ?? e.hp) ? ' hurt' : ''), type: 'button', disabled: !targetable,
@@ -274,7 +275,7 @@ DD.ui = (function () {
         onclick: () => act('target', i) },
         art || el('div', { class: 'glyph' }, e.glyph), el('b', null, e.name), e.sci ? el('small', { class: 'dim' }, e.sci) : null,
         el('small', null, e.boss ? 'Boss · Lv ' + e.lvl : e.type + ' · Lv ' + e.lvl), meter('HP', e.hp, e.maxHP),
-        el('small', { class: e.intent === 'big' ? 'danger' : '' }, e.hp > 0 ? intent : 'Defeated'),
+        el('small', { class: e.intent === 'big' || e.intent === 'blitz' ? 'danger' : '' }, e.hp > 0 ? intent : 'Defeated'),
         el('small', null, combat.statusText(e.status)),
         C.mark === i ? el('span', { class: 'chip ok' }, 'Antibody Mark') : null,
         selected ? el('span', { class: 'chip' }, C.selection.filter(x => x === i).length + ' selected strikes') : null);
@@ -284,6 +285,7 @@ DD.ui = (function () {
     if (C.phase === 'choose' && !C.drill) {
       commands.append(button('Attack [L]', () => act('attack'), '', 'Free · choose one enemy'),
         button('Block [B]', () => act('block'), '', 'Free · reduce all direct attacks this round by ' + Math.round(C.st.blockCut * 100) + '%'),
+        button('Combo [C]', () => act('combo'), combat.comboWhy(C), 'Uses your turn · ' + DD.S.rpg.combo.questions + ' questions in a row, up to +' + Math.round((DD.S.rpg.combo.questions * DD.S.rpg.combo.perCorrect + DD.S.rpg.combo.perfect) * 100) + '% next attack'),
         button('Abilities [A]', () => act('abilities'), C.rage ? 'Locked during Protein Rage' : '', 'ATP · answer a question'),
         button('Items [I]', () => act('items'), C.rage ? 'Locked during Protein Rage' : '', 'Uses your turn'),
         button('Flee', () => act('flee'), '', 'Leave now · lose expedition XP and loot'));
@@ -308,7 +310,11 @@ DD.ui = (function () {
       body.append(button('Next question', () => act('heavy')), button('Stop practice', DD.game.endDrill));
     } else if (C.phase === 'question' || C.phase === 'explain') {
       const q = C.q, ans = C.answer;
-      body.append(el('div', { class: 'qtag' }, C.drill ? 'Practice' : C.pending.name + ' · ' + (C.paidCost != null ? C.paidCost : C.pending.cost) + ' ATP spent'),
+      const ch = C.chain, P = DD.S.rpg.combo;
+      body.append(el('div', { class: 'qtag' }, C.drill ? 'Practice' : ch ? (ch.kind === 'combo'
+          ? 'Combo · question ' + ch.i + ' of ' + ch.n + ' · ' + ch.right + ' correct (+' + Math.round((ch.right * P.perCorrect + (ch.right === ch.n ? P.perfect : 0)) * 100) + '%)'
+          : 'Boss Blitz · question ' + ch.i + ' of ' + ch.n + ' · ' + ch.hits + ' hit' + (ch.hits === 1 ? '' : 's') + ' taken')
+        : C.pending.name + ' · ' + (C.paidCost != null ? C.paidCost : C.pending.cost) + ' ATP spent'),
         el('div', { class: 'qrow' }, el('p', { class: 'q' }, q.q), DD.review.flagBtn(q)));
       if (q.img) body.append(DD.img.view(q.img, !!ans));
       body.append(el('div', { class: 'opts' }, C.opts.map((o, i) => el('button', {
