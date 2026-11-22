@@ -56,7 +56,8 @@ DD.combat = (function () {
   function rollIntents(C) {
     for (const e of living(C)) {
       // Status-bearing strikes are visible in advance. These matchups are game abstractions.
-      e.intent = C.round % (e.boss ? 3 : 4) === 0 ? 'big' : Math.random() < .15 ? 'defend' : 'attack';
+      e.intent = C.round % (e.boss ? 3 : 4) === 0 ? 'big' : e.boss && C.round % S.blitz.every === S.blitz.offset ? 'blitz' : Math.random() < .15 ? 'defend' : 'attack';
+      e.blitzN = e.intent === 'blitz' ? DD.u.int(Math.random, S.blitz.min, S.blitz.max) : 0;
       e.applies = e.intent === 'big' ? ({ physical: 'bleed', acid: 'corrode', oxidative: 'weaken', electrical: 'stun', toxin: 'poison' }[e.damageType] || 'bleed') : null;
     }
   }
@@ -107,7 +108,7 @@ DD.combat = (function () {
       const x = context(C, e); DD.fx.fire('onKill', x); gain(C, x);
       gain(C,{heal:C.st.maxHP*(C.gear.killHP||0),atp:Math.round(C.st.maxATP*(C.gear.killATP||0))});
       if(C.gear.corrodeKillATP&&e.status.corrode)C.run.atp=C.st.maxATP;
-      if(C.gear.bleedKill&&e.status.bleed)C.nextAttackBonus=C.gear.bleedKill;
+      if(C.gear.bleedKill&&e.status.bleed)C.nextAttackBonus=Math.max(C.nextAttackBonus||0,C.gear.bleedKill);
     }
   }
   function finish(C) {
@@ -221,6 +222,7 @@ DD.combat = (function () {
     if (finish(C)) return;
     for (const e of living(C)) {
       if (e.status.stun) { delete e.status.stun; e.stunGuard = true; say(C, e.name + ' loses its turn to Stun.'); }
+      else if (e.intent === 'blitz') { e.stunGuard = false; if (!C.blitzQ) C.blitzQ = { from: C.enemies.indexOf(e), n: e.blitzN || S.blitz.min, block: !!C.blocking }; say(C, e.name + ' unleashes a Boss Blitz: ' + (e.blitzN || S.blitz.min) + ' questions!'); }
       else { e.stunGuard = false; if (e.intent !== 'defend') enemyAttack(C, e); }
       durationTick(e.status);
       if (C.run.hp <= 0) break;
@@ -242,6 +244,34 @@ DD.combat = (function () {
       rollIntents(C); return afterPlayer(C);
     }
     C.stunGuard = false; rollIntents(C);
+    if (C.blitzQ) { const b = C.blitzQ; C.blitzQ = null; C.chain = { kind: 'blitz', n: b.n, i: 0, right: 0, from: b.from, block: b.block, hits: 0 }; chainAsk(C); }
+  }
+  // Question chains: Combo (player command) and Boss Blitz (boss intent). No ATP; answers still train the picker.
+  function chainAsk(C) {
+    const systems = C.run.systems || DD.data.region(C.run.regionId).systems;
+    C.q = DD.q.pool(systems, true).length ? DD.q.pick(systems) : null;
+    if (!C.q) return endChain(C);
+    const x = context(C, C.enemies[C.target] || C.enemies[0]); DD.fx.fire('onQuestionAsk', x);
+    C.chain.i++; C.opts = DD.q.options(C.q, x.removeWrong); C.removed = x.removeWrong; C.answer = null; C.phase = 'question';
+  }
+  function blitzHit(C, e) {
+    if (!e || e.hp <= 0) return;
+    const keep = [e.intent, e.atk, C.blocking]; e.intent = 'attack'; e.atk = e.atk * S.blitz.hit; C.blocking = C.chain.block;
+    enemyAttack(C, e); [e.intent, e.atk, C.blocking] = keep;
+  }
+  function endChain(C) {
+    const ch = C.chain; C.chain = null; C.q = null; C.answer = null;
+    if (ch.kind === 'combo') {
+      const P = S.combo, bonus = ch.right * P.perCorrect + (ch.right === ch.n ? P.perfect : 0);
+      if (!ch.i) say(C, 'No usable questions: the Combo fizzles.');
+      else if (bonus) { C.nextAttackBonus = (C.nextAttackBonus || 0) + bonus; say(C, 'Combo ' + ch.right + '/' + ch.n + ': next attack +' + Math.round(bonus * 100) + '%.'); }
+      else say(C, 'Combo broken: no bonus.');
+      return afterPlayer(C);
+    }
+    if (!ch.i) say(C, 'No usable questions: the Blitz fizzles.');
+    else if (ch.right === ch.n) { C.nextAttackBonus = (C.nextAttackBonus || 0) + S.blitz.perfect; say(C, 'Perfect Blitz! Next attack +' + Math.round(S.blitz.perfect * 100) + '%.'); }
+    else say(C, 'Blitz over: ' + ch.right + '/' + ch.n + ' correct, ' + ch.hits + ' hits taken.');
+    C.phase = 'choose'; C.menu = 'commands'; finish(C);
   }
   function ask(C) {
     const systems = C.run.systems || DD.data.region(C.run.regionId).systems;
@@ -321,6 +351,16 @@ DD.combat = (function () {
         basicAttack(C,C.enemies[i]);
       } else if (C.selection.length >= (C.pending.hits || 1)) ask(C);
     },
+    comboWhy(C) {
+      if (C.phase !== 'choose' || C.drill) return 'Not now';
+      if (C.nextAttackBonus > 0) return 'Bonus already primed: attack first';
+      if (!DD.q.pool(C.run.systems || DD.data.region(C.run.regionId).systems, true).length) return 'No usable questions';
+      return '';
+    },
+    combo(C) {
+      if (A.comboWhy(C)) return;
+      C.pending = null; C.chain = { kind: 'combo', n: S.combo.questions, i: 0, right: 0 }; chainAsk(C);
+    },
     cancel(C) { if (C.phase === 'target' || C.phase === 'choose') { C.phase = 'choose'; C.pending = null; C.selection = []; C.menu = 'commands'; } },
     answer(C, i) {
       if (C.phase !== 'question' || !C.opts[i]) return;
@@ -328,6 +368,12 @@ DD.combat = (function () {
       DD.q.record(C.q, ok, C.run.trip ? DD.q.regionOf(C.q) : C.run.regionId);
       if (!ok && !C.run.miss.includes(C.q.id)) C.run.miss.push(C.q.id);
       C.answer = { i, ok };
+      if (C.chain) {
+        if (ok) C.chain.right++;
+        else if (C.chain.kind === 'combo') C.chain.broken = true;
+        else { C.chain.hits++; blitzHit(C, C.enemies[C.chain.from]); }
+        C.phase = 'explain'; return;
+      }
       if(!C.drill){if(!C.paid){C.paidCost=C.pending.cost;C.run.atp=Math.max(0,C.run.atp-C.pending.cost);}C.paid=false;C.streak=ok?Math.min(5,C.streak+1):0;
         C.seaStreak=ok?(C.seaStreak||0)+1:0;if(C.gear.seahorse&&C.seaStreak>=C.gear.seahorse){C.seaStreak=0;C.freeNext=true;say(C,'Seahorse Signet: your next ability costs no ATP.');}}
       if (C.drill) {
@@ -343,6 +389,12 @@ DD.combat = (function () {
     },
     cont(C) {
       if (C.phase !== 'explain') return;
+      if (C.chain) {
+        const ch = C.chain;
+        if (C.run.hp <= 0) { C.chain = null; finish(C); return; }
+        if (!ch.broken && ch.i < ch.n) return chainAsk(C);
+        return endChain(C);
+      }
       if (C.drill) { if (!C.drill.left.length) { C.phase = 'end'; C.over = 'win'; } else C.phase = 'choose'; return; }
       afterPlayer(C);
     },
