@@ -91,6 +91,79 @@ DD.review = (function () {
       groups.map(g => g.box)));
   };
 
+  // Quiz mode: questions only, no combat. Pick systems (or missed only), then answer nonstop until you stop.
+  // Uses the normal picker and records stats and mastery like any other answer.
+  R.quiz = function () {
+    const ui = DD.ui; ui.mode = 'quizsetup';
+    const sys = DD.img.SYSTEMS.map(([id, name]) => ({ id, name, n: DD.q.available([id]) })).filter(x => x.n);
+    const missed = R.missed().length, chosen = new Set(sys.map(x => x.id));
+    const boxes = sys.map(x => el('label', { class: 'small', style: { display: 'flex', gap: '6px', alignItems: 'center' } },
+      el('input', { type: 'checkbox', checked: true, onchange: e => { e.target.checked ? chosen.add(x.id) : chosen.delete(x.id); } }), x.name + ' (' + x.n + ')'));
+    const start = ids => { if (ids.length) R.quizRun({ systems: ids, missedOnly: false }); };
+    ui.mount(el('div', { class: 'screen menu' },
+      el('div', { class: 'tag' }, 'Study'),
+      el('h1', null, 'Quiz mode'),
+      el('p', { class: 'dim small' }, 'Questions only, no combat. Missed, unseen and stale questions come up more often. Answers count toward mastery. Keys 1–4 answer, Enter continues, Esc stops.'),
+      sys.length ? el('div', { class: 'card stack' }, el('b', null, 'Systems'), boxes) : el('p', { class: 'warn' }, 'No questions yet. Add study material first.'),
+      el('div', { class: 'toolrow2' },
+        el('button', { class: 'btn', type: 'button', onclick: () => ui.leaveStudy() }, 'Back'),
+        el('button', { class: 'btn primary', type: 'button', disabled: !sys.length, onclick: () => start([...chosen]) }, 'Start'),
+        el('button', { class: 'btn', type: 'button', disabled: !missed, onclick: () => R.quizRun({ missedOnly: true }) }, 'Missed only (' + missed + ')'))));
+  };
+  R.quizRun = function (cfg) {
+    const ui = DD.ui, Z = R.qz = { cfg, n: 0, right: 0, streak: 0, best: 0, miss: [] };
+    if (cfg.missedOnly) Z.left = R.missed().map(r => r.q.id);
+    const next = () => {
+      if (cfg.missedOnly) {
+        const byId = new Map(DD.q.all().map(q => [q.id, q])), qs = Z.left.map(id => byId.get(id)).filter(Boolean);
+        if (!qs.length) return R.quizEnd();
+        const fresh = qs.filter(q => !Z.q || q.id !== Z.q.id);
+        Z.q = DD.u.pick(Math.random, fresh.length ? fresh : qs);
+      } else Z.q = DD.q.pick(cfg.systems);
+      Z.opts = DD.q.options(Z.q); Z.ans = null; draw();
+    };
+    Z.answer = i => {
+      if (Z.ans || !Z.opts[i]) return;
+      const ok = Z.opts[i].correct; Z.ans = { i, ok };
+      DD.q.record(Z.q, ok, DD.q.regionOf(Z.q)); DD.save.save();
+      Z.n++; if (ok) { Z.right++; Z.streak++; Z.best = Math.max(Z.best, Z.streak); if (Z.left) Z.left = Z.left.filter(id => id !== Z.q.id); }
+      else { Z.streak = 0; if (!Z.miss.includes(Z.q.id)) Z.miss.push(Z.q.id); }
+      draw();
+    };
+    Z.cont = () => { if (Z.ans) next(); };
+    const draw = () => {
+      ui.mode = 'quiz';
+      const q = Z.q, a = Z.ans, name = (DD.img.SYSTEMS.find(s => s[0] === q.system) || [, q.system])[1];
+      ui.mount(el('div', { class: 'screen menu' },
+        el('div', { class: 'rhead' }, el('span', { class: 'tag' }, 'Quiz · ' + name),
+          el('span', { class: 'small' }, Z.right + '/' + Z.n + (Z.n ? ' (' + Math.round(100 * Z.right / Z.n) + '%)' : '') + ' · streak ' + Z.streak + (Z.left ? ' · ' + Z.left.length + ' left' : ''))),
+        el('div', { class: 'card stack' },
+          el('div', { class: 'qrow' }, el('p', { class: 'q' }, q.q), R.flagBtn(q)),
+          q.img ? DD.img.view(q.img, !!a) : null,
+          el('div', { class: 'opts' }, Z.opts.map((o, i) => el('button', {
+            class: 'opt' + (a ? o.correct ? ' right' : i === a.i ? ' wrong' : '' : ''), disabled: !!a, type: 'button',
+            onclick: () => Z.answer(i) }, el('kbd', null, String(i + 1)), o.text))),
+          a ? el('div', { class: 'fb ' + (a.ok ? 'good' : 'bad') }, el('b', null, a.ok ? 'Correct. ' : 'The answer is ' + q.answer + '. '), q.explain) : null,
+          a ? el('button', { class: 'btn primary', type: 'button', onclick: Z.cont }, 'Next [Enter]') : null),
+        el('div', { class: 'toolrow2' }, el('button', { class: 'btn small', type: 'button', onclick: R.quizEnd }, 'Stop [Esc]'))));
+    };
+    next();
+  };
+  R.quizEnd = function () {
+    const ui = DD.ui, Z = R.qz || { n: 0, right: 0, best: 0, miss: [] }; ui.mode = 'review';
+    const byId = new Map(DD.q.all().map(q => [q.id, q])), qs = Z.miss.map(id => byId.get(id)).filter(Boolean);
+    R.qz = null;
+    ui.mount(el('div', { class: 'screen menu' },
+      el('div', { class: 'tag' }, 'Quiz mode'),
+      el('h1', null, Z.n ? Z.right + ' of ' + Z.n + ' right' : 'No questions answered'),
+      Z.n ? el('p', { class: 'dim small' }, Math.round(100 * Z.right / Z.n) + '% · best streak ' + Z.best + (Z.left && !Z.left.length ? ' · every missed question cleared' : '')) : null,
+      el('div', { class: 'toolrow2' },
+        el('button', { class: 'btn primary', type: 'button', onclick: R.quiz }, 'Another round'),
+        el('button', { class: 'btn', type: 'button', onclick: () => ui.leaveStudy() }, 'Back')),
+      el('h3', null, qs.length ? 'Missed this round (' + qs.length + ')' : 'Nothing missed this round'),
+      qs.map(q => card(q, null))));
+  };
+
   // Death screen: what killed you, this run's misses, the glucose penalty, then respawn (optionally switching class).
   R.postMortem = function (info) {
     const ui = DD.ui; ui.mode = 'dead';

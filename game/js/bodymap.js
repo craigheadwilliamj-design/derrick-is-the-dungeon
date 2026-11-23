@@ -203,6 +203,7 @@
           el('button', { class: 'btn small primary', type: 'button', onclick: () => DD.gear.screen(() => ui.menu()) }, 'Gear'),
           el('button', { class: 'btn small', type: 'button', onclick: DD.derrickui.chart }, 'Derrick’s chart'),
           el('button', { class: 'btn small', type: 'button', onclick: DD.review.screen }, 'Missed questions (' + Object.values(p.qstats).filter(s => s.wrong >= 1).length + ')'),
+          el('button', { class: 'btn small primary', type: 'button', onclick: DD.review.quiz }, 'Quiz mode'),
           el('button', { class: 'btn small', type: 'button', onclick: DD.review.bank }, 'Question bank'),
           DD.writer ? el('button', { class: 'btn small', type: 'button', onclick: DD.writer.open }, 'Add study material') : null,
           el('button', { class: 'btn small', type: 'button', onclick: DD.writer.flagged }, 'Flagged (' + Object.keys(p.flagged || {}).length + ')'))),

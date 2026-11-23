@@ -284,6 +284,7 @@ any effect may carry chance (0–1): it only fires that often (light-attack crit
 <li>Question picker: weighted toward missed, unseen and stale questions. NPCs weight weak spots harder.</li>
 <li>Mastery per region from accuracy + recency; <b>fades over ~2 weeks</b>, computed from timestamps on load. <b>Outbreaks spawn in faded regions</b> with boosted loot.</li>
 <li>Missed-question review list with explanations; post-mortem screen on death lists the run's misses.</li>
+<li><b>Quiz mode</b> (2026-11-23): questions only, no combat, for focused study. Opens from Study (and the body map). Pick systems (all with questions are ticked) or <i>Missed only</i>. Systems mode runs <code>DD.q.pick</code> nonstop; Missed only works through the missed list until each is answered right once. Every answer goes through <code>DD.q.record</code> (stats, mastery, bounties) and saves. Shows score, %, streak and the flag button; keys 1–4, Enter for next, Esc to stop. The end screen lists that round's misses with explanations.</li>
 <li>Flag-a-question button. Generated questions are reviewed by the player before going live.</li>
 <li>Questions come from the user's own study guides and lecture notes (blood and lymphatic first). Starter questions are placeholders, marked as such.</li>
 </ul>
