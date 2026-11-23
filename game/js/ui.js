@@ -56,6 +56,7 @@ DD.ui = (function () {
     dialog.append(box);
     box.append(el('h3', null, 'Study'),
       el('button', { class: 'btn', type: 'button', onclick: go(DD.writer.open) }, 'Add study material'),
+      el('button', { class: 'btn primary', type: 'button', onclick: go(DD.review.quiz) }, 'Quiz mode (questions only)'),
       el('button', { class: 'btn', type: 'button', onclick: go(DD.review.bank) }, 'Question bank'),
       el('button', { class: 'btn', type: 'button', onclick: go(DD.editor.open) }, 'Lab images'),
       el('button', { class: 'btn', type: 'button', onclick: go(DD.writer.flagged) }, 'Flagged questions'),

@@ -18,6 +18,11 @@ DD.input = {
         const Q = DD.game.quiz; if (!Q) return;
         if (!Q.answer && /^[1-4]$/.test(k) && +k <= Q.opts.length) { e.preventDefault(); DD.game.answerTrap(+k - 1); }
         else if (Q.answer && (k === 'enter' || k === ' ')) { e.preventDefault(); DD.game.endTrap(); }
+      } else if (ui.mode === 'quiz') {
+        const Z = DD.review.qz; if (!Z) return;
+        if (k === 'escape') { e.preventDefault(); DD.review.quizEnd(); }
+        else if (!Z.ans && /^[1-4]$/.test(k)) { e.preventDefault(); Z.answer(+k - 1); }
+        else if (Z.ans && (k === 'enter' || k === ' ')) { e.preventDefault(); Z.cont(); }
       } else if (ui.mode === 'npc') {
         const T = DD.game.talk; if (!T) return;
         if (k === 'escape' && T.phase !== 'ask') { e.preventDefault(); DD.npc.close(); }
